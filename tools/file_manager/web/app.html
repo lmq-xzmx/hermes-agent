@@ -491,6 +491,38 @@
       </div>
       <button type="submit" class="btn btn-primary btn-full">Sign In</button>
     </form>
+    <p style="text-align:center;margin-top:16px;font-size:14px;color:var(--text-secondary)">
+      Don't have an account?
+      <a href="#" id="showRegister" style="color:var(--accent);text-decoration:none;font-weight:500">Register</a>
+    </p>
+  </div>
+</div>
+
+<!-- Register Screen -->
+<div class="login-container" id="registerScreen" style="display:none">
+  <div class="login-box">
+    <h1>Create Account</h1>
+    <p>Sign up to start managing files</p>
+    <div class="error-msg" id="registerError"></div>
+    <form id="registerForm">
+      <div class="form-group">
+        <label for="regUsername">Username</label>
+        <input type="text" id="regUsername" required autocomplete="username" minlength="3" maxlength="32">
+      </div>
+      <div class="form-group">
+        <label for="regPassword">Password</label>
+        <input type="password" id="regPassword" required autocomplete="new-password" minlength="6">
+      </div>
+      <div class="form-group">
+        <label for="regPassword2">Confirm Password</label>
+        <input type="password" id="regPassword2" required autocomplete="new-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+    </form>
+    <p style="text-align:center;margin-top:16px;font-size:14px;color:var(--text-secondary)">
+      Already have an account?
+      <a href="#" id="showLogin" style="color:var(--accent);text-decoration:none;font-weight:500">Sign In</a>
+    </p>
   </div>
 </div>
 
@@ -632,14 +664,38 @@ modalOverlay.addEventListener('click', (e) => {
 });
 
 // Auth
+let showingRegister = false;
+
+function showLoginScreen() {
+  loginScreen.style.display = 'flex';
+  registerScreen.style.display = 'none';
+  showingRegister = false;
+}
+
+function showRegisterScreen() {
+  loginScreen.style.display = 'none';
+  registerScreen.style.display = 'flex';
+  showingRegister = true;
+}
+
+document.getElementById('showRegister').addEventListener('click', (e) => {
+  e.preventDefault();
+  showRegisterScreen();
+});
+
+document.getElementById('showLogin').addEventListener('click', (e) => {
+  e.preventDefault();
+  showLoginScreen();
+});
+
 function checkAuth() {
   if (token) {
-    loginScreen.style.display = 'none';
+    showLoginScreen();
     appContainer.classList.add('active');
     loadCurrentUser();
     loadFiles(currentPath);
   } else {
-    loginScreen.style.display = 'flex';
+    showLoginScreen();
     appContainer.classList.remove('active');
   }
 }
@@ -676,6 +732,68 @@ loginForm.addEventListener('submit', async (e) => {
   } catch (err) {
     loginError.textContent = err.message;
     loginError.classList.add('show');
+  }
+});
+
+// Register form
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('regUsername').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const password2 = document.getElementById('regPassword2').value;
+  const registerError = document.getElementById('registerError');
+  registerError.classList.remove('show');
+
+  if (!username || !password) {
+    registerError.textContent = 'Please fill in all fields';
+    registerError.classList.add('show');
+    return;
+  }
+
+  if (username.length < 3) {
+    registerError.textContent = 'Username must be at least 3 characters';
+    registerError.classList.add('show');
+    return;
+  }
+
+  if (password.length < 6) {
+    registerError.textContent = 'Password must be at least 6 characters';
+    registerError.classList.add('show');
+    return;
+  }
+
+  if (password !== password2) {
+    registerError.textContent = 'Passwords do not match';
+    registerError.classList.add('show');
+    return;
+  }
+
+  try {
+    const res = await fetch(API_BASE + '/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Registration failed');
+
+    // Auto-login after register
+    const loginRes = await fetch(API_BASE + '/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const loginData = await loginRes.json();
+    if (!loginRes.ok) throw new Error(loginData.detail || 'Login failed after registration');
+
+    token = loginData.access_token;
+    localStorage.setItem(TOKEN_KEY, token);
+    registerError.classList.remove('show');
+    checkAuth();
+    toast('success', 'Welcome!', `Account created. Signed in as ${username}`);
+  } catch (err) {
+    registerError.textContent = err.message;
+    registerError.classList.add('show');
   }
 });
 

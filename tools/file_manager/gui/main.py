@@ -136,57 +136,132 @@ QSplitter::handle {
 """
 
 
-# ============== Login Dialog ==============
+# ============== Login / Register Dialog ==============
 class LoginDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.token = None
         self.username = None
+        self.is_register_mode = False
         self.setup_ui()
 
     def setup_ui(self):
-        self.setWindowTitle("Login - File Manager")
-        self.setMinimumWidth(350)
+        self.setWindowTitle("Sign In — File Manager")
+        self.setMinimumWidth(380)
         self.setModal(True)
 
         layout = QVBoxLayout()
-        layout.setSpacing(16)
-        layout.addWidget(QLabel("<h2>File Manager Login</h2>"))
+        layout.setSpacing(12)
+
+        self.title_label = QLabel("<h2>Welcome Back</h2>")
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self.title_label)
+
+        self.subtitle_label = QLabel("Sign in to access your files")
+        self.subtitle_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        self.subtitle_label.setStyleSheet("color: #808080;")
+        layout.addWidget(self.subtitle_label)
 
         form_layout = QFormLayout()
+        form_layout.setSpacing(10)
+
         self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText("Enter username")
+        self.username_input.setPlaceholderText("Username (3–32 chars)")
+        self.username_input.setMinimumHeight(32)
+
         self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText("Enter password")
+        self.password_input.setPlaceholderText("Password (min 6 chars)")
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+
+        # Extra field for register mode (confirm password)
+        self.confirm_password_input = QLineEdit()
+        self.confirm_password_input.setPlaceholderText("Confirm password")
+        self.confirm_password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.confirm_password_input.setVisible(False)
 
         form_layout.addRow("Username:", self.username_input)
         form_layout.addRow("Password:", self.password_input)
+        form_layout.addRow("Confirm:", self.confirm_password_input)
+
         layout.addLayout(form_layout)
 
         self.status_label = QLabel()
         self.status_label.setStyleSheet("color: #ff6b6b;")
+        self.status_label.setWordWrap(True)
         self.status_label.setVisible(False)
         layout.addWidget(self.status_label)
 
-        button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        # Toggle link
+        self.toggle_label = QLabel(
+            '<a href="#" style="color: #58a6ff; text-decoration: none;">Don\'t have an account? Register</a>'
         )
-        button_box.accepted.connect(self.try_login)
-        button_box.rejected.connect(self.reject)
-        layout.addWidget(button_box)
+        self.toggle_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        self.toggle_label.setOpenExternalLinks(False)
+        self.toggle_label.linkActivated.connect(self.toggle_mode)
+        layout.addWidget(self.toggle_label)
 
+        # Buttons
+        self.btn_box = QDialogButtonBox()
+        self.submit_btn = QPushButton("Sign In")
+        self.submit_btn.setDefault(True)
+        self.submit_btn.setMinimumHeight(36)
+        self.cancel_btn = QPushButton("Cancel")
+        self.cancel_btn.setMinimumHeight(36)
+        self.btn_box.addButton(self.submit_btn, QDialogButtonBox.ButtonRole.AcceptRole)
+        self.btn_box.addButton(self.cancel_btn, QDialogButtonBox.ButtonRole.RejectRole)
+
+        self.submit_btn.clicked.connect(self.handle_submit)
+        self.cancel_btn.clicked.connect(self.reject)
+
+        layout.addWidget(self.btn_box)
         self.setLayout(layout)
 
-    def try_login(self):
+    def toggle_mode(self):
+        self.is_register_mode = not self.is_register_mode
+        self.status_label.setVisible(False)
+
+        if self.is_register_mode:
+            self.title_label.setText("<h2>Create Account</h2>")
+            self.subtitle_label.setText("Register to start managing files")
+            self.submit_btn.setText("Register")
+            self.toggle_label.setText(
+                '<a href="#" style="color: #58a6ff; text-decoration: none;">Already have an account? Sign in</a>'
+            )
+            self.confirm_password_input.setVisible(True)
+            self.setWindowTitle("Register — File Manager")
+        else:
+            self.title_label.setText("<h2>Welcome Back</h2>")
+            self.subtitle_label.setText("Sign in to access your files")
+            self.submit_btn.setText("Sign In")
+            self.toggle_label.setText(
+                '<a href="#" style="color: #58a6ff; text-decoration: none;">Don\'t have an account? Register</a>'
+            )
+            self.confirm_password_input.setVisible(False)
+            self.setWindowTitle("Sign In — File Manager")
+
+    def handle_submit(self):
         username = self.username_input.text().strip()
         password = self.password_input.text()
+        confirm = self.confirm_password_input.text() if self.is_register_mode else ""
 
         if not username or not password:
-            self.status_label.setText("Please enter username and password")
-            self.status_label.setVisible(True)
+            self.show_error("Please fill in all fields")
             return
 
+        if self.is_register_mode:
+            self.do_register(username, password, confirm)
+        else:
+            self.do_login(username, password)
+
+    def show_error(self, msg):
+        self.status_label.setText(msg)
+        self.status_label.setVisible(True)
+
+    def clear_error(self):
+        self.status_label.setVisible(False)
+
+    def do_login(self, username, password):
+        self.clear_error()
         try:
             response = requests.post(
                 f"{BASE_URL}/auth/login",
@@ -199,17 +274,50 @@ class LoginDialog(QDialog):
                 self.username = username
                 self.accept()
             elif response.status_code == 401:
-                self.status_label.setText("Invalid username or password")
-                self.status_label.setVisible(True)
+                self.show_error("Invalid username or password")
             else:
-                self.status_label.setText(f"Login failed: {response.status_code}")
-                self.status_label.setVisible(True)
+                try:
+                    detail = response.json().get("detail", f"HTTP {response.status_code}")
+                except Exception:
+                    detail = f"HTTP {response.status_code}"
+                self.show_error(detail)
         except requests.exceptions.ConnectionError:
-            self.status_label.setText("Cannot connect to server")
-            self.status_label.setVisible(True)
+            self.show_error("Cannot connect to server.\nIs the API server running?")
         except Exception as e:
-            self.status_label.setText(f"Error: {str(e)}")
-            self.status_label.setVisible(True)
+            self.show_error(f"Error: {str(e)}")
+
+    def do_register(self, username, password, confirm):
+        self.clear_error()
+
+        if len(username) < 3:
+            self.show_error("Username must be at least 3 characters")
+            return
+        if len(password) < 6:
+            self.show_error("Password must be at least 6 characters")
+            return
+        if password != confirm:
+            self.show_error("Passwords do not match")
+            return
+
+        try:
+            response = requests.post(
+                f"{BASE_URL}/auth/register",
+                json={"username": username, "password": password},
+                timeout=10
+            )
+            if response.status_code == 200:
+                # Auto-login after register
+                self.do_login(username, password)
+            else:
+                try:
+                    detail = response.json().get("detail", f"HTTP {response.status_code}")
+                except Exception:
+                    detail = f"HTTP {response.status_code}"
+                self.show_error(detail)
+        except requests.exceptions.ConnectionError:
+            self.show_error("Cannot connect to server.\nIs the API server running?")
+        except Exception as e:
+            self.show_error(f"Error: {str(e)}")
 
 
 # ============== Text Editor Dialog ==============

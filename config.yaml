@@ -379,9 +379,9 @@ platform_toolsets:
   yuanbao:
   - hermes-yuanbao
 file_manager:
-  storage_root: ~/hermes_file_storage
-  database_url: sqlite:///~/.hermes/file_manager.db
-  jwt_secret: change-this-secret-in-production-use-openssl-rand-base64-32
+  storage_root: ~/.hermes/file_manager/storage
+  database_url: sqlite:///~/.hermes/file_manager/hfm.db
+  jwt_secret: YOUR-JWT-SECRET-HERE
   default_admin:
     username: admin
-    password: admin123
+    password: CHANGE-THIS-PASSWORD

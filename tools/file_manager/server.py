@@ -238,6 +238,32 @@ async def logout(user: User = Depends(get_current_user)):
     return {"message": "Logged out"}
 
 
+@app.get("/api/v1/auth/me")
+async def get_me(user: User = Depends(get_current_user)):
+    """Get current user info"""
+    # user.role lazy-loads from a detached session; re-fetch role safely
+    db_factory = _api_instances.get("db_factory")
+    role_name = None
+    if db_factory and user.role_id:
+        session = db_factory()
+        try:
+            role = session.query(Role).filter(Role.id == user.role_id).first()
+            role_name = role.name if role else None
+        finally:
+            session.close()
+    data = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role_id": user.role_id,
+        "role_name": role_name,
+        "is_active": user.is_active,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "last_login": user.last_login.isoformat() if user.last_login else None,
+    }
+    return data
+
+
 # ============================================================================
 # File Operation Endpoints
 # ============================================================================

@@ -13,7 +13,7 @@ from functools import wraps
 from fastapi import Request, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from ..engine.models import User, UserSession, Role, init_db, create_builtin_roles
 
@@ -144,7 +144,9 @@ class JWTManager:
         
         session = self.db()
         try:
-            user = session.query(User).filter(User.id == user_id).first()
+            user = session.query(User).options(
+                joinedload(User.role).selectinload(Role.permission_rules)
+            ).filter(User.id == user_id).first()
             return user
         finally:
             session.close()
