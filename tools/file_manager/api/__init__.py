@@ -1,20 +1,18 @@
 """
 Hermes File Manager - API Layer
+
+This __init__.py intentionally avoids importing from auth.py or any module
+that depends on services/ (to prevent circular imports).
+
+Direct imports for submodules that don't cause cycles:
+    from file_manager.api.middleware import RateLimiter
+    from file_manager.api.admin import AdminAPI
 """
 
-from .auth import AuthAPI, get_current_user, jwt_required
-from .files import FilesAPI
-from .admin import AdminAPI
-from .share import ShareAPI
+# Only import from modules that are completely self-contained
 from .middleware import RateLimiter, setup_middleware
 
 __all__ = [
-    "AuthAPI",
-    "FilesAPI",
-    "AdminAPI",
-    "ShareAPI",
-    "get_current_user",
-    "jwt_required",
     "RateLimiter",
     "setup_middleware",
 ]

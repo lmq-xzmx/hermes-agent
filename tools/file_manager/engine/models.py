@@ -211,6 +211,11 @@ class PermissionRule(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
+    def to_primitive(self) -> str:
+        """Return primitive string representation: 'perm1,perm2:path_pattern'."""
+        perms = ",".join(self.get_permissions())
+        return f"{perms}:{self.path_pattern}"
+
 
 class AuditLog(Base):
     """Audit log for all operations"""

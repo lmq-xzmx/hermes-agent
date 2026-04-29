@@ -46,11 +46,11 @@ class StorageEngine:
     def __init__(
         self,
         storage_root: str,
-        permission_engine: PermissionEngine,
+        permission_engine: "PermissionEngine" = None,  # type: ignore
     ):
         self.storage_root = Path(storage_root).resolve()
-        self.permission_engine = permission_engine
-        
+        self._perm = permission_engine
+
         # Ensure storage root exists
         self.storage_root.mkdir(parents=True, exist_ok=True)
         
@@ -446,11 +446,26 @@ class StorageEngine:
         
         # Use permission engine to safely resolve
         try:
-            return self.permission_engine.resolve_path(user_path, str(self.storage_root))
+            return (self._perm or self).resolve_path(user_path, str(self.storage_root))
         except (ValueError, PermissionError):
             # Path traversal attempt
             raise PermissionError(f"Path traversal detected: {user_path}")
-    
+
+    @staticmethod
+    def resolve_path(user_path: str, base_path: str) -> Path:
+        """Standalone path traversal guard (mirrors PermissionEngine.resolve_path)."""
+        import os
+        base = Path(base_path)
+        normalized = user_path.strip().strip("/")
+        if normalized:
+            joined = os.path.abspath(str(base / normalized))
+        else:
+            joined = os.path.abspath(str(base))
+        base_abs = os.path.abspath(str(base))
+        if not joined.startswith(base_abs + os.sep) and joined != base_abs:
+            raise PermissionError(f"Path '{user_path}' would escape base directory '{base_abs}'")
+        return Path(joined)
+
     @staticmethod
     def _format_permissions(mode: int) -> str:
         """Convert stat mode to rwx string (Unix format like rw-r--r--)"""

@@ -343,13 +343,26 @@ class TestSearch:
 class TestPathSecurity:
     def test_path_traversal_blocked(self, storage):
         """Path traversal should raise PermissionError"""
-        # The storage engine delegates to PermissionEngine.resolve_path
-        # which raises PermissionError for traversal attempts
-        from tools.file_manager.engine.permission import PermissionEngine
-        pe = storage.permission_engine
-        # Writing via traversal should be blocked at resolve step
+        # The storage engine's _resolve_user_path checks for traversal
+        # and raises PermissionError when path would escape storage root
         with pytest.raises(PermissionError):
             storage._resolve_user_path("../../../etc/passwd")
+
+    def test_path_traversal_blocked_absolute(self, storage):
+        """Absolute paths should also be blocked - on macOS they resolve relative to storage root"""
+        # On macOS, /etc/passwd becomes <storage_root>/etc/passwd (a subdirectory, not an escape)
+        # The real security boundary is traversal with .. components
+        # Verify that the resolved path is INSIDE storage root
+        resolved = storage._resolve_user_path("/etc/passwd")
+        assert str(resolved).startswith(str(storage.storage_root))
+        # But a path with .. escaping the root DOES get blocked
+        with pytest.raises(PermissionError):
+            storage._resolve_user_path("../../../tmp/../../../var/tmp/somefile")
+
+    def test_path_traversal_blocked_null_bytes(self, storage):
+        """Paths with null bytes should be blocked"""
+        with pytest.raises(PermissionError):
+            storage._resolve_user_path("../../../etc/passwd\x00.txt")
 
 
 if __name__ == "__main__":

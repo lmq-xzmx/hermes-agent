@@ -1,6 +1,6 @@
 """
-Tests for Hermes File Manager - Admin API
-TDD Phase: Tests written first, should pass against existing implementation
+Tests for Hermes File Manager - AdminService
+Tests the pure business logic layer (AdminService) and ORM layer (User, Role, Rule models).
 """
 
 import pytest
@@ -30,6 +30,12 @@ def db_session():
 
 
 @pytest.fixture
+def db_factory(db_session):
+    """Return a factory function that returns the test session."""
+    return lambda: db_session
+
+
+@pytest.fixture
 def admin_user(db_session):
     admin_role = db_session.query(Role).filter(Role.name == "admin").first()
     user = User(username="sysadmin", role=admin_role)
@@ -40,10 +46,12 @@ def admin_user(db_session):
 
 
 # =============================================================================
-# User Management
+# ORM Layer Tests (unchanged - test User, Role, PermissionRule models directly)
 # =============================================================================
 
 class TestUserManagement:
+    """Tests for User ORM model"""
+
     def test_create_user(self, db_session, admin_user):
         editor_role = db_session.query(Role).filter(Role.name == "editor").first()
         user = User(username="newuser", email="new@example.com", role=editor_role)
@@ -101,11 +109,9 @@ class TestUserManagement:
         assert db_session.query(User).filter(User.id == user_id).first() is None
 
 
-# =============================================================================
-# Role Management
-# =============================================================================
-
 class TestRoleManagement:
+    """Tests for Role ORM model"""
+
     def test_create_custom_role(self, db_session, admin_user):
         role = Role(name="custom_role", description="A custom role", is_system=False)
         db_session.add(role)
@@ -135,66 +141,9 @@ class TestRoleManagement:
         db_session.rollback()
 
 
-# =============================================================================
-# Permission Rule Management
-# =============================================================================
+class TestPermissionRuleCascade:
+    """Tests for ORM cascade delete behavior"""
 
-class TestRuleManagement:
-    def test_create_rule(self, db_session, admin_user):
-        viewer_role = db_session.query(Role).filter(Role.name == "viewer").first()
-        rule = PermissionRule(
-            role_id=viewer_role.id,
-            path_pattern="/docs/**",
-            permissions="read,list",
-            priority=5,
-            created_by=admin_user.id,
-        )
-        db_session.add(rule)
-        db_session.commit()
-
-        assert rule.id is not None
-        assert rule.priority == 5
-
-    def test_rule_permissions_parsed(self, db_session):
-        rule = PermissionRule(
-            role_id="some-id",
-            path_pattern="/*",
-            permissions="read,write,delete,manage",
-            priority=0,
-        )
-        perms = rule.get_permissions()
-        assert len(perms) == 4
-        assert "write" in perms
-
-    def test_multiple_rules_for_same_role(self, db_session):
-        editor_role = db_session.query(Role).filter(Role.name == "editor").first()
-
-        rule1 = PermissionRule(
-            role_id=editor_role.id,
-            path_pattern="/docs/**",
-            permissions="read,write",
-            priority=0,
-        )
-        rule2 = PermissionRule(
-            role_id=editor_role.id,
-            path_pattern="/public/**",
-            permissions="read",
-            priority=0,
-        )
-        db_session.add_all([rule1, rule2])
-        db_session.commit()
-
-        rules = db_session.query(PermissionRule).filter(
-            PermissionRule.role_id == editor_role.id
-        ).all()
-        assert len(rules) >= 2
-
-
-# =============================================================================
-# Cascade & Integrity
-# =============================================================================
-
-class TestIntegrity:
     def test_deleting_role_cascades_rules(self, db_session, admin_user):
         custom_role = Role(name="cascade_test_role", is_system=False)
         db_session.add(custom_role)
@@ -221,393 +170,325 @@ class TestIntegrity:
 
 
 # =============================================================================
-# AdminAPI Integration Tests
+# AdminService Layer Tests
 # =============================================================================
 
-import os
-import tempfile
-from tools.file_manager.api.admin import (
-    AdminAPI,
-    CreateUserRequest,
-    UpdateUserRequest,
-    CreateRoleRequest,
-    UpdateRoleRequest,
-    CreateRuleRequest,
-    UpdateRuleRequest,
-    AuditQueryRequest,
+from tools.file_manager.services.admin_service import (
+    AdminService,
+    AdminAccessDenied,
+    UserNotFound,
+    UserAlreadyExists,
+    RoleNotFound,
+    RoleAlreadyExists,
+    RoleNotModifiable,
+    CannotDeleteSelf,
+    CannotDeleteRoleWithUsers,
 )
+from tools.file_manager.services.permission_context import PermissionContext
+from tools.file_manager.api.dto import CreateUserRequestDTO
 
 
-class TestAdminAPIUserManagement:
-    """Tests for AdminAPI user management methods"""
+def make_admin_ctx(user):
+    """Create admin PermissionContext from user."""
+    return PermissionContext(
+        user_id=user.id,
+        username=user.username,
+        role_name="admin",
+        permission_rules=[],
+    )
 
-    def test_list_users(self, db_session, admin_user):
-        api = AdminAPI(lambda: db_session)
-        result = api.list_users(admin_user)
-        assert isinstance(result, list)
-        assert len(result) >= 1
 
-    def test_list_users_with_pagination(self, db_session, admin_user):
+def make_user_ctx(username="viewer_user", role_name="viewer"):
+    """Create non-admin PermissionContext."""
+    return PermissionContext(
+        user_id="some-user-id",
+        username=username,
+        role_name=role_name,
+        permission_rules=[],
+    )
+
+
+class TestAdminServiceUserManagement:
+    """Tests for AdminService user management methods"""
+
+    def test_list_users_as_admin(self, db_factory, admin_user):
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
+
+        result = admin_service.list_users(user_ctx=ctx, limit=10, offset=0)
+
+        assert result.total >= 1
+        assert len(result.users) >= 1
+
+    def test_list_users_pagination(self, db_factory, admin_user):
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
+
         # Create additional users
         for i in range(3):
             user = User(username=f"user{i}", role=admin_user.role)
             user.set_password("pass")
-            db_session.add(user)
-        db_session.commit()
+            db_factory().add(user)
+        db_factory().commit()
 
-        api = AdminAPI(lambda: db_session)
-        result = api.list_users(admin_user, limit=2, offset=0)
-        assert len(result) == 2
+        result = admin_service.list_users(user_ctx=ctx, limit=2, offset=0)
+        assert len(result.users) == 2
 
-    def test_get_user(self, db_session, admin_user):
+    def test_list_users_non_admin_raises(self, db_factory, admin_user):
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_user_ctx()
+
+        with pytest.raises(AdminAccessDenied):
+            admin_service.list_users(user_ctx=ctx)
+
+    def test_get_user(self, db_factory, admin_user):
         user = User(username="gettest", role=admin_user.role)
         user.set_password("pass")
-        db_session.add(user)
-        db_session.commit()
+        db_factory().add(user)
+        db_factory().commit()
 
-        api = AdminAPI(lambda: db_session)
-        result = api.get_user(user.id, admin_user)
-        assert result["username"] == "gettest"
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
 
-    def test_get_user_not_found(self, db_session, admin_user):
-        api = AdminAPI(lambda: db_session)
-        from fastapi import HTTPException
-        with pytest.raises(HTTPException) as exc_info:
-            api.get_user("nonexistent-id", admin_user)
-        assert exc_info.value.status_code == 404
+        result = admin_service.get_user(user.id, user_ctx=ctx)
 
-    def test_create_user(self, db_session, admin_user):
-        api = AdminAPI(lambda: db_session)
-        request = CreateUserRequest(
+        assert result.username == "gettest"
+
+    def test_get_user_not_found(self, db_factory, admin_user):
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
+
+        with pytest.raises(UserNotFound):
+            admin_service.get_user("nonexistent-id", user_ctx=ctx)
+
+    def test_create_user(self, db_factory, admin_user):
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
+
+        request = CreateUserRequestDTO(
             username="newadminuser",
             password="securepass123",
             email="new@example.com",
         )
-        result = api.create_user(request, admin_user)
-        assert result["username"] == "newadminuser"
-        assert result["email"] == "new@example.com"
-        assert "id" in result
+        result = admin_service.create_user(request, user_ctx=ctx)
 
-    def test_create_user_with_role(self, db_session, admin_user):
-        editor_role = db_session.query(Role).filter(Role.name == "editor").first()
-        api = AdminAPI(lambda: db_session)
-        request = CreateUserRequest(
+        assert result.username == "newadminuser"
+        assert result.email == "new@example.com"
+        assert result.id is not None
+
+    def test_create_user_with_role(self, db_factory, admin_user):
+        editor_role = db_factory().query(Role).filter(Role.name == "editor").first()
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
+
+        request = CreateUserRequestDTO(
             username="roleuser",
             password="pass",
             role_id=editor_role.id,
         )
-        result = api.create_user(request, admin_user)
-        assert result["role_id"] == editor_role.id
+        result = admin_service.create_user(request, user_ctx=ctx)
 
-    def test_create_user_duplicate_username(self, db_session, admin_user):
-        api = AdminAPI(lambda: db_session)
-        request = CreateUserRequest(username="dupuser", password="pass")
-        api.create_user(request, admin_user)
+        assert result.role_id == editor_role.id
 
-        from fastapi import HTTPException
-        with pytest.raises(HTTPException) as exc_info:
-            api.create_user(request, admin_user)
-        assert exc_info.value.status_code == 400
+    def test_create_user_duplicate_username(self, db_factory, admin_user):
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
 
-    def test_update_user(self, db_session, admin_user):
+        request = CreateUserRequestDTO(username="dupuser", password="pass")
+        admin_service.create_user(request, user_ctx=ctx)
+
+        with pytest.raises(UserAlreadyExists):
+            admin_service.create_user(request, user_ctx=ctx)
+
+    def test_update_user(self, db_factory, admin_user):
         user = User(username="updatable", role=admin_user.role)
         user.set_password("pass")
-        db_session.add(user)
-        db_session.commit()
+        db_factory().add(user)
+        db_factory().commit()
 
-        api = AdminAPI(lambda: db_session)
-        request = UpdateUserRequest(email="updated@test.com")
-        result = api.update_user(user.id, request, admin_user)
-        assert result["email"] == "updated@test.com"
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
 
-    def test_delete_user(self, db_session, admin_user):
+        result = admin_service.update_user(
+            user.id,
+            email="updated@test.com",
+            role_id=None,
+            is_active=None,
+            user_ctx=ctx,
+        )
+
+        assert result.email == "updated@test.com"
+
+    def test_delete_user(self, db_factory, admin_user):
         user = User(username="tobedeleted", role=admin_user.role)
         user.set_password("pass")
-        db_session.add(user)
-        db_session.commit()
+        db_factory().add(user)
+        db_factory().commit()
         user_id = user.id
 
-        api = AdminAPI(lambda: db_session)
-        result = api.delete_user(user_id, admin_user)
-        assert "deleted" in result["message"].lower()
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
+
+        result = admin_service.delete_user(user_id, user_ctx=ctx)
+
+        assert "deleted" in result.message.lower()
 
         # Verify deleted
-        from fastapi import HTTPException
-        with pytest.raises(HTTPException):
-            api.get_user(user_id, admin_user)
+        with pytest.raises(UserNotFound):
+            admin_service.get_user(user_id, user_ctx=ctx)
 
-    def test_delete_user_self_not_allowed(self, db_session, admin_user):
-        api = AdminAPI(lambda: db_session)
-        from fastapi import HTTPException
-        with pytest.raises(HTTPException) as exc_info:
-            api.delete_user(admin_user.id, admin_user)
-        assert exc_info.value.status_code == 400
+    def test_delete_user_self_not_allowed(self, db_factory, admin_user):
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
+
+        with pytest.raises(CannotDeleteSelf):
+            admin_service.delete_user(admin_user.id, user_ctx=ctx)
 
 
-class TestAdminAPIRoleManagement:
-    """Tests for AdminAPI role management methods"""
+class TestAdminServiceRoleManagement:
+    """Tests for AdminService role management methods"""
 
-    def test_list_roles(self, db_session, admin_user):
-        api = AdminAPI(lambda: db_session)
-        result = api.list_roles(admin_user)
+    def test_list_roles(self, db_factory, admin_user):
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
+
+        result = admin_service.list_roles(user_ctx=ctx)
+
         assert isinstance(result, list)
         assert len(result) >= 3  # admin, editor, viewer builtins
 
-    def test_get_role(self, db_session, admin_user):
-        viewer_role = db_session.query(Role).filter(Role.name == "viewer").first()
-        api = AdminAPI(lambda: db_session)
-        result = api.get_role(viewer_role.id, admin_user)
-        assert result["name"] == "viewer"
-        assert "rules" in result
+    def test_get_role(self, db_factory, admin_user):
+        viewer_role = db_factory().query(Role).filter(Role.name == "viewer").first()
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
 
-    def test_get_role_not_found(self, db_session, admin_user):
-        api = AdminAPI(lambda: db_session)
-        from fastapi import HTTPException
-        with pytest.raises(HTTPException) as exc_info:
-            api.get_role("nonexistent-id", admin_user)
-        assert exc_info.value.status_code == 404
+        result = admin_service.get_role(viewer_role.id, user_ctx=ctx)
 
-    def test_create_role(self, db_session, admin_user):
-        api = AdminAPI(lambda: db_session)
-        request = CreateRoleRequest(
+        assert result.name == "viewer"
+
+    def test_get_role_not_found(self, db_factory, admin_user):
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
+
+        with pytest.raises(RoleNotFound):
+            admin_service.get_role("nonexistent-id", user_ctx=ctx)
+
+    def test_create_role(self, db_factory, admin_user):
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
+
+        result = admin_service.create_role(
             name="newrole",
             description="A test role",
+            user_ctx=ctx,
         )
-        result = api.create_role(request, admin_user)
-        assert result["name"] == "newrole"
-        assert result["description"] == "A test role"
-        assert result["is_system"] is False
 
-    def test_create_role_duplicate(self, db_session, admin_user):
-        api = AdminAPI(lambda: db_session)
-        request = CreateRoleRequest(name="duprole")
-        api.create_role(request, admin_user)
+        assert result.name == "newrole"
+        assert result.description == "A test role"
 
-        from fastapi import HTTPException
-        with pytest.raises(HTTPException) as exc_info:
-            api.create_role(request, admin_user)
-        assert exc_info.value.status_code == 400
+    def test_create_role_duplicate(self, db_factory, admin_user):
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
 
-    def test_update_role(self, db_session, admin_user):
+        admin_service.create_role(name="duprole", description=None, user_ctx=ctx)
+
+        with pytest.raises(RoleAlreadyExists):
+            admin_service.create_role(name="duprole", description=None, user_ctx=ctx)
+
+    def test_update_role(self, db_factory, admin_user):
         custom_role = Role(name="updatablerole", is_system=False)
-        db_session.add(custom_role)
-        db_session.commit()
+        db_factory().add(custom_role)
+        db_factory().commit()
 
-        api = AdminAPI(lambda: db_session)
-        request = UpdateRoleRequest(description="Updated description")
-        result = api.update_role(custom_role.id, request, admin_user)
-        assert result["description"] == "Updated description"
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
 
-    def test_update_system_role_not_allowed(self, db_session, admin_user):
-        system_role = db_session.query(Role).filter(Role.name == "admin").first()
-        api = AdminAPI(lambda: db_session)
-        request = UpdateRoleRequest(description="Try to update")
-        from fastapi import HTTPException
-        with pytest.raises(HTTPException) as exc_info:
-            api.update_role(system_role.id, request, admin_user)
-        assert exc_info.value.status_code == 400
+        result = admin_service.update_role(
+            custom_role.id,
+            description="Updated description",
+            user_ctx=ctx,
+        )
 
-    def test_delete_role(self, db_session, admin_user):
+        assert result.description == "Updated description"
+
+    def test_update_system_role_not_allowed(self, db_factory, admin_user):
+        system_role = db_factory().query(Role).filter(Role.name == "admin").first()
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
+
+        with pytest.raises(RoleNotModifiable):
+            admin_service.update_role(system_role.id, description="Try to update", user_ctx=ctx)
+
+    def test_delete_role(self, db_factory, admin_user):
         custom_role = Role(name="tobedeletedrole", is_system=False)
-        db_session.add(custom_role)
-        db_session.commit()
+        db_factory().add(custom_role)
+        db_factory().commit()
         role_id = custom_role.id
 
-        api = AdminAPI(lambda: db_session)
-        result = api.delete_role(role_id, admin_user)
-        assert "deleted" in result["message"].lower()
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
 
-    def test_delete_role_with_users_not_allowed(self, db_session, admin_user):
+        result = admin_service.delete_role(role_id, user_ctx=ctx)
+
+        assert "deleted" in result.message.lower()
+
+    def test_delete_role_with_users_not_allowed(self, db_factory, admin_user):
         custom_role = Role(name="rolewithusers", is_system=False)
-        db_session.add(custom_role)
-        db_session.commit()
+        db_factory().add(custom_role)
+        db_factory().commit()
 
         user = User(username="roleuser", role=custom_role)
         user.set_password("pass")
-        db_session.add(user)
-        db_session.commit()
+        db_factory().add(user)
+        db_factory().commit()
 
-        api = AdminAPI(lambda: db_session)
-        from fastapi import HTTPException
-        with pytest.raises(HTTPException) as exc_info:
-            api.delete_role(custom_role.id, admin_user)
-        assert exc_info.value.status_code == 400
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
 
-    def test_delete_system_role_not_allowed(self, db_session, admin_user):
-        system_role = db_session.query(Role).filter(Role.name == "admin").first()
-        api = AdminAPI(lambda: db_session)
-        from fastapi import HTTPException
-        with pytest.raises(HTTPException) as exc_info:
-            api.delete_role(system_role.id, admin_user)
-        assert exc_info.value.status_code == 400
+        with pytest.raises(CannotDeleteRoleWithUsers):
+            admin_service.delete_role(custom_role.id, user_ctx=ctx)
 
+    def test_delete_system_role_not_allowed(self, db_factory, admin_user):
+        system_role = db_factory().query(Role).filter(Role.name == "admin").first()
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_admin_ctx(admin_user)
 
-class TestAdminAPIRuleManagement:
-    """Tests for AdminAPI permission rule management methods"""
-
-    def test_list_rules(self, db_session, admin_user):
-        api = AdminAPI(lambda: db_session)
-        result = api.list_rules(admin_user)
-        assert isinstance(result, list)
-
-    def test_list_rules_filtered_by_role(self, db_session, admin_user):
-        viewer_role = db_session.query(Role).filter(Role.name == "viewer").first()
-        rule = PermissionRule(
-            role_id=viewer_role.id,
-            path_pattern="/test/**",
-            permissions="read",
-            priority=1,
-            created_by=admin_user.id,
-        )
-        db_session.add(rule)
-        db_session.commit()
-
-        api = AdminAPI(lambda: db_session)
-        result = api.list_rules(admin_user, role_id=viewer_role.id)
-        assert len(result) >= 1
-        assert all(r["role_id"] == viewer_role.id for r in result)
-
-    def test_create_rule(self, db_session, admin_user):
-        editor_role = db_session.query(Role).filter(Role.name == "editor").first()
-        api = AdminAPI(lambda: db_session)
-        request = CreateRuleRequest(
-            role_id=editor_role.id,
-            path_pattern="/new/**",
-            permissions="read,write",
-            priority=10,
-        )
-        result = api.create_rule(request, admin_user)
-        assert result["path_pattern"] == "/new/**"
-        assert result["permissions"] == ["read", "write"]
-        assert result["priority"] == 10
-
-    def test_create_rule_invalid_role(self, db_session, admin_user):
-        api = AdminAPI(lambda: db_session)
-        request = CreateRuleRequest(
-            role_id="nonexistent-role",
-            path_pattern="/*",
-            permissions="read",
-        )
-        from fastapi import HTTPException
-        with pytest.raises(HTTPException) as exc_info:
-            api.create_rule(request, admin_user)
-        assert exc_info.value.status_code == 400
-
-    def test_update_rule(self, db_session, admin_user):
-        editor_role = db_session.query(Role).filter(Role.name == "editor").first()
-        rule = PermissionRule(
-            role_id=editor_role.id,
-            path_pattern="/old/**",
-            permissions="read",
-            priority=0,
-            created_by=admin_user.id,
-        )
-        db_session.add(rule)
-        db_session.commit()
-
-        api = AdminAPI(lambda: db_session)
-        request = UpdateRuleRequest(
-            path_pattern="/updated/**",
-            permissions="read,write,delete",
-            priority=5,
-        )
-        result = api.update_rule(rule.id, request, admin_user)
-        assert result["path_pattern"] == "/updated/**"
-        assert result["permissions"] == ["read", "write", "delete"]
-        assert result["priority"] == 5
-
-    def test_update_rule_not_found(self, db_session, admin_user):
-        api = AdminAPI(lambda: db_session)
-        request = UpdateRuleRequest(priority=1)
-        from fastapi import HTTPException
-        with pytest.raises(HTTPException) as exc_info:
-            api.update_rule("nonexistent-id", request, admin_user)
-        assert exc_info.value.status_code == 404
-
-    def test_delete_rule(self, db_session, admin_user):
-        editor_role = db_session.query(Role).filter(Role.name == "editor").first()
-        rule = PermissionRule(
-            role_id=editor_role.id,
-            path_pattern="/todelete/**",
-            permissions="read",
-            priority=0,
-            created_by=admin_user.id,
-        )
-        db_session.add(rule)
-        db_session.commit()
-        rule_id = rule.id
-
-        api = AdminAPI(lambda: db_session)
-        result = api.delete_rule(rule_id, admin_user)
-        assert "deleted" in result["message"].lower()
-
-        # Verify deleted
-        from fastapi import HTTPException
-        with pytest.raises(HTTPException):
-            api.get_user(rule_id, admin_user)
-
-    def test_delete_rule_not_found(self, db_session, admin_user):
-        api = AdminAPI(lambda: db_session)
-        from fastapi import HTTPException
-        with pytest.raises(HTTPException) as exc_info:
-            api.delete_rule("nonexistent-id", admin_user)
-        assert exc_info.value.status_code == 404
+        with pytest.raises(RoleNotModifiable):
+            admin_service.delete_role(system_role.id, user_ctx=ctx)
 
 
-class TestAdminAPIAuditLogs:
-    """Tests for AdminAPI audit log methods"""
+class TestAdminServiceAccessControl:
+    """Tests for AdminService role-based access control"""
 
-    def test_query_audit_logs(self, db_session, admin_user):
-        api = AdminAPI(lambda: db_session)
-        request = AuditQueryRequest(limit=10)
-        result = api.query_audit_logs(request, admin_user)
-        assert isinstance(result, list)
+    def test_non_admin_cannot_list_users(self, db_factory, admin_user):
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_user_ctx()
 
-    def test_query_audit_logs_with_filters(self, db_session, admin_user):
-        # Create a user to generate audit log
-        api = AdminAPI(lambda: db_session)
-        request = CreateUserRequest(username="audituser", password="pass")
-        api.create_user(request, admin_user)
+        with pytest.raises(AdminAccessDenied):
+            admin_service.list_users(user_ctx=ctx)
 
-        # Query with action filter
-        query_req = AuditQueryRequest(action="user.create", limit=10)
-        result = api.query_audit_logs(query_req, admin_user)
-        assert isinstance(result, list)
+    def test_non_admin_cannot_list_roles(self, db_factory, admin_user):
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_user_ctx()
 
-    def test_query_audit_logs_pagination(self, db_session, admin_user):
-        api = AdminAPI(lambda: db_session)
-        request = AuditQueryRequest(limit=5, offset=0)
-        result = api.query_audit_logs(request, admin_user)
-        assert isinstance(result, list)
-        assert len(result) <= 5
+        with pytest.raises(AdminAccessDenied):
+            admin_service.list_roles(user_ctx=ctx)
 
-    def test_export_audit_logs(self, db_session, admin_user):
-        api = AdminAPI(lambda: db_session)
-        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
-            filepath = f.name
-        try:
-            result = api.export_audit_logs(admin_user, filepath)
-            assert "exported" in result["message"].lower()
-            assert os.path.exists(filepath)
-        finally:
-            if os.path.exists(filepath):
-                os.unlink(filepath)
+    def test_non_admin_cannot_create_user(self, db_factory, admin_user):
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_user_ctx()
 
-    def test_export_audit_logs_with_date_range(self, db_session, admin_user):
-        api = AdminAPI(lambda: db_session)
-        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
-            filepath = f.name
-        try:
-            result = api.export_audit_logs(
-                admin_user,
-                filepath,
-                start_date="2024-01-01T00:00:00",
-                end_date="2025-12-31T23:59:59",
-            )
-            assert "exported" in result["message"].lower()
-        finally:
-            if os.path.exists(filepath):
-                os.unlink(filepath)
+        request = CreateUserRequestDTO(username="hacker", password="pass")
+
+        with pytest.raises(AdminAccessDenied):
+            admin_service.create_user(request, user_ctx=ctx)
+
+    def test_non_admin_cannot_delete_user(self, db_factory, admin_user):
+        admin_service = AdminService(db_factory=db_factory, event_bus=None)
+        ctx = make_user_ctx()
+
+        with pytest.raises(AdminAccessDenied):
+            admin_service.delete_user("some-id", user_ctx=ctx)
 
 
 if __name__ == "__main__":

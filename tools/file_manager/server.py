@@ -1,42 +1,68 @@
 """
-Hermes File Manager - FastAPI Server
+Hermes File Manager - FastAPI Server (refactored)
 
-Entry point for running HFM as a standalone REST API server.
+Architecture:
+  This file      → FastAPI app + thin HTTP route handlers
+  services/      → Pure business logic (no FastAPI, no ORM coupling)
+  api/dto.py    → Pydantic request/response models
+  engine/       → StorageEngine, PermissionEngine, SQLAlchemy models
+
+Route handlers are intentionally thin: they parse HTTP, call a service,
+and return HTTP responses. All business logic lives in services/.
 """
+
+from __future__ import annotations
 
 import os
 import sys
 from pathlib import Path
 
 # Add tools directory to path
-_tools_dir = Path(__file__).parent.parent  # tools/
+_tools_dir = Path(__file__).parent.parent
 if str(_tools_dir) not in sys.path:
     sys.path.insert(0, str(_tools_dir))
+
+from contextlib import asynccontextmanager
+from typing import Optional
 
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from contextlib import asynccontextmanager
+from pydantic import BaseModel
 
-from file_manager.api.auth import (
-    AuthAPI, JWTManager, LoginRequest, RegisterRequest,
-    RefreshRequest, get_current_user, get_client_info, jwt_required
-)
-from file_manager.api.files import FilesAPI, FileReadRequest, FileWriteRequest
-from file_manager.api.admin import AdminAPI
-from file_manager.api.share import ShareAPI, CreateShareRequest
-from file_manager.api.middleware import RateLimiter, LoginRateLimiter, setup_middleware
 from file_manager.engine.models import init_db, create_builtin_roles, User, Role
-from file_manager.engine.permission import PermissionEngine
 from file_manager.engine.storage import StorageEngine
+from file_manager.services import (
+    AuthService, FileService, PermissionChecker, PermissionContext,
+    EventBus, get_event_bus, AuditEventSubscriber,
+)
+from file_manager.api.dto import (
+    LoginRequestDTO, RegisterRequestDTO, RefreshRequestDTO,
+    LoginResponseDTO, UserResponseDTO,
+    FileReadRequestDTO, FileWriteRequestDTO, FileDeleteRequestDTO,
+    MkDirRequestDTO, FileCopyRequestDTO, FileMoveRequestDTO,
+    CreateShareRequestDTO, CreateUserRequestDTO, AuditQueryRequestDTO,
+    FileListResponseDTO, FileContentResponseDTO, FileStatResponseDTO,
+    AuditLogEntryDTO, AuditQueryResponseDTO, UserListItemDTO,
+    RoleDTO, UserListResponseDTO, MessageResponseDTO,
+)
+from file_manager.services.share_service import ShareService
+from file_manager.services.admin_service import AdminService
+from file_manager.api.auth import security, get_client_info
+
+
+# ============================================================================
+# App State / Global Store
+# ============================================================================
+
+_api_instances: dict = {}
 
 
 # ============================================================================
 # Configuration
 # ============================================================================
 
-def get_config():
-    # Try to load from Hermes config.yaml first
+def get_config() -> dict:
     config = {}
     try:
         import yaml
@@ -53,9 +79,18 @@ def get_config():
         pass
 
     return {
-        "database_url": os.environ.get("HFM_DATABASE_URL", config.get("database_url", "sqlite:///~/.hermes/file_manager/hfm.db")),
-        "storage_root": os.environ.get("HFM_STORAGE_ROOT", config.get("storage_root", "~/.hermes/file_manager/storage")),
-        "jwt_secret": os.environ.get("HFM_JWT_SECRET", config.get("jwt_secret", "change-me-in-production")),
+        "database_url": os.environ.get(
+            "HFM_DATABASE_URL",
+            config.get("database_url", "sqlite:///~/.hermes/file_manager/hfm.db"),
+        ),
+        "storage_root": os.environ.get(
+            "HFM_STORAGE_ROOT",
+            config.get("storage_root", "~/.hermes/file_manager/storage"),
+        ),
+        "jwt_secret": os.environ.get(
+            "HFM_JWT_SECRET",
+            config.get("jwt_secret", "change-me-in-production"),
+        ),
         "port": int(os.environ.get("HFM_PORT", "8080")),
         "host": os.environ.get("HFM_HOST", "0.0.0.0"),
         "default_admin": config.get("default_admin") or {
@@ -69,80 +104,91 @@ def get_config():
 # Lifespan
 # ============================================================================
 
-_api_instances = {}
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager"""
     config = get_config()
-    
+
     # Expand storage path
     storage_root = os.path.expanduser(config["storage_root"])
-    
+
     # Initialize database
     db_url = config["database_url"]
     if db_url.startswith("sqlite:///"):
         db_path = os.path.expanduser(db_url.replace("sqlite:///", ""))
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
         db_url = f"sqlite:///{db_path}"
-    
+
     db_factory = init_db(db_url)
-    
-    # Create builtin roles
+
+    # Seed builtin roles + default admin
     session = db_factory()
     try:
         create_builtin_roles(session)
-
-        # Create default admin user if none exists
         admin_config = config.get("default_admin")
         if admin_config:
-            existing_admin = session.query(User).filter(User.username == admin_config["username"]).first()
-            if not existing_admin:
+            existing = session.query(User).filter(User.username == admin_config["username"]).first()
+            if not existing:
                 admin_role = session.query(Role).filter(Role.name == "admin").first()
                 if admin_role:
-                    user = User(
-                        username=admin_config["username"],
-                        role_id=admin_role.id,
-                    )
+                    user = User(username=admin_config["username"], role_id=admin_role.id)
                     user.set_password(admin_config["password"])
                     session.add(user)
                     session.commit()
     finally:
         session.close()
-    
-    # Initialize permission engine
-    permission_engine = PermissionEngine(storage_root)
-    
-    # Initialize storage engine
-    storage = StorageEngine(storage_root, permission_engine)
-    
-    # Initialize JWT manager
-    jwt_manager = JWTManager(config["jwt_secret"], db_factory)
-    
-    # Initialize API handlers
-    auth_api = AuthAPI(jwt_manager, db_factory)
-    files_api = FilesAPI(storage, db_factory)
-    admin_api = AdminAPI(db_factory)
-    share_api = ShareAPI(db_factory, storage)
-    
+
+    # Storage engine
+    storage = StorageEngine(storage_root, permission_engine=None)  # Permission checks live in FileService layer
+
+    # Event bus
+    event_bus = get_event_bus()
+
+    # Permission checker (pure logic)
+    permission_checker = PermissionChecker(storage_root)
+
+    # Services
+    auth_service = AuthService(
+        db_factory=db_factory,
+        jwt_secret=config["jwt_secret"],
+        event_bus=event_bus,
+    )
+    file_service = FileService(
+        storage=storage,
+        permission_checker=permission_checker,
+        event_bus=event_bus,
+    )
+    share_service = ShareService(
+        db_factory=db_factory,
+        storage=storage,
+        permission_checker=permission_checker,
+        event_bus=event_bus,
+    )
+    admin_service = AdminService(
+        db_factory=db_factory,
+        event_bus=event_bus,
+    )
+
+    # Audit subscriber (consumes events → DB writes)
+    audit_subscriber = AuditEventSubscriber(db_factory=db_factory, event_bus=event_bus)
+    audit_subscriber.register()
+
     # Store in app state
     _api_instances["config"] = config
     _api_instances["db_factory"] = db_factory
-    _api_instances["jwt_manager"] = jwt_manager
     _api_instances["storage"] = storage
-    _api_instances["auth"] = auth_api
-    _api_instances["files"] = files_api
-    _api_instances["admin"] = admin_api
-    _api_instances["share"] = share_api
-    
-    # Mount static files from web/ directory (relative to server.py location)
+    _api_instances["auth_service"] = auth_service
+    _api_instances["file_service"] = file_service
+    _api_instances["share_service"] = share_service
+    _api_instances["admin_service"] = admin_service
+    _api_instances["permission_checker"] = permission_checker
+    _api_instances["event_bus"] = event_bus
+
+    # Mount static files
     _web_dir = str(Path(__file__).parent / "web")
-    app.mount('/static', StaticFiles(directory=_web_dir), name='static')
-    
+    app.mount("/static", StaticFiles(directory=_web_dir), name="static")
+
     yield
-    
-    # Cleanup
+
     _api_instances.clear()
 
 
@@ -157,10 +203,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure for production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -168,21 +213,47 @@ app.add_middleware(
 
 
 # ============================================================================
-# Health Check
+# Service Access Helpers (FastAPI dependencies)
+# ============================================================================
+
+def get_auth_service() -> AuthService:
+    return _api_instances.get("auth_service")
+
+def get_file_service() -> FileService:
+    return _api_instances.get("file_service")
+
+def get_share_service() -> ShareService:
+    return _api_instances.get("share_service")
+
+def get_admin_service() -> AdminService:
+    return _api_instances.get("admin_service")
+
+def get_current_user_ctx(
+    credentials = Depends(security),
+) -> PermissionContext:
+    """Return PermissionContext for the authenticated user."""
+    auth_service = get_auth_service()
+    if not auth_service:
+        raise HTTPException(status_code=500, detail="Auth not configured")
+
+    try:
+        user = auth_service.get_user_from_token(credentials.credentials)
+        return PermissionContext.from_authenticated_user(user)
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+
+# ============================================================================
+# Health
 # ============================================================================
 
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "hermes-file-manager"}
 
-
 @app.get("/")
 async def root():
-    return {
-        "service": "Hermes File Manager",
-        "version": "1.0.0",
-        "docs": "/docs",
-    }
+    return {"service": "Hermes File Manager", "version": "1.0.0", "docs": "/docs"}
 
 
 # ============================================================================
@@ -190,78 +261,80 @@ async def root():
 # ============================================================================
 
 @app.post("/api/v1/auth/login")
-async def login(request: LoginRequest, req: Request):
-    """Authenticate and get tokens"""
+async def login(request: LoginRequestDTO, req: Request):
+    from file_manager.api.middleware import LoginRateLimiter
     limiter = LoginRateLimiter()
     limiter.check_login_attempt(req)
-    
+
+    auth_service = get_auth_service()
     client_info = get_client_info(req)
-    
+
     try:
-        auth = _api_instances["auth"]
-        result = auth.login(
+        result = auth_service.authenticate(
             request,
             ip_address=client_info["ip_address"],
             user_agent=client_info["user_agent"],
         )
         limiter.record_success(req)
-        return result
-    except HTTPException:
+        return LoginResponseDTO(
+            access_token=result.access_token,
+            refresh_token=result.refresh_token,
+            token_type="bearer",
+            expires_in=result.expires_in,
+            user=result.user.to_response(),
+        ).model_dump()
+    except ValueError as e:
         limiter.record_failed_attempt(req)
-        raise
+        raise HTTPException(status_code=401, detail=str(e))
 
 
 @app.post("/api/v1/auth/register")
-async def register(request: RegisterRequest, req: Request):
-    """Register new user (admin only in production)"""
-    auth = _api_instances["auth"]
+async def register(request: RegisterRequestDTO, req: Request):
+    auth_service = get_auth_service()
     client_info = get_client_info(req)
-    
-    # In production, require admin auth
-    return auth.register(
-        request,
-        ip_address=client_info["ip_address"],
-        user_agent=client_info["user_agent"],
-    )
+
+    try:
+        user = auth_service.register(
+            request,
+            ip_address=client_info["ip_address"],
+            user_agent=client_info["user_agent"],
+        )
+        return user.model_dump()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.post("/api/v1/auth/refresh")
-async def refresh(request: RefreshRequest):
-    """Refresh access token"""
-    auth = _api_instances["auth"]
-    return auth.refresh(request)
+async def refresh(request: RefreshRequestDTO):
+    auth_service = get_auth_service()
+    try:
+        result = auth_service.refresh_tokens(request)
+        return LoginResponseDTO(
+            access_token=result.access_token,
+            refresh_token=result.refresh_token,
+            token_type="bearer",
+            expires_in=result.expires_in,
+            user=result.user.to_response(),
+        ).model_dump()
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
 
 
 @app.post("/api/v1/auth/logout")
-async def logout(user: User = Depends(get_current_user)):
-    """Logout (requires auth)"""
+async def logout(user_ctx: PermissionContext = Depends(get_current_user_ctx)):
+    auth_service = get_auth_service()
+    auth_service.logout(user_ctx.user_id)
     return {"message": "Logged out"}
 
 
 @app.get("/api/v1/auth/me")
-async def get_me(user: User = Depends(get_current_user)):
-    """Get current user info"""
-    # user.role lazy-loads from a detached session; re-fetch role safely
-    db_factory = _api_instances.get("db_factory")
-    role_name = None
-    if db_factory and user.role_id:
-        session = db_factory()
-        try:
-            role = session.query(Role).filter(Role.id == user.role_id).first()
-            role_name = role.name if role else None
-        finally:
-            session.close()
-    data = {
-        "id": user.id,
-        "username": user.username,
-        "email": user.email,
-        "role_id": user.role_id,
-        "role_name": role_name,
-        "is_active": user.is_active,
-        "created_at": user.created_at.isoformat() if user.created_at else None,
-        "last_login": user.last_login.isoformat() if user.last_login else None,
+async def get_me(user_ctx: PermissionContext = Depends(get_current_user_ctx)):
+    """Get current user info."""
+    return {
+        "id": user_ctx.user_id,
+        "username": user_ctx.username,
+        "role_name": user_ctx.role_name,
     }
-    return data
 
 
 # ============================================================================
@@ -272,114 +345,111 @@ async def get_me(user: User = Depends(get_current_user)):
 async def list_files(
     path: str = "",
     include_hidden: bool = False,
-    user: User = Depends(get_current_user),
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
     req: Request = None,
 ):
-    """List directory contents"""
-    files = _api_instances["files"]
-    client_info = get_client_info(req)
-    
-    return files.list_directory(
-        path=path,
-        user=user,
-        include_hidden=include_hidden,
-        ip_address=client_info["ip_address"],
-    )
+    file_service = get_file_service()
+    client_info = get_client_info(req) if req else {}
+    try:
+        return file_service.list_directory(
+            path=path,
+            user_ctx=user_ctx,
+            include_hidden=include_hidden,
+            ip_address=client_info.get("ip_address"),
+        ).model_dump()
+    except Exception as e:
+        return _handle_service_error(e)
 
 
 @app.post("/api/v1/files/read")
 async def read_file(
-    request: FileReadRequest,
-    user: User = Depends(get_current_user),
+    request: FileReadRequestDTO,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
     req: Request = None,
 ):
-    """Read file contents"""
-    files = _api_instances["files"]
-    client_info = get_client_info(req)
-    
-    return files.read_file(
-        request,
-        user=user,
-        ip_address=client_info["ip_address"],
-    )
+    file_service = get_file_service()
+    client_info = get_client_info(req) if req else {}
+    try:
+        return file_service.read_file(
+            request=request,
+            user_ctx=user_ctx,
+            ip_address=client_info.get("ip_address"),
+        ).model_dump()
+    except Exception as e:
+        return _handle_service_error(e)
 
 
 @app.post("/api/v1/files/write")
 async def write_file(
-    request: FileWriteRequest,
-    user: User = Depends(get_current_user),
+    request: FileWriteRequestDTO,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
     req: Request = None,
 ):
-    """Write file"""
-    files = _api_instances["files"]
-    client_info = get_client_info(req)
-    
-    return files.write_file(
-        request,
-        user=user,
-        ip_address=client_info["ip_address"],
-    )
+    file_service = get_file_service()
+    client_info = get_client_info(req) if req else {}
+    try:
+        return file_service.write_file(
+            request=request,
+            user_ctx=user_ctx,
+            ip_address=client_info.get("ip_address"),
+        )
+    except Exception as e:
+        return _handle_service_error(e)
 
 
 @app.post("/api/v1/files/delete")
 async def delete_file(
-    request_body: Request,  # FileDeleteRequest
-    user: User = Depends(get_current_user),
-    req: Request = None,
+    request_body: Request,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+    http_request: Request = None,
 ):
-    """Delete file or directory"""
-    from pydantic import BaseModel
-    
-    class FileDeleteRequest(BaseModel):
-        path: str
-        recursive: bool = False
-    
+    file_service = get_file_service()
+    client_info = get_client_info(http_request) if http_request else {}
     body = await request_body.json()
-    delete_request = FileDeleteRequest(**body)
-    
-    files = _api_instances["files"]
-    client_info = get_client_info(req)
-    
-    return files.delete_file(
-        delete_request,
-        user=user,
-        ip_address=client_info["ip_address"],
-    )
+    delete_req = FileDeleteRequestDTO(**body)
+    try:
+        return file_service.delete_file(
+            request=delete_req,
+            user_ctx=user_ctx,
+            ip_address=client_info.get("ip_address"),
+        )
+    except Exception as e:
+        return _handle_service_error(e)
 
 
 @app.post("/api/v1/files/mkdir")
 async def create_directory(
     request_body: Request,
-    user: User = Depends(get_current_user),
-    req: Request = None,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+    http_request: Request = None,
 ):
-    """Create directory"""
-    from pydantic import BaseModel
-    
-    class MkDirRequest(BaseModel):
-        path: str
-    
+    file_service = get_file_service()
+    client_info = get_client_info(http_request) if http_request else {}
     body = await request_body.json()
-    mkdir_request = MkDirRequest(**body)
-    
-    files = _api_instances["files"]
-    client_info = get_client_info(req)
-    
-    return files.create_directory(
-        mkdir_request,
-        user=user,
-        ip_address=client_info["ip_address"],
-    )
+    mkdir_req = MkDirRequestDTO(**body)
+    try:
+        return file_service.create_directory(
+            request=mkdir_req,
+            user_ctx=user_ctx,
+            ip_address=client_info.get("ip_address"),
+        )
+    except Exception as e:
+        return _handle_service_error(e)
 
 
 @app.get("/api/v1/files/stat")
 async def get_stat(
     path: str,
-    user: User = Depends(get_current_user),
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
 ):
-    """Get file/directory metadata"""
-    files = _api_instances["files"]
-    return files.get_stat(path=path, user=user)
+    file_service = get_file_service()
+    try:
+        return file_service.get_stat(
+            path=path,
+            user_ctx=user_ctx,
+        ).model_dump()
+    except Exception as e:
+        return _handle_service_error(e)
 
 
 # ============================================================================
@@ -388,43 +458,41 @@ async def get_stat(
 
 @app.post("/api/v1/share")
 async def create_share(
-    request: CreateShareRequest,
-    user: User = Depends(get_current_user),
+    request: CreateShareRequestDTO,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
     req: Request = None,
 ):
-    """Create share link"""
-    share = _api_instances["share"]
-    client_info = get_client_info(req)
-    
-    return share.create_share_link(
-        request,
-        user=user,
-        ip_address=client_info["ip_address"],
-    )
-
+    share_service = get_share_service()
+    client_info = get_client_info(req) if req else {}
+    try:
+        return share_service.create_share_link(
+            request=request,
+            user_ctx=user_ctx,
+            ip_address=client_info.get("ip_address"),
+        )
+    except Exception as e:
+        raise _handle_share_error(e)
 
 @app.get("/api/v1/share/{token}")
 async def get_share(token: str):
-    """Get share link info"""
-    share = _api_instances["share"]
-    return share.get_share_link(token)
-
+    share_service = get_share_service()
+    try:
+        return share_service.get_share_link(token=token)
+    except Exception as e:
+        raise _handle_share_error(e)
 
 @app.get("/api/v1/share/{token}/content")
-async def access_share_content(
-    token: str,
-    password: str = None,
-    req: Request = None,
-):
-    """Access share link content"""
-    share = _api_instances["share"]
+async def access_share_content(token: str, password: str = None, req: Request = None):
+    share_service = get_share_service()
     client_info = get_client_info(req) if req else {}
-    
-    return share.access_share_content(
-        token=token,
-        password=password,
-        ip_address=client_info.get("ip_address"),
-    )
+    try:
+        return share_service.access_share_content(
+            token=token,
+            password=password,
+            ip_address=client_info.get("ip_address"),
+        )
+    except Exception as e:
+        raise _handle_share_error(e)
 
 
 # ============================================================================
@@ -435,86 +503,94 @@ async def access_share_content(
 async def list_users(
     limit: int = 100,
     offset: int = 0,
-    user: User = Depends(get_current_user),
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
 ):
-    """List all users (admin only)"""
-    admin = _api_instances["admin"]
-    return admin.list_users(user, limit=limit, offset=offset)
-
+    admin_service = get_admin_service()
+    try:
+        return admin_service.list_users(limit=limit, offset=offset, user_ctx=user_ctx)
+    except Exception as e:
+        raise _handle_admin_error(e)
 
 @app.post("/api/v1/admin/users")
 async def create_user(
-    request: Request,
-    user: User = Depends(get_current_user),
+    request_body: Request,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
 ):
-    """Create user (admin only)"""
-    from pydantic import BaseModel
-    
-    class CreateUserRequest(BaseModel):
-        username: str
-        password: str
-        email: str = None
-        role_id: str = None
-    
-    body = await req.json()
-    create_request = CreateUserRequest(**body)
-    
-    admin = _api_instances["admin"]
-    return admin.create_user(create_request, user)
-
+    admin_service = get_admin_service()
+    body = await request_body.json()
+    create_req = CreateUserRequestDTO(**body)
+    try:
+        return admin_service.create_user(request=create_req, user_ctx=user_ctx)
+    except Exception as e:
+        raise _handle_admin_error(e)
 
 @app.get("/api/v1/admin/roles")
-async def list_roles(user: User = Depends(get_current_user)):
-    """List all roles"""
-    admin = _api_instances["admin"]
-    return admin.list_roles(user)
-
+async def list_roles(user_ctx: PermissionContext = Depends(get_current_user_ctx)):
+    admin_service = get_admin_service()
+    try:
+        return admin_service.list_roles(user_ctx=user_ctx)
+    except Exception as e:
+        raise _handle_admin_error(e)
 
 @app.get("/api/v1/admin/audit")
 async def query_audit(
     request: Request,
-    user: User = Depends(get_current_user),
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
 ):
-    """Query audit logs"""
-    from pydantic import BaseModel
-    from datetime import datetime
-    
-    class AuditQueryRequest(BaseModel):
-        user_id: str = None
-        action: str = None
-        path: str = None
-        result: str = None
-        start_date: str = None
-        end_date: str = None
-        limit: int = 100
-        offset: int = 0
-    
-    body = await req.json()
-    query = AuditQueryRequest(**body)
-    
-    admin = _api_instances["admin"]
-    return admin.query_audit_logs(query, user)
+    admin_service = get_admin_service()
+    body = await request.json()
+    query = AuditQueryRequestDTO(**body)
+    try:
+        return admin_service.query_audit_logs(query=query, user_ctx=user_ctx)
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+# ============================================================================
+# Error Handler
+# ============================================================================
+
+def _handle_service_error(e: Exception):
+    """Map service-layer exceptions to HTTP responses."""
+    from file_manager.services import FileAccessDenied, FileNotFound, FileAlreadyExists, DirectoryNotEmpty
+
+    if isinstance(e, FileAccessDenied):
+        raise HTTPException(status_code=403, detail=e.reason)
+    if isinstance(e, FileNotFound):
+        raise HTTPException(status_code=404, detail=str(e))
+    if isinstance(e, FileAlreadyExists):
+        raise HTTPException(status_code=409, detail=str(e))
+    if isinstance(e, DirectoryNotEmpty):
+        raise HTTPException(status_code=409, detail=str(e))
+    # Re-raise unknown errors
+    raise HTTPException(status_code=500, detail=str(e))
+
+
+def _handle_share_error(e: Exception):
+    """Map share service exceptions to HTTP responses."""
+    from file_manager.services.share_service import ShareNotFound, ShareAccessDenied
+    if isinstance(e, ShareNotFound):
+        raise HTTPException(status_code=404, detail=str(e))
+    if isinstance(e, ShareAccessDenied):
+        raise HTTPException(status_code=403, detail=str(e))
+    raise HTTPException(status_code=500, detail=str(e))
+
+
+def _handle_admin_error(e: Exception):
+    """Map admin service exceptions to HTTP responses."""
+    from file_manager.services.admin_service import UserNotFound, RoleNotFound
+    if isinstance(e, UserNotFound):
+        raise HTTPException(status_code=404, detail=str(e))
+    if isinstance(e, RoleNotFound):
+        raise HTTPException(status_code=404, detail=str(e))
+    raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================================================
 # Main
 # ============================================================================
 
-def main():
-    import uvicorn
-    
-    config = get_config()
-    
-    print(f"Starting Hermes File Manager on {config['host']}:{config['port']}")
-    print(f"Storage root: {config['storage_root']}")
-    print(f"Database: {config['database_url']}")
-    
-    uvicorn.run(
-        app,
-        host=config["host"],
-        port=config["port"],
-    )
-
-
 if __name__ == "__main__":
-    main()
+    import uvicorn
+    config = get_config()
+    uvicorn.run(app, host=config["host"], port=config["port"])

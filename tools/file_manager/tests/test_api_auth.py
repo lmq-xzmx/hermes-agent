@@ -1,11 +1,11 @@
 """
-Tests for Hermes File Manager - Auth API
-TDD Phase: Tests written first, should pass against existing implementation
+Tests for Hermes File Manager - Auth Service
+TDD Phase: Tests written for AuthService architecture
 """
 
 import pytest
 import sys
-import secrets
+import jwt
 from pathlib import Path
 from datetime import datetime, timedelta
 
@@ -19,43 +19,117 @@ from tools.file_manager.engine.models import (
     Base, User, Role, UserSession, init_db, create_builtin_roles
 )
 from tools.file_manager.engine.audit import AuditLogger
+from tools.file_manager.services.auth_service import AuthService
+from tools.file_manager.api.dto import LoginRequestDTO, RegisterRequestDTO, RefreshRequestDTO
 
 
-# We test JWTManager directly without FastAPI machinery
-class TestJWTManagerUnit:
-    def test_jwt_manager_creation(self):
+# =============================================================================
+# TestAuthServiceUnit - Tests for AuthService token methods
+# =============================================================================
+
+class TestAuthServiceUnit:
+    def test_auth_service_creation(self):
+        """AuthService can be instantiated with required dependencies"""
         eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
         Base.metadata.create_all(eng)
-        Session = sessionmaker(bind=eng)
-        sess = Session()
+        db_factory = sessionmaker(bind=eng)
+
+        auth_service = AuthService(
+            db_factory=db_factory,
+            jwt_secret="test-secret-key",
+            event_bus=None,
+        )
+
+        assert auth_service._jwt_secret == "test-secret-key"
+        assert auth_service.db_factory is not None
+
+    def test_generate_access_token_creates_valid_jwt(self):
+        """AuthService generates a valid access token for a user"""
+        eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+        Base.metadata.create_all(eng)
+        db_factory = sessionmaker(bind=eng)
+        sess = db_factory()
         create_builtin_roles(sess)
 
         admin_role = sess.query(Role).filter(Role.name == "admin").first()
-        user = User(username="jwttest", role=admin_role)
-        user.set_password("pass")
-        sess.add(user)
+        user_orm = User(username="tokentest", role=admin_role)
+        user_orm.set_password("pass")
+        sess.add(user_orm)
         sess.commit()
-        user_id = user.id
+        user_id = user_orm.id
+        role_id = admin_role.id
         sess.close()
 
-        from tools.file_manager.api.auth import JWTManager
+        auth_service = AuthService(
+            db_factory=db_factory,
+            jwt_secret="test-secret-key",
+            event_bus=None,
+        )
 
-        manager = JWTManager(secret="test-secret-key", db_session_factory=Session)
+        from tools.file_manager.services.auth_service import AuthenticatedUser
+        user = AuthenticatedUser(
+            id=user_id,
+            username="tokentest",
+            email=None,
+            role_id=role_id,
+            role_name="admin",
+            permission_rules=[],
+            is_active=True,
+        )
 
-        # Re-fetch user in new session
-        sess2 = Session()
-        user2 = sess2.query(User).filter(User.id == user_id).first()
-
-        token = manager.create_access_token(user2)
+        token = auth_service._generate_access_token(user)
         assert isinstance(token, str)
         assert len(token) > 0
 
         # Decode and verify
-        decoded = manager.verify_access_token(token)
+        decoded = jwt.decode(token, "test-secret-key", algorithms=["HS256"])
         assert decoded["sub"] == user_id
-        assert decoded["username"] == "jwttest"
+        assert decoded["username"] == "tokentest"
+        assert decoded["type"] == "access"
 
-        sess2.close()
+    def test_generate_refresh_token_creates_valid_jwt(self):
+        """AuthService generates a valid refresh token for a user"""
+        eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+        Base.metadata.create_all(eng)
+        db_factory = sessionmaker(bind=eng)
+        sess = db_factory()
+        create_builtin_roles(sess)
+
+        admin_role = sess.query(Role).filter(Role.name == "admin").first()
+        user_orm = User(username="refreshtest", role=admin_role)
+        user_orm.set_password("pass")
+        sess.add(user_orm)
+        sess.commit()
+        user_id = user_orm.id
+        role_id = admin_role.id
+        sess.close()
+
+        auth_service = AuthService(
+            db_factory=db_factory,
+            jwt_secret="test-secret-key",
+            event_bus=None,
+        )
+
+        from tools.file_manager.services.auth_service import AuthenticatedUser
+        user = AuthenticatedUser(
+            id=user_id,
+            username="refreshtest",
+            email=None,
+            role_id=role_id,
+            role_name="admin",
+            permission_rules=[],
+            is_active=True,
+        )
+
+        token = auth_service._generate_refresh_token(user)
+        assert isinstance(token, str)
+        assert len(token) > 0
+
+        # Decode and verify
+        decoded = jwt.decode(token, "test-secret-key", algorithms=["HS256"])
+        assert decoded["sub"] == user_id
+        assert decoded["type"] == "refresh"
+        assert "jti" in decoded  # unique token id
 
 
 # =============================================================================
@@ -144,48 +218,52 @@ class TestRoleBasedAccess:
         sess.close()
 
 
-class TestAuthAPI:
-    """RED Phase: AuthAPI.login, register, refresh, logout"""
+# =============================================================================
+# TestAuthService - Tests for AuthService public API
+# =============================================================================
 
-    def test_login_success(self):
-        """Login with valid credentials returns tokens and user"""
-        from tools.file_manager.api.auth import JWTManager, AuthAPI, LoginRequest
+class TestAuthService:
+    """Tests for AuthService.authenticate, register, refresh_tokens, get_user_from_token, logout"""
 
+    def test_authenticate_success(self):
+        """Authenticate with valid credentials returns tokens and user"""
         eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
         Base.metadata.create_all(eng)
-        Session = sessionmaker(bind=eng)
-        sess = Session()
+        db_factory = sessionmaker(bind=eng)
+        sess = db_factory()
         create_builtin_roles(sess)
-        sess.commit()
 
         admin_role = sess.query(Role).filter(Role.name == "admin").first()
-        user = User(username="logintest", role=admin_role)
+        user = User(username="authtest", role=admin_role)
         user.set_password("correctpassword")
         sess.add(user)
         sess.commit()
         sess.close()
 
-        jwt_mgr = JWTManager(secret="test-secret", db_session_factory=Session)
-        api = AuthAPI(jwt_manager=jwt_mgr, db_session_factory=Session)
+        auth_service = AuthService(
+            db_factory=db_factory,
+            jwt_secret="test-secret",
+            event_bus=None,
+        )
 
-        response = api.login(LoginRequest(username="logintest", password="correctpassword"))
+        result = auth_service.authenticate(
+            LoginRequestDTO(username="authtest", password="correctpassword"),
+            ip_address="127.0.0.1",
+            user_agent="test-agent",
+        )
 
-        assert response.access_token
-        assert response.refresh_token
-        assert response.user["username"] == "logintest"
-        assert response.expires_in > 0
+        assert result.access_token
+        assert result.refresh_token
+        assert result.user.username == "authtest"
+        assert result.expires_in > 0
 
-    def test_login_invalid_password_returns_401(self):
-        """Login with wrong password raises 401"""
-        from tools.file_manager.api.auth import JWTManager, AuthAPI, LoginRequest
-        from fastapi import HTTPException
-
+    def test_authenticate_invalid_password_raises_value_error(self):
+        """Authenticate with wrong password raises ValueError"""
         eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
         Base.metadata.create_all(eng)
-        Session = sessionmaker(bind=eng)
-        sess = Session()
+        db_factory = sessionmaker(bind=eng)
+        sess = db_factory()
         create_builtin_roles(sess)
-        sess.commit()
 
         admin_role = sess.query(Role).filter(Role.name == "admin").first()
         user = User(username="wrongpass", role=admin_role)
@@ -194,73 +272,89 @@ class TestAuthAPI:
         sess.commit()
         sess.close()
 
-        jwt_mgr = JWTManager(secret="test-secret", db_session_factory=Session)
-        api = AuthAPI(jwt_manager=jwt_mgr, db_session_factory=Session)
+        auth_service = AuthService(
+            db_factory=db_factory,
+            jwt_secret="test-secret",
+            event_bus=None,
+        )
 
-        with pytest.raises(HTTPException) as exc_info:
-            api.login(LoginRequest(username="wrongpass", password="badpassword"))
-        assert exc_info.value.status_code == 401
+        with pytest.raises(ValueError) as exc_info:
+            auth_service.authenticate(
+                LoginRequestDTO(username="wrongpass", password="badpassword"),
+                ip_address="127.0.0.1",
+                user_agent="test-agent",
+            )
+        assert "Invalid username or password" in str(exc_info.value)
 
-    def test_login_user_not_found_returns_401(self):
-        """Login with non-existent user raises 401"""
-        from tools.file_manager.api.auth import JWTManager, AuthAPI, LoginRequest
-        from fastapi import HTTPException
-
+    def test_authenticate_user_not_found_raises_value_error(self):
+        """Authenticate with non-existent user raises ValueError"""
         eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
         Base.metadata.create_all(eng)
-        Session = sessionmaker(bind=eng)
-        sess = Session()
+        db_factory = sessionmaker(bind=eng)
+        sess = db_factory()
         create_builtin_roles(sess)
-        sess.commit()
         sess.close()
 
-        jwt_mgr = JWTManager(secret="test-secret", db_session_factory=Session)
-        api = AuthAPI(jwt_manager=jwt_mgr, db_session_factory=Session)
+        auth_service = AuthService(
+            db_factory=db_factory,
+            jwt_secret="test-secret",
+            event_bus=None,
+        )
 
-        with pytest.raises(HTTPException) as exc_info:
-            api.login(LoginRequest(username="ghostuser", password="anypassword"))
-        assert exc_info.value.status_code == 401
+        with pytest.raises(ValueError) as exc_info:
+            auth_service.authenticate(
+                LoginRequestDTO(username="ghostuser", password="anypassword"),
+                ip_address="127.0.0.1",
+                user_agent="test-agent",
+            )
+        assert "Invalid username or password" in str(exc_info.value)
 
     def test_register_success(self):
-        """Register new user returns user object"""
-        from tools.file_manager.api.auth import JWTManager, AuthAPI, RegisterRequest
-
+        """Register new user returns user response"""
         eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
         Base.metadata.create_all(eng)
-        Session = sessionmaker(bind=eng)
-        sess = Session()
+        db_factory = sessionmaker(bind=eng)
+        sess = db_factory()
         create_builtin_roles(sess)
-        sess.commit()
+        sess.close()
 
-        jwt_mgr = JWTManager(secret="test-secret", db_session_factory=Session)
-        api = AuthAPI(jwt_manager=jwt_mgr, db_session_factory=Session)
+        auth_service = AuthService(
+            db_factory=db_factory,
+            jwt_secret="test-secret",
+            event_bus=None,
+        )
 
-        new_user = api.register(RegisterRequest(
-            username="newuser", password="SecurePass123!", email="new@example.com"
-        ))
+        result = auth_service.register(
+            RegisterRequestDTO(
+                username="newuser",
+                password="SecurePass123!",
+                email="new@example.com",
+            ),
+            ip_address="127.0.0.1",
+            user_agent="test-agent",
+        )
 
-        # User object is detached after session closes inside register(); re-query
-        sess2 = Session()
+        assert result.username == "newuser"
+        assert result.email == "new@example.com"
+        # Should be assigned viewer role by default
+        assert result.role_name == "viewer"
+
+        # Verify user exists in DB with hashed password
+        sess2 = db_factory()
         user_row = sess2.query(User).filter(User.username == "newuser").first()
         assert user_row is not None
         assert user_row.email == "new@example.com"
         assert user_row.check_password("SecurePass123!")
-        # Should be assigned viewer role by default
         assert user_row.role.name == "viewer"
         sess2.close()
-        sess.close()
 
-    def test_register_duplicate_username_raises_400(self):
-        """Register with existing username raises 400"""
-        from tools.file_manager.api.auth import JWTManager, AuthAPI, RegisterRequest
-        from fastapi import HTTPException
-
+    def test_register_duplicate_username_raises_value_error(self):
+        """Register with existing username raises ValueError"""
         eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
         Base.metadata.create_all(eng)
-        Session = sessionmaker(bind=eng)
-        sess = Session()
+        db_factory = sessionmaker(bind=eng)
+        sess = db_factory()
         create_builtin_roles(sess)
-        sess.commit()
 
         admin_role = sess.query(Role).filter(Role.name == "admin").first()
         user = User(username="duplicate", role=admin_role)
@@ -269,23 +363,27 @@ class TestAuthAPI:
         sess.commit()
         sess.close()
 
-        jwt_mgr = JWTManager(secret="test-secret", db_session_factory=Session)
-        api = AuthAPI(jwt_manager=jwt_mgr, db_session_factory=Session)
+        auth_service = AuthService(
+            db_factory=db_factory,
+            jwt_secret="test-secret",
+            event_bus=None,
+        )
 
-        with pytest.raises(HTTPException) as exc_info:
-            api.register(RegisterRequest(username="duplicate", password="pass"))
-        assert exc_info.value.status_code == 400
+        with pytest.raises(ValueError) as exc_info:
+            auth_service.register(
+                RegisterRequestDTO(username="duplicate", password="pass"),
+                ip_address="127.0.0.1",
+                user_agent="test-agent",
+            )
+        assert "Username already exists" in str(exc_info.value)
 
-    def test_refresh_token_returns_new_tokens(self):
-        """Refresh with valid refresh token returns new access + refresh tokens"""
-        from tools.file_manager.api.auth import JWTManager, AuthAPI, LoginRequest, RefreshRequest
-
+    def test_refresh_tokens_returns_new_tokens(self):
+        """Refresh with valid tokens returns new access + refresh tokens"""
         eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
         Base.metadata.create_all(eng)
-        Session = sessionmaker(bind=eng)
-        sess = Session()
+        db_factory = sessionmaker(bind=eng)
+        sess = db_factory()
         create_builtin_roles(sess)
-        sess.commit()
 
         admin_role = sess.query(Role).filter(Role.name == "admin").first()
         user = User(username="refreshuser", role=admin_role)
@@ -294,50 +392,109 @@ class TestAuthAPI:
         sess.commit()
         sess.close()
 
-        jwt_mgr = JWTManager(secret="test-secret", db_session_factory=Session)
-        api = AuthAPI(jwt_manager=jwt_mgr, db_session_factory=Session)
+        auth_service = AuthService(
+            db_factory=db_factory,
+            jwt_secret="test-secret",
+            event_bus=None,
+        )
 
-        login_resp = api.login(LoginRequest(username="refreshuser", password="pass"))
-        old_refresh = login_resp.refresh_token
+        # First authenticate to get tokens
+        auth_result = auth_service.authenticate(
+            LoginRequestDTO(username="refreshuser", password="pass"),
+            ip_address="127.0.0.1",
+            user_agent="test-agent",
+        )
+        old_refresh = auth_result.refresh_token
 
-        refresh_resp = api.refresh(RefreshRequest(refresh_token=old_refresh))
+        # Refresh tokens
+        refresh_result = auth_service.refresh_tokens(
+            RefreshRequestDTO(
+                access_token=auth_result.access_token,
+                refresh_token=old_refresh,
+            )
+        )
 
-        assert refresh_resp.access_token
-        assert refresh_resp.refresh_token
-        assert refresh_resp.user["username"] == "refreshuser"
+        assert refresh_result.access_token
+        assert refresh_result.refresh_token
+        assert refresh_result.user.username == "refreshuser"
         # New refresh token should be different
-        assert refresh_resp.refresh_token != old_refresh
+        assert refresh_result.refresh_token != old_refresh
 
-    def test_logout_invalidates_sessions(self):
-        """Logout returns success message (no exception)"""
-        from tools.file_manager.api.auth import JWTManager, AuthAPI, LoginRequest
-
+    def test_get_user_from_token_returns_authenticated_user(self):
+        """get_user_from_token with valid access token returns user"""
         eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
         Base.metadata.create_all(eng)
-        Session = sessionmaker(bind=eng)
-        sess = Session()
+        db_factory = sessionmaker(bind=eng)
+        sess = db_factory()
         create_builtin_roles(sess)
+
+        admin_role = sess.query(Role).filter(Role.name == "admin").first()
+        user = User(username="tokenuser", role=admin_role)
+        user.set_password("pass")
+        sess.add(user)
         sess.commit()
+        sess.close()
+
+        auth_service = AuthService(
+            db_factory=db_factory,
+            jwt_secret="test-secret",
+            event_bus=None,
+        )
+
+        # Get tokens via authenticate
+        auth_result = auth_service.authenticate(
+            LoginRequestDTO(username="tokenuser", password="pass"),
+            ip_address="127.0.0.1",
+            user_agent="test-agent",
+        )
+
+        # Get user from token
+        user_result = auth_service.get_user_from_token(auth_result.access_token)
+
+        assert user_result.username == "tokenuser"
+        assert user_result.role_name == "admin"
+
+    def test_get_user_from_token_invalid_raises_value_error(self):
+        """get_user_from_token with invalid token raises ValueError"""
+        eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+        Base.metadata.create_all(eng)
+        db_factory = sessionmaker(bind=eng)
+
+        auth_service = AuthService(
+            db_factory=db_factory,
+            jwt_secret="test-secret",
+            event_bus=None,
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            auth_service.get_user_from_token("invalid.token.here")
+        assert "Invalid token" in str(exc_info.value)
+
+    def test_logout_publishes_event(self):
+        """Logout publishes logout event to event bus"""
+        eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+        Base.metadata.create_all(eng)
+        db_factory = sessionmaker(bind=eng)
+        sess = db_factory()
+        create_builtin_roles(sess)
 
         admin_role = sess.query(Role).filter(Role.name == "admin").first()
         user = User(username="logoutuser", role=admin_role)
         user.set_password("pass")
         sess.add(user)
         sess.commit()
-        user_id = user.id  # capture ID before session closes
-
-        jwt_mgr = JWTManager(secret="test-secret", db_session_factory=Session)
-        api = AuthAPI(jwt_manager=jwt_mgr, db_session_factory=Session)
-        api.login(LoginRequest(username="logoutuser", password="pass"))
-
-        # Re-fetch user in a live session for logout
-        sess2 = Session()
-        live_user = sess2.query(User).filter(User.id == user_id).first()
-        result = api.logout(user=live_user)
-
-        assert result["message"] == "Logged out successfully"
-        sess2.close()
+        user_id = user.id
         sess.close()
+
+        auth_service = AuthService(
+            db_factory=db_factory,
+            jwt_secret="test-secret",
+            event_bus=None,
+        )
+
+        # Should not raise
+        result = auth_service.logout(user_id)
+        assert result is None  # logout returns None
 
 
 if __name__ == "__main__":
