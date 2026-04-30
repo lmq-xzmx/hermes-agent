@@ -166,6 +166,13 @@ class CreateUserRequestDTO(BaseModel):
     role_id: Optional[str] = None
 
 
+class CreateRuleRequestDTO(BaseModel):
+    role_id: str
+    path_pattern: str
+    permissions: str  # e.g. "read,write,delete"
+    priority: int = 0
+
+
 class AuditQueryRequestDTO(BaseModel):
     user_id: Optional[str] = None
     action: Optional[str] = None

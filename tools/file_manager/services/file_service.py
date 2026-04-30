@@ -71,14 +71,84 @@ class FileService:
         storage: StorageEngine,
         permission_checker: PermissionChecker,
         event_bus: Optional[EventBus] = None,
+        db_factory: Optional[Any] = None,
     ):
-        self.storage = storage
+        self.storage = storage  # Primary (default pool) storage engine
         self._checker = permission_checker
         self._event_bus = event_bus or get_event_bus()
+        self._db_factory = db_factory
+        # Multi-pool registry: pool_id → StorageEngine
+        # File operations are routed by user_ctx.active_team_id
+        self._pool_storages: Dict[str, StorageEngine] = {}
+        # Default pool id
+        self._default_pool_id: Optional[str] = None
+
+    def register_pool(self, pool_id: str, storage_engine: StorageEngine) -> None:
+        """Register a named storage pool."""
+        self._pool_storages[pool_id] = storage_engine
+
+    def unregister_pool(self, pool_id: str) -> None:
+        """Unregister a storage pool."""
+        self._pool_storages.pop(pool_id, None)
+
+    def _get_storage_for_team(self, team_id: Optional[str]) -> StorageEngine:
+        """Return the appropriate storage engine for a team."""
+        if team_id and team_id in self._pool_storages:
+            return self._pool_storages[team_id]
+        return self.storage  # Fall back to primary storage
+
+    def _make_team_path(self, user_path: str, user_ctx: PermissionContext) -> str:
+        """
+        Prefix user_path with the team directory structure.
+
+        Layout: teams/{team_id}/{user_id}/...
+        If no active_team_id, returns user_path unchanged (backwards-compatible).
+        """
+        if not user_ctx.active_team_id:
+            return user_path
+        return f"teams/{user_ctx.active_team_id}/{user_ctx.user_id}/{user_path.lstrip('/')}"
+
+    def _update_team_used_bytes(self, delta_bytes: int, user_ctx: PermissionContext) -> None:
+        """Increment team's used_bytes after a successful write."""
+        if not self._db_factory or not user_ctx.active_team_id:
+            return
+        from .team_service import TeamService
+        svc = TeamService(db_factory=self._db_factory)
+        svc.increment_team_usage(team_id=user_ctx.active_team_id, delta_bytes=delta_bytes)
+
+    def _check_quota(self, file_size: int, user_ctx: PermissionContext) -> None:
+        """Check if user has quota to write file_size bytes. Raises TeamQuotaExceeded."""
+        if not self._db_factory:
+            return  # No quota enforcement if no DB
+
+        from .team_service import TeamService
+        svc = TeamService(db_factory=self._db_factory)
+        contexts = svc.get_user_storage_context(user_id=str(user_ctx.user_id))
+        if not contexts:
+            return
+        ctx0 = contexts[0]
+        quota = ctx0.get("max_bytes", 0)
+        used = ctx0.get("used_bytes", 0)
+        remaining = quota - used
+        if quota > 0 and file_size > remaining:
+            from .team_service import TeamQuotaExceeded
+            team_name = ctx0.get("team_name", ctx0.get("team_id", ""))
+            raise TeamQuotaExceeded(
+                team_name=team_name,
+                max_bytes=quota,
+                used_bytes=used,
+                required=file_size,
+            )
 
     # -------------------------------------------------------------------------
     # Public API
     # -------------------------------------------------------------------------
+
+    def _resolve_storage_and_path(self, user_path: str, user_ctx: PermissionContext) -> tuple:
+        """Return (storage_engine, effective_path) for a user request."""
+        storage = self._get_storage_for_team(user_ctx.active_team_id)
+        effective_path = self._make_team_path(user_path, user_ctx)
+        return storage, effective_path
 
     def list_directory(
         self,
@@ -88,13 +158,14 @@ class FileService:
         ip_address: Optional[str] = None,
     ) -> FileListResponseDTO:
         """List directory contents. Raises FileAccessDenied / FileNotFound."""
-        decision = self._checker.check(Operation.LIST, path, user_ctx)
+        storage, effective_path = self._resolve_storage_and_path(path, user_ctx)
+        decision = self._checker.check(Operation.LIST, effective_path, user_ctx)
         if not decision.allowed:
-            self._publish_denied("file.list", path, user_ctx, ip_address)
+            self._publish_denied("file.list", effective_path, user_ctx, ip_address)
             raise FileAccessDenied(decision.reason, decision)
 
         try:
-            raw_items = self.storage.list_directory(path, include_hidden=include_hidden)
+            raw_items = storage.list_directory(effective_path, include_hidden=include_hidden)
             items = [
                 FileItemDTO(
                     name=item["name"],
@@ -111,7 +182,7 @@ class FileService:
 
             self._event_bus.publish(Event.create(
                 EventType.FILE_LIST,
-                {"path": path, "item_count": len(items), "ip_address": ip_address},
+                {"path": effective_path, "item_count": len(items), "ip_address": ip_address},
                 user_id=user_ctx.user_id, username=user_ctx.username,
             ))
 
@@ -126,21 +197,22 @@ class FileService:
         ip_address: Optional[str] = None,
     ) -> FileContentResponseDTO:
         """Read file contents. Raises FileAccessDenied / FileNotFound."""
-        decision = self._checker.check(Operation.READ, request.path, user_ctx)
+        storage, effective_path = self._resolve_storage_and_path(request.path, user_ctx)
+        decision = self._checker.check(Operation.READ, effective_path, user_ctx)
         if not decision.allowed:
-            self._publish_denied("file.read", request.path, user_ctx, ip_address)
+            self._publish_denied("file.read", effective_path, user_ctx, ip_address)
             raise FileAccessDenied(decision.reason, decision)
 
         try:
-            content = self.storage.read_file(
-                request.path,
+            content = storage.read_file(
+                effective_path,
                 offset=request.offset,
                 size=request.size,
                 encoding=request.encoding,
             )
             self._event_bus.publish(Event.create(
                 EventType.FILE_READ,
-                {"path": request.path, "size": len(content), "ip_address": ip_address},
+                {"path": effective_path, "size": len(content), "ip_address": ip_address},
                 user_id=user_ctx.user_id, username=user_ctx.username,
             ))
             return FileContentResponseDTO(
@@ -159,20 +231,24 @@ class FileService:
         ip_address: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Write/create file. Raises FileAccessDenied / FileAlreadyExists."""
-        decision = self._checker.check(Operation.WRITE, request.path, user_ctx)
+        self._check_quota(len(request.content), user_ctx)
+        storage, effective_path = self._resolve_storage_and_path(request.path, user_ctx)
+        decision = self._checker.check(Operation.WRITE, effective_path, user_ctx)
         if not decision.allowed:
-            self._publish_denied("file.write", request.path, user_ctx, ip_address)
+            self._publish_denied("file.write", effective_path, user_ctx, ip_address)
             raise FileAccessDenied(decision.reason, decision)
 
         try:
-            result = self.storage.write_file(
-                request.path,
+            result = storage.write_file(
+                effective_path,
                 request.content,
                 overwrite=request.overwrite,
             )
+            # Update team used_bytes after successful write
+            self._update_team_used_bytes(len(request.content), user_ctx)
             self._event_bus.publish(Event.create(
                 EventType.FILE_WRITE,
-                {"path": request.path, "size": len(request.content), "overwrite": request.overwrite, "ip_address": ip_address},
+                {"path": effective_path, "size": len(request.content), "overwrite": request.overwrite, "ip_address": ip_address},
                 user_id=user_ctx.user_id, username=user_ctx.username,
             ))
             return result
@@ -186,16 +262,29 @@ class FileService:
         ip_address: Optional[str] = None,
     ) -> Dict[str, str]:
         """Delete file/directory. Raises FileAccessDenied / FileNotFound / DirectoryNotEmpty."""
-        decision = self._checker.check(Operation.DELETE, request.path, user_ctx)
+        storage, effective_path = self._resolve_storage_and_path(request.path, user_ctx)
+        decision = self._checker.check(Operation.DELETE, effective_path, user_ctx)
         if not decision.allowed:
-            self._publish_denied("file.delete", request.path, user_ctx, ip_address)
+            self._publish_denied("file.delete", effective_path, user_ctx, ip_address)
             raise FileAccessDenied(decision.reason, decision)
 
+        # Get file size before deletion to update quota
+        file_size = 0
         try:
-            self.storage.delete_path(request.path, recursive=request.recursive)
+            stat = storage.get_stat(effective_path)
+            if stat.get("type") != "directory":
+                file_size = stat.get("size", 0)
+        except FileNotFoundError:
+            pass  # Non-existent file, nothing to charge
+
+        try:
+            storage.delete_path(effective_path, recursive=request.recursive)
+            # Decrement team used_bytes
+            if file_size > 0:
+                self._update_team_used_bytes(-file_size, user_ctx)
             self._event_bus.publish(Event.create(
                 EventType.FILE_DELETE,
-                {"path": request.path, "recursive": request.recursive, "ip_address": ip_address},
+                {"path": effective_path, "recursive": request.recursive, "ip_address": ip_address},
                 user_id=user_ctx.user_id, username=user_ctx.username,
             ))
             return {"message": f"Deleted: {request.path}"}
@@ -211,16 +300,17 @@ class FileService:
         ip_address: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Create directory. Raises FileAccessDenied / FileAlreadyExists."""
-        decision = self._checker.check(Operation.WRITE, request.path, user_ctx)
+        storage, effective_path = self._resolve_storage_and_path(request.path, user_ctx)
+        decision = self._checker.check(Operation.WRITE, effective_path, user_ctx)
         if not decision.allowed:
-            self._publish_denied("file.create_dir", request.path, user_ctx, ip_address)
+            self._publish_denied("file.create_dir", effective_path, user_ctx, ip_address)
             raise FileAccessDenied(decision.reason, decision)
 
         try:
-            result = self.storage.create_directory(request.path)
+            result = storage.create_directory(effective_path)
             self._event_bus.publish(Event.create(
                 EventType.FILE_CREATE_DIR,
-                {"path": request.path, "ip_address": ip_address},
+                {"path": effective_path, "ip_address": ip_address},
                 user_id=user_ctx.user_id, username=user_ctx.username,
             ))
             return result
@@ -234,27 +324,29 @@ class FileService:
         ip_address: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Copy file. Raises FileAccessDenied / FileNotFound / FileAlreadyExists."""
+        storage, eff_from = self._resolve_storage_and_path(request.from_path, user_ctx)
+        _, eff_to = self._resolve_storage_and_path(request.to_path, user_ctx)
         # Check read on source
-        read_decision = self._checker.check(Operation.READ, request.from_path, user_ctx)
+        read_decision = self._checker.check(Operation.READ, eff_from, user_ctx)
         if not read_decision.allowed:
-            self._publish_denied("file.copy.read", request.from_path, user_ctx, ip_address)
+            self._publish_denied("file.copy.read", eff_from, user_ctx, ip_address)
             raise FileAccessDenied(read_decision.reason, read_decision)
 
         # Check write on destination
-        write_decision = self._checker.check(Operation.WRITE, request.to_path, user_ctx)
+        write_decision = self._checker.check(Operation.WRITE, eff_to, user_ctx)
         if not write_decision.allowed:
-            self._publish_denied("file.copy.write", request.to_path, user_ctx, ip_address)
+            self._publish_denied("file.copy.write", eff_to, user_ctx, ip_address)
             raise FileAccessDenied(write_decision.reason, write_decision)
 
         try:
-            result = self.storage.copy_file(
-                request.from_path,
-                request.to_path,
+            result = storage.copy_file(
+                eff_from,
+                eff_to,
                 overwrite=request.overwrite,
             )
             self._event_bus.publish(Event.create(
                 EventType.FILE_COPY,
-                {"from": request.from_path, "to": request.to_path, "ip_address": ip_address},
+                {"from": eff_from, "to": eff_to, "ip_address": ip_address},
                 user_id=user_ctx.user_id, username=user_ctx.username,
             ))
             return result
@@ -270,27 +362,29 @@ class FileService:
         ip_address: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Move/rename file or directory. Raises FileAccessDenied / FileNotFound / FileAlreadyExists."""
+        storage, eff_from = self._resolve_storage_and_path(request.from_path, user_ctx)
+        _, eff_to = self._resolve_storage_and_path(request.to_path, user_ctx)
         # Check delete on source
-        delete_decision = self._checker.check(Operation.DELETE, request.from_path, user_ctx)
+        delete_decision = self._checker.check(Operation.DELETE, eff_from, user_ctx)
         if not delete_decision.allowed:
-            self._publish_denied("file.move.delete", request.from_path, user_ctx, ip_address)
+            self._publish_denied("file.move.delete", eff_from, user_ctx, ip_address)
             raise FileAccessDenied(delete_decision.reason, delete_decision)
 
         # Check write on destination
-        write_decision = self._checker.check(Operation.WRITE, request.to_path, user_ctx)
+        write_decision = self._checker.check(Operation.WRITE, eff_to, user_ctx)
         if not write_decision.allowed:
-            self._publish_denied("file.move.write", request.to_path, user_ctx, ip_address)
+            self._publish_denied("file.move.write", eff_to, user_ctx, ip_address)
             raise FileAccessDenied(write_decision.reason, write_decision)
 
         try:
-            result = self.storage.move_file(
-                request.from_path,
-                request.to_path,
+            result = storage.move_file(
+                eff_from,
+                eff_to,
                 overwrite=request.overwrite,
             )
             self._event_bus.publish(Event.create(
                 EventType.FILE_MOVE,
-                {"from": request.from_path, "to": request.to_path, "ip_address": ip_address},
+                {"from": eff_from, "to": eff_to, "ip_address": ip_address},
                 user_id=user_ctx.user_id, username=user_ctx.username,
             ))
             return result
@@ -305,16 +399,17 @@ class FileService:
         user_ctx: PermissionContext,
     ) -> FileStatResponseDTO:
         """Get file/directory metadata. Raises FileAccessDenied / FileNotFound."""
-        decision = self._checker.check(Operation.READ, path, user_ctx)
+        storage, effective_path = self._resolve_storage_and_path(path, user_ctx)
+        decision = self._checker.check(Operation.READ, effective_path, user_ctx)
         if not decision.allowed:
-            self._publish_denied("file.stat", path, user_ctx)
+            self._publish_denied("file.stat", effective_path, user_ctx)
             raise FileAccessDenied(decision.reason, decision)
 
         try:
-            stat = self.storage.get_stat(path)
+            stat = storage.get_stat(effective_path)
             return FileStatResponseDTO(
                 name=stat["name"],
-                path=stat["path"],
+                path=path,
                 is_directory=stat.get("type") == "directory",
                 size=stat["size"],
                 modified=stat.get("modified"),

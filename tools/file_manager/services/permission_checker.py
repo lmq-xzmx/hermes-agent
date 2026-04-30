@@ -84,7 +84,9 @@ class PermissionChecker:
             )
 
         normalized = self._normalize_path(path)
-        matching = self._find_matching_rules(ctx.permission_rules, normalized)
+        # Parse string rules into RulePrimitive objects
+        parsed_rules = [RulePrimitive.parse(r) for r in ctx.permission_rules]
+        matching = self._find_matching_rules(parsed_rules, normalized)
 
         if not matching:
             return PermissionDecision(

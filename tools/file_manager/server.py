@@ -41,13 +41,14 @@ from file_manager.api.dto import (
     LoginResponseDTO, UserResponseDTO,
     FileReadRequestDTO, FileWriteRequestDTO, FileDeleteRequestDTO,
     MkDirRequestDTO, FileCopyRequestDTO, FileMoveRequestDTO,
-    CreateShareRequestDTO, CreateUserRequestDTO, AuditQueryRequestDTO,
+    CreateShareRequestDTO, CreateUserRequestDTO, CreateRuleRequestDTO, AuditQueryRequestDTO,
     FileListResponseDTO, FileContentResponseDTO, FileStatResponseDTO,
     AuditLogEntryDTO, AuditQueryResponseDTO, UserListItemDTO,
     RoleDTO, UserListResponseDTO, MessageResponseDTO,
 )
 from file_manager.services.share_service import ShareService
 from file_manager.services.admin_service import AdminService
+from file_manager.services.team_service import TeamService
 from file_manager.api.auth import security, get_client_info
 
 
@@ -156,6 +157,7 @@ async def lifespan(app: FastAPI):
         storage=storage,
         permission_checker=permission_checker,
         event_bus=event_bus,
+        db_factory=db_factory,
     )
     share_service = ShareService(
         db_factory=db_factory,
@@ -167,6 +169,16 @@ async def lifespan(app: FastAPI):
         db_factory=db_factory,
         event_bus=event_bus,
     )
+    team_service = TeamService(db_factory=db_factory)
+
+    # Ensure default pool exists
+    team_service.ensure_default_pool()
+
+    # Register all existing pools in FileService
+    for pool in team_service.list_pools():
+        if pool.get("is_active", True):
+            pool_storage = StorageEngine(pool["base_path"])
+            file_service.register_pool(pool["id"], pool_storage)
 
     # Audit subscriber (consumes events → DB writes)
     audit_subscriber = AuditEventSubscriber(db_factory=db_factory, event_bus=event_bus)
@@ -180,6 +192,7 @@ async def lifespan(app: FastAPI):
     _api_instances["file_service"] = file_service
     _api_instances["share_service"] = share_service
     _api_instances["admin_service"] = admin_service
+    _api_instances["team_service"] = team_service
     _api_instances["permission_checker"] = permission_checker
     _api_instances["event_bus"] = event_bus
 
@@ -228,6 +241,9 @@ def get_share_service() -> ShareService:
 def get_admin_service() -> AdminService:
     return _api_instances.get("admin_service")
 
+def get_team_service() -> TeamService:
+    return _api_instances.get("team_service")
+
 def get_current_user_ctx(
     credentials = Depends(security),
 ) -> PermissionContext:
@@ -238,7 +254,16 @@ def get_current_user_ctx(
 
     try:
         user = auth_service.get_user_from_token(credentials.credentials)
-        return PermissionContext.from_authenticated_user(user)
+        # Determine active team for file operations
+        active_team_id = None
+        team_service = get_team_service()
+        if team_service:
+            contexts = team_service.get_user_storage_context(user_id=str(user.id))
+            # Pick first active team as the default
+            if contexts:
+                ctx0 = contexts[0]
+                active_team_id = ctx0.get("team_id")
+        return PermissionContext.from_authenticated_user(user, active_team_id=active_team_id)
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
 
@@ -399,17 +424,15 @@ async def write_file(
 
 @app.post("/api/v1/files/delete")
 async def delete_file(
-    request_body: Request,
+    request: FileDeleteRequestDTO,
     user_ctx: PermissionContext = Depends(get_current_user_ctx),
     http_request: Request = None,
 ):
     file_service = get_file_service()
     client_info = get_client_info(http_request) if http_request else {}
-    body = await request_body.json()
-    delete_req = FileDeleteRequestDTO(**body)
     try:
         return file_service.delete_file(
-            request=delete_req,
+            request=request,
             user_ctx=user_ctx,
             ip_address=client_info.get("ip_address"),
         )
@@ -419,21 +442,22 @@ async def delete_file(
 
 @app.post("/api/v1/files/mkdir")
 async def create_directory(
-    request_body: Request,
+    request: MkDirRequestDTO,
     user_ctx: PermissionContext = Depends(get_current_user_ctx),
     http_request: Request = None,
 ):
+    import sys, traceback
     file_service = get_file_service()
     client_info = get_client_info(http_request) if http_request else {}
-    body = await request_body.json()
-    mkdir_req = MkDirRequestDTO(**body)
     try:
         return file_service.create_directory(
-            request=mkdir_req,
+            request=request,
             user_ctx=user_ctx,
             ip_address=client_info.get("ip_address"),
         )
     except Exception as e:
+        traceback.print_exc(file=sys.stdout)
+        sys.stdout.flush()
         return _handle_service_error(e)
 
 
@@ -513,14 +537,12 @@ async def list_users(
 
 @app.post("/api/v1/admin/users")
 async def create_user(
-    request_body: Request,
+    request: CreateUserRequestDTO,
     user_ctx: PermissionContext = Depends(get_current_user_ctx),
 ):
     admin_service = get_admin_service()
-    body = await request_body.json()
-    create_req = CreateUserRequestDTO(**body)
     try:
-        return admin_service.create_user(request=create_req, user_ctx=user_ctx)
+        return admin_service.create_user(request=request, user_ctx=user_ctx)
     except Exception as e:
         raise _handle_admin_error(e)
 
@@ -532,18 +554,332 @@ async def list_roles(user_ctx: PermissionContext = Depends(get_current_user_ctx)
     except Exception as e:
         raise _handle_admin_error(e)
 
-@app.get("/api/v1/admin/audit")
-async def query_audit(
-    request: Request,
+
+@app.post("/api/v1/admin/rules")
+async def create_rule(
+    request: CreateRuleRequestDTO,
     user_ctx: PermissionContext = Depends(get_current_user_ctx),
 ):
     admin_service = get_admin_service()
-    body = await request.json()
-    query = AuditQueryRequestDTO(**body)
     try:
-        return admin_service.query_audit_logs(query=query, user_ctx=user_ctx)
+        return admin_service.create_rule(
+            role_id=request.role_id,
+            path_pattern=request.path_pattern,
+            permissions=request.permissions,
+            priority=request.priority,
+            user_ctx=user_ctx,
+        )
     except Exception as e:
         raise _handle_admin_error(e)
+
+
+@app.post("/api/v1/admin/audit")
+async def query_audit(
+    request: AuditQueryRequestDTO,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    admin_service = get_admin_service()
+    try:
+        return admin_service.query_audit_logs(request, user_ctx)
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+# ============================================================================
+# Team / Storage Pool Endpoints
+# ============================================================================
+
+from datetime import datetime as dt
+
+
+def _handle_team_error(e: Exception):
+    from file_manager.services.team_service import (
+        StoragePoolNotFound, PoolOutOfSpace, TeamNotFound,
+        TeamQuotaExceeded, CredentialNotFound, CredentialExpired,
+        UserAlreadyInTeam, NotTeamOwner,
+    )
+    if isinstance(e, StoragePoolNotFound):
+        raise HTTPException(status_code=404, detail=str(e))
+    if isinstance(e, PoolOutOfSpace):
+        raise HTTPException(status_code=507, detail=str(e))
+    if isinstance(e, TeamNotFound):
+        raise HTTPException(status_code=404, detail=str(e))
+    if isinstance(e, TeamQuotaExceeded):
+        raise HTTPException(status_code=507, detail=str(e))
+    if isinstance(e, CredentialNotFound):
+        raise HTTPException(status_code=404, detail=str(e))
+    if isinstance(e, CredentialExpired):
+        raise HTTPException(status_code=410, detail=str(e))
+    if isinstance(e, UserAlreadyInTeam):
+        raise HTTPException(status_code=409, detail=str(e))
+    if isinstance(e, NotTeamOwner):
+        raise HTTPException(status_code=403, detail=str(e))
+    raise HTTPException(status_code=500, detail=str(e))
+
+
+class CreatePoolRequest(BaseModel):
+    name: str
+    base_path: str
+    protocol: str = "local"
+    total_bytes: int = 0
+    description: str = ""
+
+
+class CreateTeamRequest(BaseModel):
+    name: str
+    storage_pool_id: str
+    max_bytes: int = 0
+
+
+class UpdateTeamRequest(BaseModel):
+    name: Optional[str] = None
+    max_bytes: Optional[int] = None
+    is_active: Optional[bool] = None
+
+
+class CreateCredentialRequest(BaseModel):
+    max_uses: Optional[int] = None
+    expires_at: Optional[dt] = None
+
+
+@app.get("/api/v1/pools", tags=["pools"])
+async def list_pools(
+    user_ctx=Depends(get_current_user_ctx),
+):
+    svc = get_team_service()
+    try:
+        return svc.list_pools()
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
+@app.post("/api/v1/pools", tags=["pools"])
+async def create_pool(
+    req: CreatePoolRequest,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    svc = get_team_service()
+    try:
+        pool = svc.create_pool(
+            name=req.name,
+            base_path=req.base_path,
+            protocol=req.protocol,
+            total_bytes=req.total_bytes,
+            description=req.description,
+        )
+        # Register storage engine for this pool
+        from file_manager.engine.storage import StorageEngine
+        pool_storage = StorageEngine(req.base_path)
+        file_service = get_file_service()
+        file_service.register_pool(pool["id"], pool_storage)
+        return pool
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
+@app.post("/api/v1/pools/{pool_id}/refresh", tags=["pools"])
+async def refresh_pool(
+    pool_id: str,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    svc = get_team_service()
+    try:
+        return svc.refresh_pool_space(pool_id)
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
+@app.delete("/api/v1/pools/{pool_id}", tags=["pools"])
+async def delete_pool(
+    pool_id: str,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    svc = get_team_service()
+    try:
+        svc.delete_pool(pool_id)
+        file_service = get_file_service()
+        file_service.unregister_pool(pool_id)
+        return {"message": "存储池已删除"}
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
+@app.get("/api/v1/teams", tags=["teams"])
+async def list_teams(
+    user_ctx=Depends(get_current_user_ctx),
+):
+    svc = get_team_service()
+    try:
+        return svc.list_teams(user_id=str(user_ctx.user_id))
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
+@app.get("/api/v1/teams/{team_id}", tags=["teams"])
+async def get_team(
+    team_id: str,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    svc = get_team_service()
+    try:
+        return svc.get_team(team_id)
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
+@app.post("/api/v1/teams", tags=["teams"])
+async def create_team(
+    req: CreateTeamRequest,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    svc = get_team_service()
+    try:
+        return svc.create_team(
+            name=req.name,
+            owner_id=str(user_ctx.user_id),
+            storage_pool_id=req.storage_pool_id,
+            max_bytes=req.max_bytes,
+        )
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
+@app.patch("/api/v1/teams/{team_id}", tags=["teams"])
+async def update_team(
+    team_id: str,
+    req: UpdateTeamRequest,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    svc = get_team_service()
+    try:
+        return svc.update_team(
+            team_id=team_id,
+            requesting_user_id=str(user_ctx.user_id),
+            name=req.name,
+            max_bytes=req.max_bytes,
+            is_active=req.is_active,
+        )
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
+@app.delete("/api/v1/teams/{team_id}", tags=["teams"])
+async def delete_team(
+    team_id: str,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    svc = get_team_service()
+    try:
+        svc.delete_team(team_id, requesting_user_id=str(user_ctx.user_id))
+        return {"message": "团队已删除"}
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
+@app.get("/api/v1/teams/{team_id}/members", tags=["teams"])
+async def list_team_members(
+    team_id: str,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    svc = get_team_service()
+    try:
+        return svc.list_members(team_id)
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
+@app.delete("/api/v1/teams/{team_id}/members/{user_id}", tags=["teams"])
+async def remove_team_member(
+    team_id: str,
+    user_id: str,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    svc = get_team_service()
+    try:
+        svc.remove_member(team_id, target_user_id=user_id, requesting_user_id=str(user_ctx.user_id))
+        return {"message": "已移除成员"}
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
+@app.get("/api/v1/teams/{team_id}/credentials", tags=["teams"])
+async def list_team_credentials(
+    team_id: str,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    svc = get_team_service()
+    try:
+        return svc.list_credentials(team_id, requesting_user_id=str(user_ctx.user_id))
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
+@app.post("/api/v1/teams/{team_id}/credentials", tags=["teams"])
+async def create_team_credential(
+    team_id: str,
+    req: CreateCredentialRequest,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    svc = get_team_service()
+    try:
+        return svc.create_credential(
+            team_id=team_id,
+            created_by=str(user_ctx.user_id),
+            max_uses=req.max_uses,
+            expires_at=req.expires_at,
+        )
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
+@app.delete("/api/v1/teams/{team_id}/credentials/{cred_id}", tags=["teams"])
+async def revoke_credential(
+    team_id: str,
+    cred_id: str,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    svc = get_team_service()
+    try:
+        svc.revoke_credential(cred_id, requesting_user_id=str(user_ctx.user_id))
+        return {"message": "凭证已撤销"}
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
+@app.post("/api/v1/teams/join", tags=["teams"])
+async def join_team_via_credential(
+    request: Request,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    body = await request.json()
+    token = body.get("token", "")
+    svc = get_team_service()
+    try:
+        return svc.join_via_credential(token=token, user_id=str(user_ctx.user_id))
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
+@app.get("/api/v1/my/teams", tags=["teams"])
+async def my_teams(
+    user_ctx=Depends(get_current_user_ctx),
+):
+    svc = get_team_service()
+    try:
+        return svc.get_user_teams_summary(user_id=str(user_ctx.user_id))
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
+@app.get("/api/v1/my/storage-context", tags=["teams"])
+async def my_storage_context(
+    user_ctx=Depends(get_current_user_ctx),
+):
+    svc = get_team_service()
+    try:
+        return svc.get_user_storage_context(user_id=str(user_ctx.user_id))
+    except Exception as e:
+        raise _handle_team_error(e)
 
 
 # ============================================================================
@@ -553,6 +889,7 @@ async def query_audit(
 def _handle_service_error(e: Exception):
     """Map service-layer exceptions to HTTP responses."""
     from file_manager.services import FileAccessDenied, FileNotFound, FileAlreadyExists, DirectoryNotEmpty
+    from file_manager.services.team_service import TeamQuotaExceeded
 
     if isinstance(e, FileAccessDenied):
         raise HTTPException(status_code=403, detail=e.reason)
@@ -562,6 +899,8 @@ def _handle_service_error(e: Exception):
         raise HTTPException(status_code=409, detail=str(e))
     if isinstance(e, DirectoryNotEmpty):
         raise HTTPException(status_code=409, detail=str(e))
+    if isinstance(e, TeamQuotaExceeded):
+        raise HTTPException(status_code=507, detail=str(e))
     # Re-raise unknown errors
     raise HTTPException(status_code=500, detail=str(e))
 

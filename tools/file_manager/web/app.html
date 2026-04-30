@@ -17,6 +17,7 @@
     --success: #3fb950;
     --danger: #f85149;
     --warning: #d29922;
+    --sidebar-width: 220px;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -69,7 +70,7 @@
     color: var(--text-secondary);
   }
 
-  .form-group input {
+  .form-group input, .form-group select, .form-group textarea {
     width: 100%;
     padding: 10px 12px;
     background: var(--bg-primary);
@@ -79,7 +80,7 @@
     font-size: 14px;
   }
 
-  .form-group input:focus {
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
     outline: none;
     border-color: var(--accent);
   }
@@ -128,6 +129,11 @@
 
   .btn-full { width: 100%; }
 
+  .btn-sm {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
   .error-msg {
     background: rgba(248, 81, 73, 0.15);
     border: 1px solid var(--danger);
@@ -141,10 +147,95 @@
 
   .error-msg.show { display: block; }
 
-  /* Main App */
-  .app-container { display: none; height: 100vh; }
+  /* Main Layout: Sidebar + Content */
+  .app-container {
+    display: none;
+    height: 100vh;
+    overflow: hidden;
+  }
 
-  .app-container.active { display: flex; flex-direction: column; }
+  .app-container.active {
+    display: flex;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  .sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-header h1 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    padding: 8px;
+    overflow-y: auto;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 14px;
+    transition: all 0.15s;
+    margin-bottom: 2px;
+  }
+
+  .nav-item:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  .nav-item.active {
+    background: rgba(88, 166, 255, 0.15);
+    color: var(--accent);
+  }
+
+  .nav-item .nav-icon {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+  }
+
+  .sidebar-footer {
+    padding: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .sidebar-footer .user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+
+  /* Main Content Area */
+  .main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
 
   /* Header */
   .header {
@@ -154,6 +245,7 @@
     padding: 12px 20px;
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border);
+    min-height: 56px;
   }
 
   .header-left {
@@ -167,6 +259,39 @@
     font-weight: 600;
   }
 
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .storage-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .storage-selector select {
+    padding: 6px 10px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  /* Breadcrumb */
   .breadcrumb {
     display: flex;
     align-items: center;
@@ -188,20 +313,6 @@
 
   .breadcrumb .sep { color: var(--text-secondary); }
 
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .user-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    color: var(--text-secondary);
-  }
-
   /* Toolbar */
   .toolbar {
     display: flex;
@@ -219,11 +330,21 @@
 
   .toolbar-spacer { flex: 1; }
 
-  /* File List */
-  .file-list-container {
+  /* View Containers */
+  .view-container {
+    display: none;
     flex: 1;
     overflow: auto;
     padding: 20px;
+  }
+
+  .view-container.active {
+    display: block;
+  }
+
+  /* File List */
+  .file-list-container {
+    width: 100%;
   }
 
   .file-list {
@@ -302,13 +423,15 @@
 
   /* Empty State */
   .empty-state {
-    display: flex;
+    display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 60px 20px;
     color: var(--text-secondary);
   }
+
+  .empty-state.show { display: flex; }
 
   .empty-state-icon {
     font-size: 48px;
@@ -455,6 +578,7 @@
   .toast.success { border-left: 3px solid var(--success); }
   .toast.error { border-left: 3px solid var(--danger); }
   .toast.info { border-left: 3px solid var(--accent); }
+  .toast.warning { border-left: 3px solid var(--warning); }
 
   @keyframes slideIn {
     from { transform: translateX(100%); opacity: 0; }
@@ -463,6 +587,97 @@
 
   .toast-title { font-weight: 600; margin-bottom: 4px; }
   .toast-msg { font-size: 13px; color: var(--text-secondary); }
+
+  /* Teams / Pools Tables */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .data-table th, .data-table td {
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table th {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+  }
+
+  .data-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .data-table tr:hover td {
+    background: var(--bg-tertiary);
+  }
+
+  .data-table .actions {
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  tr:hover .actions { opacity: 1; }
+
+  .quota-bar {
+    width: 120px;
+    height: 6px;
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .quota-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+
+  .quota-fill.ok { background: var(--success); }
+  .quota-fill.warn { background: var(--warning); }
+  .quota-fill.danger { background: var(--danger); }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .badge.active { background: rgba(63, 185, 80, 0.2); color: var(--success); }
+  .badge.inactive { background: rgba(139, 148, 158, 0.2); color: var(--text-secondary); }
+  .badge.owner { background: rgba(88, 166, 255, 0.2); color: var(--accent); }
+  .badge.member { background: rgba(139, 148, 158, 0.2); color: var(--text-secondary); }
+
+  .view-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .view-header h3 {
+    font-size: 16px;
+    color: var(--text-secondary);
+  }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+  }
 
   /* Responsive */
   @media (max-width: 600px) {
@@ -477,23 +692,23 @@
 <!-- Login Screen -->
 <div class="login-container" id="loginScreen">
   <div class="login-box">
-    <h1>Hermes File Manager</h1>
-    <p>Sign in to access your files</p>
+    <h1>Hermes 文件管理器</h1>
+    <p>登录以访问您的文件</p>
     <div class="error-msg" id="loginError"></div>
     <form id="loginForm">
       <div class="form-group">
-        <label for="username">Username</label>
+        <label for="username">用户名</label>
         <input type="text" id="username" required autocomplete="username">
       </div>
       <div class="form-group">
-        <label for="password">Password</label>
+        <label for="password">密码</label>
         <input type="password" id="password" required autocomplete="current-password">
       </div>
-      <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+      <button type="submit" class="btn btn-primary btn-full">登录</button>
     </form>
     <p style="text-align:center;margin-top:16px;font-size:14px;color:var(--text-secondary)">
-      Don't have an account?
-      <a href="#" id="showRegister" style="color:var(--accent);text-decoration:none;font-weight:500">Register</a>
+      没有账户？
+      <a href="#" id="showRegister" style="color:var(--accent);text-decoration:none;font-weight:500">立即注册</a>
     </p>
   </div>
 </div>
@@ -501,69 +716,158 @@
 <!-- Register Screen -->
 <div class="login-container" id="registerScreen" style="display:none">
   <div class="login-box">
-    <h1>Create Account</h1>
-    <p>Sign up to start managing files</p>
+    <h1>创建账户</h1>
+    <p>注册以开始管理文件</p>
     <div class="error-msg" id="registerError"></div>
     <form id="registerForm">
       <div class="form-group">
-        <label for="regUsername">Username</label>
+        <label for="regUsername">用户名</label>
         <input type="text" id="regUsername" required autocomplete="username" minlength="3" maxlength="32">
       </div>
       <div class="form-group">
-        <label for="regPassword">Password</label>
+        <label for="regPassword">密码</label>
         <input type="password" id="regPassword" required autocomplete="new-password" minlength="6">
       </div>
       <div class="form-group">
-        <label for="regPassword2">Confirm Password</label>
+        <label for="regPassword2">确认密码</label>
         <input type="password" id="regPassword2" required autocomplete="new-password">
       </div>
-      <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+      <button type="submit" class="btn btn-primary btn-full">创建账户</button>
     </form>
     <p style="text-align:center;margin-top:16px;font-size:14px;color:var(--text-secondary)">
-      Already have an account?
-      <a href="#" id="showLogin" style="color:var(--accent);text-decoration:none;font-weight:500">Sign In</a>
+      已有账户？
+      <a href="#" id="showLogin" style="color:var(--accent);text-decoration:none;font-weight:500">立即登录</a>
     </p>
   </div>
 </div>
 
 <!-- Main App -->
 <div class="app-container" id="appContainer">
-  <header class="header">
-    <div class="header-left">
-      <h2>Files</h2>
-      <nav class="breadcrumb" id="breadcrumb"></nav>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>Hermes</h1>
     </div>
-    <div class="header-right">
-      <div class="user-info">
-        <span id="currentUser"></span>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" id="nav-files" onclick="navigateTo('files')">
+        <span class="nav-icon">📁</span> 文件
       </div>
-      <button class="btn btn-secondary" id="logoutBtn">Logout</button>
+      <div class="nav-item" id="nav-teams" onclick="navigateTo('teams')">
+        <span class="nav-icon">👥</span> 团队
+      </div>
+      <div class="nav-item" id="nav-pools" onclick="navigateTo('pools')">
+        <span class="nav-icon">💾</span> 存储池
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <span>👤</span>
+        <span id="sidebarUsername">-</span>
+      </div>
+      <button class="btn btn-secondary btn-full btn-sm" id="logoutBtn">退出登录</button>
     </div>
-  </header>
+  </aside>
 
-  <div class="toolbar">
-    <button class="btn btn-primary" id="btnNewFolder">+ New Folder</button>
-    <button class="btn btn-primary" id="btnNewFile">+ New File</button>
-    <div class="toolbar-spacer"></div>
-    <button class="btn btn-secondary" id="btnRefresh">Refresh</button>
-  </div>
+  <!-- Main Area -->
+  <div class="main-area">
 
-  <div class="file-list-container">
-    <table class="file-list" id="fileList">
-      <thead>
-        <tr>
-          <th style="width:50%">Name</th>
-          <th style="width:15%">Size</th>
-          <th style="width:20%">Modified</th>
-          <th style="width:15%">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="fileListBody"></tbody>
-    </table>
-    <div class="empty-state" id="emptyState" style="display:none">
-      <div class="empty-state-icon">📁</div>
-      <p>This folder is empty</p>
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <h2 id="viewTitle">文件</h2>
+        <nav class="breadcrumb" id="breadcrumb"></nav>
+      </div>
+      <div class="header-right">
+        <div class="storage-selector" id="storageSelector" style="display:none">
+          <span>团队:</span>
+          <select id="teamSelect" onchange="onTeamChange(this.value)">
+            <option value="">-- 选择团队 --</option>
+          </select>
+        </div>
+        <div class="user-info">
+          <span id="currentUser">-</span>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="logoutBtn2">退出</button>
+      </div>
+    </header>
+
+    <!-- Toolbar -->
+    <div class="toolbar" id="fileToolbar">
+      <button class="btn btn-primary" id="btnNewFolder">+ 新建文件夹</button>
+      <button class="btn btn-primary" id="btnNewFile">+ 新建文件</button>
+      <div class="toolbar-spacer"></div>
+      <button class="btn btn-secondary" id="btnRefresh">刷新</button>
+      <button class="btn btn-secondary" id="btnUpload">⬆ 上传</button>
+      <button class="btn btn-secondary" id="btnShare">🔗 分享</button>
     </div>
+    <!-- Hidden file input for uploads -->
+    <input type="file" id="fileInput" multiple style="display:none" onchange="handleFileUpload(this.files)">
+
+    <div class="toolbar" id="teamToolbar" style="display:none">
+      <button class="btn btn-primary" onclick="showCreateTeam()">+ 创建团队</button>
+      <div class="toolbar-spacer"></div>
+      <button class="btn btn-secondary" onclick="loadTeams()">刷新</button>
+    </div>
+
+    <div class="toolbar" id="poolToolbar" style="display:none">
+      <button class="btn btn-primary" onclick="showCreatePool()">+ 创建存储池</button>
+      <div class="toolbar-spacer"></div>
+      <button class="btn btn-secondary" onclick="loadPools()">刷新</button>
+    </div>
+
+    <!-- File View -->
+    <div class="view-container active" id="view-files">
+      <div class="file-list-container">
+        <table class="file-list" id="fileList">
+          <thead>
+            <tr>
+              <th style="width:40%">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+                  <input type="checkbox" id="selectAllFiles" onchange="toggleSelectAll(this.checked)">
+                  名称
+                </label>
+              </th>
+              <th style="width:15%">大小</th>
+              <th style="width:20%">修改时间</th>
+              <th style="width:20%">操作</th>
+            </tr>
+          </thead>
+          <tbody id="fileListBody"></tbody>
+        </table>
+        <div class="empty-state" id="emptyState">
+          <div class="empty-state-icon">📁</div>
+          <p>此文件夹为空</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Teams View -->
+    <div class="view-container" id="view-teams">
+      <!-- My Teams section -->
+      <div class="view-header">
+        <h3 class="section-title">我所在的团队</h3>
+      </div>
+      <div id="myTeamsSection"></div>
+
+      <!-- All teams (admin) -->
+      <div id="allTeamsSection" style="margin-top:24px"></div>
+
+      <!-- Join team -->
+      <div style="margin-top:24px">
+        <h3 class="section-title">加入团队</h3>
+        <div style="display:flex;gap:8px;max-width:400px">
+          <input type="text" id="joinToken" placeholder="输入邀请码" style="flex:1">
+          <button class="btn btn-primary btn-sm" onclick="joinTeam()">加入</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pools View -->
+    <div class="view-container" id="view-pools">
+      <div id="poolsSection"></div>
+    </div>
+
   </div>
 </div>
 
@@ -571,7 +875,7 @@
 <div class="loading-overlay" id="loadingOverlay">
   <div class="loading-content">
     <div class="spinner"></div>
-    <span>Loading...</span>
+    <span>加载中...</span>
   </div>
 </div>
 
@@ -596,7 +900,11 @@ const TOKEN_KEY = 'hfm_token';
 
 // State
 let currentPath = '/';
+let currentView = 'files';
 let token = localStorage.getItem(TOKEN_KEY) || null;
+let currentUserData = null;
+let myTeams = [];
+let myStorageContexts = [];
 
 // DOM Elements
 const loginScreen = document.getElementById('loginScreen');
@@ -624,8 +932,8 @@ function toast(type, title, msg) {
 }
 
 function formatSize(bytes) {
-  if (bytes === 0 || bytes === undefined) return '-';
-  const units = ['B', 'KB', 'MB', 'GB'];
+  if (bytes === 0 || bytes === undefined || bytes === null) return '-';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let i = 0;
   while (bytes >= 1024 && i < units.length - 1) { bytes /= 1024; i++; }
   return `${bytes.toFixed(1)} ${units[i]}`;
@@ -641,8 +949,15 @@ async function api(endpoint, options = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(API_BASE + endpoint, { ...options, headers });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Request failed');
+  const contentType = res.headers.get('content-type') || '';
+  let data;
+  if (contentType.includes('application/json')) {
+    data = await res.json();
+  } else {
+    const text = await res.text();
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
   return data;
 }
 
@@ -662,6 +977,37 @@ document.getElementById('modalClose').addEventListener('click', closeModal);
 modalOverlay.addEventListener('click', (e) => {
   if (e.target === modalOverlay) closeModal();
 });
+
+// Navigation
+function navigateTo(view) {
+  currentView = view;
+
+  // Update sidebar
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + view);
+  if (navEl) navEl.classList.add('active');
+
+  // Update views
+  document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
+  const viewEl = document.getElementById('view-' + view);
+  if (viewEl) viewEl.classList.add('active');
+
+  // Update toolbar
+  document.getElementById('fileToolbar').style.display = view === 'files' ? '' : 'none';
+  document.getElementById('teamToolbar').style.display = view === 'teams' ? '' : 'none';
+  document.getElementById('poolToolbar').style.display = view === 'pools' ? '' : 'none';
+
+  // Update header title
+  const titles = { files: '文件', teams: '团队管理', pools: '存储池管理' };
+  document.getElementById('viewTitle').textContent = titles[view] || view;
+
+  // Hide breadcrumb for non-files views
+  breadcrumb.style.display = view === 'files' ? '' : 'none';
+
+  // Load data for view
+  if (view === 'teams') loadTeams();
+  if (view === 'pools') loadPools();
+}
 
 // Auth
 let showingRegister = false;
@@ -690,7 +1036,6 @@ document.getElementById('showLogin').addEventListener('click', (e) => {
 
 function checkAuth() {
   if (token) {
-    showLoginScreen();
     appContainer.classList.add('active');
     loadCurrentUser();
     loadFiles(currentPath);
@@ -703,9 +1048,46 @@ function checkAuth() {
 async function loadCurrentUser() {
   try {
     const res = await api('/auth/me');
+    currentUserData = res;
     currentUser.textContent = res.username;
+    document.getElementById('sidebarUsername').textContent = res.username;
+    // Load storage contexts
+    await loadStorageContexts();
   } catch (e) {
     logout();
+  }
+}
+
+async function loadStorageContexts() {
+  try {
+    const ctxs = await api('/my/storage-context');
+    myStorageContexts = ctxs.contexts || [];
+    renderTeamSelector();
+  } catch (e) {
+    myStorageContexts = [];
+  }
+}
+
+function renderTeamSelector() {
+  const sel = document.getElementById('teamSelect');
+  const wrapper = document.getElementById('storageSelector');
+  if (myStorageContexts.length === 0) {
+    wrapper.style.display = 'none';
+    return;
+  }
+  wrapper.style.display = '';
+  sel.innerHTML = '<option value="">-- 选择团队 --</option>' +
+    myStorageContexts.map(c =>
+      `<option value="${c.team_id}">${c.team_name || c.team_id}</option>`
+    ).join('');
+}
+
+function onTeamChange(teamId) {
+  if (!teamId) return;
+  const ctx = myStorageContexts.find(c => c.team_id === teamId);
+  if (ctx) {
+    navigateTo('files');
+    loadFiles(currentPath);
   }
 }
 
@@ -722,13 +1104,14 @@ loginForm.addEventListener('submit', async (e) => {
       body: JSON.stringify({ username, password })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Login failed');
+    if (!res.ok) throw new Error(data.detail || '登录失败');
 
     token = data.access_token;
     localStorage.setItem(TOKEN_KEY, token);
     loginError.classList.remove('show');
+    loginScreen.style.display = 'none';
     checkAuth();
-    toast('success', 'Welcome', `Signed in as ${username}`);
+    toast('success', '欢迎', `已登录：${username}`);
   } catch (err) {
     loginError.textContent = err.message;
     loginError.classList.add('show');
@@ -745,25 +1128,25 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   registerError.classList.remove('show');
 
   if (!username || !password) {
-    registerError.textContent = 'Please fill in all fields';
+    registerError.textContent = '请填写所有字段';
     registerError.classList.add('show');
     return;
   }
 
   if (username.length < 3) {
-    registerError.textContent = 'Username must be at least 3 characters';
+    registerError.textContent = '用户名至少需要3个字符';
     registerError.classList.add('show');
     return;
   }
 
   if (password.length < 6) {
-    registerError.textContent = 'Password must be at least 6 characters';
+    registerError.textContent = '密码至少需要6个字符';
     registerError.classList.add('show');
     return;
   }
 
   if (password !== password2) {
-    registerError.textContent = 'Passwords do not match';
+    registerError.textContent = '两次密码输入不一致';
     registerError.classList.add('show');
     return;
   }
@@ -775,7 +1158,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
       body: JSON.stringify({ username, password })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Registration failed');
+    if (!res.ok) throw new Error(data.detail || '注册失败');
 
     // Auto-login after register
     const loginRes = await fetch(API_BASE + '/auth/login', {
@@ -784,13 +1167,14 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
       body: JSON.stringify({ username, password })
     });
     const loginData = await loginRes.json();
-    if (!loginRes.ok) throw new Error(loginData.detail || 'Login failed after registration');
+    if (!loginRes.ok) throw new Error(loginData.detail || '注册后自动登录失败');
 
     token = loginData.access_token;
     localStorage.setItem(TOKEN_KEY, token);
     registerError.classList.remove('show');
+    loginScreen.style.display = 'none';
     checkAuth();
-    toast('success', 'Welcome!', `Account created. Signed in as ${username}`);
+    toast('success', '欢迎！', `账户已创建并登录：${username}`);
   } catch (err) {
     registerError.textContent = err.message;
     registerError.classList.add('show');
@@ -801,15 +1185,22 @@ function logout() {
   token = null;
   localStorage.removeItem(TOKEN_KEY);
   currentPath = '/';
-  checkAuth();
+  currentView = 'files';
+  myTeams = [];
+  myStorageContexts = [];
+  loginScreen.style.display = 'flex';
+  registerScreen.style.display = 'none';
+  appContainer.classList.remove('active');
+  showingRegister = false;
 }
 
 document.getElementById('logoutBtn').addEventListener('click', logout);
+document.getElementById('logoutBtn2').addEventListener('click', logout);
 
 // Breadcrumb
 function updateBreadcrumb() {
   const parts = currentPath.split('/').filter(Boolean);
-  let html = '<span data-path="/">Home</span>';
+  let html = '<span data-path="/">首页</span>';
   let path = '';
   parts.forEach(p => {
     path += '/' + p;
@@ -826,6 +1217,68 @@ function updateBreadcrumb() {
   });
 }
 
+document.getElementById('btnRefresh').addEventListener('click', () => loadFiles(currentPath));
+
+// Helper: get selected file paths from checked checkboxes
+function getSelectedPaths() {
+  const checked = document.querySelectorAll('.file-checkbox:checked');
+  return Array.from(checked).map(cb => cb.dataset.path);
+}
+
+// Toggle select all checkboxes
+function toggleSelectAll(checked) {
+  document.querySelectorAll('.file-checkbox').forEach(cb => cb.checked = checked);
+}
+
+// Update "select all" checkbox state based on individual checkboxes
+function updateSelectAllState() {
+  const all = document.querySelectorAll('.file-checkbox');
+  const checked = document.querySelectorAll('.file-checkbox:checked');
+  const selectAll = document.getElementById('selectAllFiles');
+  if (selectAll) {
+    selectAll.checked = all.length > 0 && checked.length === all.length;
+    selectAll.indeterminate = checked.length > 0 && checked.length < all.length;
+  }
+}
+
+// Helper: share multiple selected items
+async function shareItems(paths) {
+  if (paths.length === 1) {
+    await shareItem(paths[0]);
+  } else {
+    toast('info', '提示', '分享功能仅支持单个文件');
+  }
+}
+
+// File upload handler
+async function handleFileUpload(files) {
+  if (!files.length) return;
+  showLoading();
+  try {
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('path', currentPath);
+      const res = await fetch(API_BASE + '/files/upload', {
+        method: 'POST',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        body: formData
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || `上传失败: ${file.name}`);
+      }
+    }
+    toast('success', '上传成功', `${files.length} 个文件已上传`);
+    loadFiles(currentPath);
+  } catch (err) {
+    toast('error', '上传错误', err.message);
+  } finally {
+    hideLoading();
+    document.getElementById('fileInput').value = '';
+  }
+}
+
 // File List
 async function loadFiles(path) {
   showLoading();
@@ -835,7 +1288,7 @@ async function loadFiles(path) {
     updateBreadcrumb();
     renderFiles(data.files || []);
   } catch (err) {
-    toast('error', 'Error', err.message);
+    toast('error', '错误', err.message);
   } finally {
     hideLoading();
   }
@@ -844,31 +1297,34 @@ async function loadFiles(path) {
 function renderFiles(files) {
   if (files.length === 0) {
     fileListBody.innerHTML = '';
-    emptyState.style.display = 'flex';
+    emptyState.classList.add('show');
     return;
   }
-  emptyState.style.display = 'none';
+  emptyState.classList.remove('show');
 
   fileListBody.innerHTML = files.map(f => `
     <tr>
       <td>
-        <div class="file-name" data-type="${f.type}" data-path="${f.path}">
-          <span class="file-icon ${f.type === 'directory' ? 'folder' : 'file'}">
-            ${f.type === 'directory' ? '📁' : '📄'}
-          </span>
-          <span>${f.name}</span>
-        </div>
+        <label style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" class="file-checkbox" data-path="${escapeHtml(f.path)}" onchange="updateSelectAllState()">
+          <div class="file-name" data-type="${f.type}" data-path="${f.path}">
+            <span class="file-icon ${f.type === 'directory' ? 'folder' : 'file'}">
+              ${f.type === 'directory' ? '📁' : '📄'}
+            </span>
+            <span>${escapeHtml(f.name)}</span>
+          </div>
+        </label>
       </td>
       <td class="file-size">${f.type === 'file' ? formatSize(f.size) : '-'}</td>
       <td>${formatDate(f.modified)}</td>
       <td>
         <div class="file-actions">
           ${f.type === 'file' ? `
-            <button onclick="viewFile('${f.path}')">View</button>
-            <button onclick="editFile('${f.path}')">Edit</button>
+            <button onclick="viewFile('${escapeHtml(f.path)}')">查看</button>
+            <button onclick="editFile('${escapeHtml(f.path)}')">编辑</button>
           ` : ''}
-          <button class="danger" onclick="deleteItem('${f.path}', '${f.type}')">Delete</button>
-          <button onclick="shareItem('${f.path}')">Share</button>
+          <button class="danger" onclick="deleteItem('${escapeHtml(f.path)}', '${f.type}')">删除</button>
+          <button onclick="shareItem('${escapeHtml(f.path)}')">分享</button>
         </div>
       </td>
     </tr>
@@ -887,8 +1343,6 @@ function renderFiles(files) {
   });
 }
 
-document.getElementById('btnRefresh').addEventListener('click', () => loadFiles(currentPath));
-
 // File Operations
 async function viewFile(path) {
   showLoading();
@@ -899,13 +1353,13 @@ async function viewFile(path) {
     });
     const name = path.split('/').pop();
     openModal(
-      name,
+      escapeHtml(name),
       `<textarea class="editor-textarea" readonly id="viewContent">${escapeHtml(data.content || '')}</textarea>`,
-      `<button class="btn btn-secondary" onclick="closeModal()">Close</button>
-       <button class="btn btn-primary" onclick="editFile('${path}')">Edit</button>`
+      `<button class="btn btn-secondary" onclick="closeModal()">关闭</button>
+       <button class="btn btn-primary" onclick="editFile('${escapeHtml(path)}')">编辑</button>`
     );
   } catch (err) {
-    toast('error', 'Error', err.message);
+    toast('error', '错误', err.message);
   } finally {
     hideLoading();
   }
@@ -920,13 +1374,13 @@ async function editFile(path) {
     });
     const name = path.split('/').pop();
     openModal(
-      `Edit: ${name}`,
+      `编辑：${escapeHtml(name)}`,
       `<textarea class="editor-textarea" id="editContent">${escapeHtml(data.content || '')}</textarea>`,
-      `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-       <button class="btn btn-primary" onclick="saveFile('${path}')">Save</button>`
+      `<button class="btn btn-secondary" onclick="closeModal()">取消</button>
+       <button class="btn btn-primary" onclick="saveFile('${escapeHtml(path)}')">保存</button>`
     );
   } catch (err) {
-    toast('error', 'Error', err.message);
+    toast('error', '错误', err.message);
   } finally {
     hideLoading();
   }
@@ -941,10 +1395,10 @@ async function saveFile(path) {
       body: JSON.stringify({ path, content })
     });
     closeModal();
-    toast('success', 'Saved', 'File saved successfully');
+    toast('success', '已保存', '文件保存成功');
     loadFiles(currentPath);
   } catch (err) {
-    toast('error', 'Error', err.message);
+    toast('error', '错误', err.message);
   } finally {
     hideLoading();
   }
@@ -953,10 +1407,10 @@ async function saveFile(path) {
 async function deleteItem(path, type) {
   const name = path.split('/').pop();
   openModal(
-    'Confirm Delete',
-    `<p>Are you sure you want to delete <strong>${name}</strong>?${type === 'directory' ? '<br>This will delete all contents.' : ''}</p>`,
-    `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-     <button class="btn btn-danger" onclick="confirmDelete('${path}', ${type === 'directory'})">Delete</button>`
+    '确认删除',
+    `<p>确定要删除 <strong>${escapeHtml(name)}</strong> 吗？${type === 'directory' ? '<br>这将删除所有内容。' : ''}</p>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">取消</button>
+     <button class="btn btn-danger" onclick="confirmDelete('${escapeHtml(path)}', ${type === 'directory'})">删除</button>`
   );
 }
 
@@ -968,10 +1422,10 @@ async function confirmDelete(path, recursive) {
       method: 'POST',
       body: JSON.stringify({ path, recursive })
     });
-    toast('success', 'Deleted', 'Item deleted successfully');
+    toast('success', '已删除', '删除成功');
     loadFiles(currentPath);
   } catch (err) {
-    toast('error', 'Error', err.message);
+    toast('error', '错误', err.message);
   } finally {
     hideLoading();
   }
@@ -980,17 +1434,17 @@ async function confirmDelete(path, recursive) {
 async function shareItem(path) {
   const name = path.split('/').pop();
   openModal(
-    `Share: ${name}`,
+    `分享：${escapeHtml(name)}`,
     `<div class="form-group">
-      <label>Share Link</label>
-      <input type="text" id="shareLink" readonly value="Creating..." style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+      <label>分享链接</label>
+      <input type="text" id="shareLink" readonly value="正在创建..." style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
     </div>
     <div class="form-group">
-      <label>Password (optional)</label>
-      <input type="password" id="sharePassword" placeholder="Leave empty for no password" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+      <label>密码（可选）</label>
+      <input type="password" id="sharePassword" placeholder="留空则无密码保护" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
     </div>`,
-    `<button class="btn btn-secondary" onclick="closeModal()">Close</button>
-     <button class="btn btn-primary" onclick="createShare('${path}')">Create Link</button>`
+    `<button class="btn btn-secondary" onclick="closeModal()">关闭</button>
+     <button class="btn btn-primary" onclick="createShare('${escapeHtml(path)}')">创建链接</button>`
   );
 }
 
@@ -1005,9 +1459,9 @@ async function createShare(path) {
     const shareUrl = `${window.location.origin}/share/${data.token}`;
     document.getElementById('shareLink').value = shareUrl;
     document.getElementById('shareLink').select();
-    toast('success', 'Shared', 'Share link created');
+    toast('success', '已分享', '分享链接已创建');
   } catch (err) {
-    toast('error', 'Error', err.message);
+    toast('error', '错误', err.message);
   } finally {
     hideLoading();
   }
@@ -1016,13 +1470,13 @@ async function createShare(path) {
 // New Folder
 document.getElementById('btnNewFolder').addEventListener('click', () => {
   openModal(
-    'New Folder',
+    '新建文件夹',
     `<div class="form-group">
-      <label>Folder Name</label>
+      <label>文件夹名称</label>
       <input type="text" id="newFolderName" placeholder="my-folder" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
     </div>`,
-    `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-     <button class="btn btn-primary" onclick="createFolder()">Create</button>`
+    `<button class="btn btn-secondary" onclick="closeModal()">取消</button>
+     <button class="btn btn-primary" onclick="createFolder()">创建</button>`
   );
   setTimeout(() => document.getElementById('newFolderName').focus(), 100);
 });
@@ -1038,10 +1492,10 @@ async function createFolder() {
       method: 'POST',
       body: JSON.stringify({ path })
     });
-    toast('success', 'Created', `Folder "${name}" created`);
+    toast('success', '已创建', `文件夹 "${name}" 已创建`);
     loadFiles(currentPath);
   } catch (err) {
-    toast('error', 'Error', err.message);
+    toast('error', '错误', err.message);
   } finally {
     hideLoading();
   }
@@ -1050,17 +1504,17 @@ async function createFolder() {
 // New File
 document.getElementById('btnNewFile').addEventListener('click', () => {
   openModal(
-    'New File',
+    '新建文件',
     `<div class="form-group">
-      <label>File Name</label>
+      <label>文件名称</label>
       <input type="text" id="newFileName" placeholder="readme.txt" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
     </div>
     <div class="form-group">
-      <label>Content</label>
-      <textarea class="editor-textarea" id="newFileContent" placeholder="Enter file content..."></textarea>
+      <label>内容</label>
+      <textarea class="editor-textarea" id="newFileContent" placeholder="输入文件内容..."></textarea>
     </div>`,
-    `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-     <button class="btn btn-primary" onclick="createFile()">Create</button>`
+    `<button class="btn btn-secondary" onclick="closeModal()">取消</button>
+     <button class="btn btn-primary" onclick="createFile()">创建</button>`
   );
   setTimeout(() => document.getElementById('newFileName').focus(), 100);
 });
@@ -1077,10 +1531,439 @@ async function createFile() {
       method: 'POST',
       body: JSON.stringify({ path, content })
     });
-    toast('success', 'Created', `File "${name}" created`);
+    toast('success', '已创建', `文件 "${name}" 已创建`);
     loadFiles(currentPath);
   } catch (err) {
-    toast('error', 'Error', err.message);
+    toast('error', '错误', err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+// ==================== TEAMS ====================
+
+async function loadTeams() {
+  showLoading();
+  try {
+    const [myData, allData] = await Promise.all([
+      api('/my/teams'),
+      api('/teams').catch(() => ({ teams: [] }))
+    ]);
+    myTeams = myData.teams || [];
+    renderMyTeams(myTeams);
+    // Show all teams if user is admin (has more than 1 team visible or is owner)
+    const allTeams = allData.teams || [];
+    renderAllTeams(allTeams);
+  } catch (err) {
+    toast('error', '错误', err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+function renderMyTeams(teams) {
+  const sec = document.getElementById('myTeamsSection');
+  if (teams.length === 0) {
+    sec.innerHTML = '<p style="color:var(--text-secondary);font-size:14px">你还没有加入任何团队。使用下方邀请码加入。</p>';
+    return;
+  }
+  sec.innerHTML = `<table class="data-table">
+    <thead><tr>
+      <th>团队名称</th>
+      <th>存储池</th>
+      <th>配额使用</th>
+      <th>我的角色</th>
+      <th>操作</th>
+    </tr></thead>
+    <tbody>
+      ${teams.map(t => {
+        const pct = t.max_bytes > 0 ? Math.min(100, Math.round(t.used_bytes / t.max_bytes * 100)) : 0;
+        const cls = pct > 90 ? 'danger' : pct > 70 ? 'warn' : 'ok';
+        return `<tr>
+          <td><strong>${escapeHtml(t.name)}</strong></td>
+          <td>${escapeHtml(t.pool_name || t.storage_pool_id)}</td>
+          <td>
+            ${t.max_bytes > 0 ? `
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="quota-bar"><div class="quota-fill ${cls}" style="width:${pct}%"></div></div>
+                <span style="font-size:12px;color:var(--text-secondary)">${formatSize(t.used_bytes)} / ${formatSize(t.max_bytes)}</span>
+              </div>
+            ` : '<span style="color:var(--text-secondary)">无限</span>'}
+          </td>
+          <td><span class="badge ${t.my_role || 'member'}">${t.my_role === 'owner' ? '所有者' : '成员'}</span></td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-secondary btn-sm" onclick="showTeamDetail('${t.id}')">详情</button>
+              ${t.my_role === 'owner' ? `<button class="btn btn-secondary btn-sm" onclick="showTeamCredentials('${t.id}')">邀请</button>` : ''}
+            </div>
+          </td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
+}
+
+function renderAllTeams(teams) {
+  const sec = document.getElementById('allTeamsSection');
+  if (teams.length === 0) {
+    sec.innerHTML = '';
+    return;
+  }
+  sec.innerHTML = `<h3 class="section-title" style="margin-top:0">所有团队</h3><table class="data-table">
+    <thead><tr>
+      <th>团队名称</th>
+      <th>存储池</th>
+      <th>配额</th>
+      <th>所有者</th>
+      <th>状态</th>
+    </tr></thead>
+    <tbody>
+      ${teams.map(t => `<tr>
+        <td><strong>${escapeHtml(t.name)}</strong></td>
+        <td>${escapeHtml(t.pool_name || '-')}</td>
+        <td>${t.max_bytes > 0 ? formatSize(t.used_bytes) + ' / ' + formatSize(t.max_bytes) : '无限'}</td>
+        <td>${escapeHtml(t.owner_name || t.owner_id)}</td>
+        <td><span class="badge ${t.is_active ? 'active' : 'inactive'}">${t.is_active ? '活跃' : '禁用'}</span></td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+function showCreateTeam() {
+  const poolOptions = myStorageContexts.map(c =>
+    `<option value="${c.pool_id}">${c.pool_name || c.pool_id}</option>`
+  ).join('');
+  openModal(
+    '创建团队',
+    `<div class="form-group">
+      <label>团队名称</label>
+      <input type="text" id="teamName" placeholder="我的团队" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+    </div>
+    <div class="form-group">
+      <label>存储池</label>
+      <select id="teamPool" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+        ${poolOptions || '<option value="">默认存储池</option>'}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>最大配额 (GB，0=无限)</label>
+      <input type="number" id="teamQuota" value="0" min="0" placeholder="0" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">取消</button>
+     <button class="btn btn-primary" onclick="createTeam()">创建</button>`
+  );
+}
+
+async function createTeam() {
+  const name = document.getElementById('teamName').value.trim();
+  const pool_id = document.getElementById('teamPool')?.value || null;
+  const quotaGB = parseInt(document.getElementById('teamQuota').value) || 0;
+  if (!name) { toast('error', '错误', '请输入团队名称'); return; }
+  showLoading();
+  closeModal();
+  try {
+    const max_bytes = quotaGB * 1024 * 1024 * 1024;
+    const data = await api('/teams', {
+      method: 'POST',
+      body: JSON.stringify({ name, storage_pool_id: pool_id, max_bytes })
+    });
+    toast('success', '已创建', `团队 "${name}" 已创建`);
+    loadTeams();
+    loadStorageContexts();
+  } catch (err) {
+    toast('error', '错误', err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+async function showTeamDetail(teamId) {
+  showLoading();
+  try {
+    const [team, members] = await Promise.all([
+      api(`/teams/${teamId}`),
+      api(`/teams/${teamId}/members`)
+    ]);
+    const memberRows = (members.members || []).map(m =>
+      `<tr>
+        <td>${escapeHtml(m.username || m.user_id)}</td>
+        <td><span class="badge ${m.role}">${m.role === 'owner' ? '所有者' : '成员'}</span></td>
+        <td>${formatDate(m.joined_at)}</td>
+        ${team.owner_id === currentUserData?.id && m.role !== 'owner' ?
+          `<td><button class="btn btn-danger btn-sm" onclick="removeMember('${teamId}','${m.user_id}')">移除</button></td>`
+          : '<td>-</td>'}
+      </tr>`
+    ).join('');
+    openModal(
+      `团队：${escapeHtml(team.name)}`,
+      `<table class="data-table" style="margin-top:0">
+        <tr><td style="width:120px;color:var(--text-secondary)">存储池</td><td>${escapeHtml(team.pool_name || team.storage_pool_id)}</td></tr>
+        <tr><td style="color:var(--text-secondary)">配额</td><td>${team.max_bytes > 0 ? formatSize(team.used_bytes) + ' / ' + formatSize(team.max_bytes) : '无限'}</td></tr>
+        <tr><td style="color:var(--text-secondary)">所有者</td><td>${escapeHtml(team.owner_name || team.owner_id)}</td></tr>
+      </table>
+      <h4 style="margin-top:16px;margin-bottom:8px;font-size:13px;color:var(--text-secondary)">成员列表</h4>
+      <table class="data-table">
+        <thead><tr><th>用户</th><th>角色</th><th>加入时间</th><th></th></tr></thead>
+        <tbody>${memberRows || '<tr><td colspan="4" style="text-align:center;color:var(--text-secondary)">暂无成员</td></tr>'}</tbody>
+      </table>`,
+      `<button class="btn btn-secondary" onclick="closeModal()">关闭</button>`
+    );
+  } catch (err) {
+    toast('error', '错误', err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+async function showTeamCredentials(teamId) {
+  showLoading();
+  try {
+    const creds = await api(`/teams/${teamId}/credentials`);
+    const rows = (creds.credentials || []).map(c => {
+      const status = c.is_valid ? '有效' : '已失效';
+      const cls = c.is_valid ? 'active' : 'inactive';
+      return `<tr>
+        <td><code style="font-size:12px">${escapeHtml(c.token)}</code></td>
+        <td>${c.max_uses ?? '无限'}</td>
+        <td>${c.used_count} / ${c.max_uses ?? '∞'}</td>
+        <td>${formatDate(c.expires_at)}</td>
+        <td><span class="badge ${cls}">${status}</span></td>
+        <td><button class="btn btn-danger btn-sm" onclick="deleteCred('${teamId}','${c.id}')">删除</button></td>
+      </tr>`;
+    }).join('');
+    openModal(
+      '邀请成员',
+      `<p style="margin-bottom:12px;font-size:13px;color:var(--text-secondary)">创建一个邀请链接，分享给团队新成员。</p>
+      <div class="form-group">
+        <label>最大使用次数（留空=无限）</label>
+        <input type="number" id="credMaxUses" placeholder="留空=无限" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+      </div>
+      <div class="form-group">
+        <label>过期时间（留空=永不过期）</label>
+        <input type="datetime-local" id="credExpiry" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="createCred('${teamId}')" style="margin-bottom:16px">+ 生成邀请码</button>
+      <table class="data-table" style="margin-top:0">
+        <thead><tr><th>邀请码</th><th>次数限制</th><th>已用</th><th>过期时间</th><th>状态</th><th></th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary)">暂无邀请码</td></tr>'}</tbody>
+      </table>`,
+      `<button class="btn btn-secondary" onclick="closeModal()">关闭</button>`
+    );
+  } catch (err) {
+    toast('error', '错误', err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+async function createCred(teamId) {
+  try {
+    const max_uses = document.getElementById('credMaxUses')?.value || null;
+    const expires_at = document.getElementById('credExpiry')?.value || null;
+    await api(`/teams/${teamId}/credentials`, {
+      method: 'POST',
+      body: JSON.stringify({
+        max_uses: max_uses ? parseInt(max_uses) : null,
+        expires_at: expires_at ? new Date(expires_at).toISOString() : null
+      })
+    });
+    toast('success', '已生成', '邀请码已创建');
+    showTeamCredentials(teamId);
+  } catch (err) {
+    toast('error', '错误', err.message);
+  }
+}
+
+async function deleteCred(teamId, credId) {
+  showLoading();
+  try {
+    await api(`/teams/${teamId}/credentials/${credId}`, { method: 'DELETE' });
+    toast('success', '已删除', '邀请码已删除');
+    showTeamCredentials(teamId);
+  } catch (err) {
+    toast('error', '错误', err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+async function removeMember(teamId, userId) {
+  showLoading();
+  try {
+    await api(`/teams/${teamId}/members/${userId}`, { method: 'DELETE' });
+    toast('success', '已移除', '成员已从团队移除');
+    showTeamDetail(teamId);
+  } catch (err) {
+    toast('error', '错误', err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+async function joinTeam() {
+  const token = document.getElementById('joinToken').value.trim();
+  if (!token) { toast('warning', '提示', '请输入邀请码'); return; }
+  showLoading();
+  try {
+    const data = await api('/teams/join', {
+      method: 'POST',
+      body: JSON.stringify({ token })
+    });
+    toast('success', '已加入', `成功加入团队：${data.team?.name || token}`);
+    document.getElementById('joinToken').value = '';
+    loadTeams();
+    loadStorageContexts();
+  } catch (err) {
+    toast('error', '错误', err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+// ==================== STORAGE POOLS ====================
+
+async function loadPools() {
+  showLoading();
+  try {
+    const [poolsData, teamsData] = await Promise.all([
+      api('/pools'),
+      api('/teams').catch(() => ({ teams: [] }))
+    ]);
+    const pools = poolsData.pools || [];
+    const teams = teamsData.teams || [];
+    renderPools(pools, teams);
+  } catch (err) {
+    toast('error', '错误', err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+function renderPools(pools, teams) {
+  const sec = document.getElementById('poolsSection');
+  if (pools.length === 0) {
+    sec.innerHTML = `<p style="color:var(--text-secondary)">暂无存储池。</p>`;
+    return;
+  }
+  sec.innerHTML = `<table class="data-table">
+    <thead><tr>
+      <th>名称</th>
+      <th>协议</th>
+      <th>路径 / URI</th>
+      <th>容量</th>
+      <th>剩余</th>
+      <th>团队占用</th>
+      <th>状态</th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+      ${pools.map(p => {
+        const usedByTeams = teams.filter(t => t.storage_pool_id === p.id);
+        const pct = p.total_bytes > 0 ? Math.min(100, Math.round((p.total_bytes - p.free_bytes) / p.total_bytes * 100)) : 0;
+        const cls = pct > 90 ? 'danger' : pct > 70 ? 'warn' : 'ok';
+        return `<tr>
+          <td><strong>${escapeHtml(p.name)}</strong></td>
+          <td><span class="badge">${p.protocol}</span></td>
+          <td><code style="font-size:11px;color:var(--text-secondary)">${escapeHtml(p.base_path)}</code></td>
+          <td>${p.total_bytes > 0 ? formatSize(p.total_bytes) : '-'}</td>
+          <td>${p.free_bytes > 0 ? formatSize(p.free_bytes) : '-'}</td>
+          <td>${usedByTeams.length} 个团队</td>
+          <td><span class="badge ${p.is_active ? 'active' : 'inactive'}">${p.is_active ? '活跃' : '禁用'}</span></td>
+          <td>
+            <div class="actions">
+              ${usedByTeams.length === 0 ? `<button class="btn btn-danger btn-sm" onclick="deletePool('${p.id}')">删除</button>` : ''}
+              <button class="btn btn-secondary btn-sm" onclick="refreshPool('${p.id}')">刷新容量</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
+}
+
+function showCreatePool() {
+  openModal(
+    '创建存储池',
+    `<div class="form-group">
+      <label>名称</label>
+      <input type="text" id="poolName" placeholder="本地存储" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+    </div>
+    <div class="form-group">
+      <label>协议</label>
+      <select id="poolProtocol" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+        <option value="local">local (本地磁盘)</option>
+        <option value="smb">smb (SMB/CIFS)</option>
+        <option value="nfs">nfs (NFS)</option>
+        <option value="s3">s3 (S3 兼容)</option>
+        <option value="minio">minio (MinIO)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>路径 / URI</label>
+      <input type="text" id="poolPath" placeholder="/data/storage" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+    </div>
+    <div class="form-group">
+      <label>描述（可选）</label>
+      <input type="text" id="poolDesc" placeholder="备注信息" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">取消</button>
+     <button class="btn btn-primary" onclick="createPool()">创建</button>`
+  );
+}
+
+async function createPool() {
+  const name = document.getElementById('poolName').value.trim();
+  const protocol = document.getElementById('poolProtocol').value;
+  const base_path = document.getElementById('poolPath').value.trim();
+  const description = document.getElementById('poolDesc').value.trim() || null;
+  if (!name || !base_path) { toast('error', '错误', '请填写名称和路径'); return; }
+  showLoading();
+  closeModal();
+  try {
+    await api('/pools', {
+      method: 'POST',
+      body: JSON.stringify({ name, protocol, base_path, description })
+    });
+    toast('success', '已创建', `存储池 "${name}" 已创建`);
+    loadPools();
+  } catch (err) {
+    toast('error', '错误', err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+async function deletePool(poolId) {
+  openModal(
+    '确认删除',
+    `<p>确定要删除此存储池吗？<br><strong style="color:var(--warning)">删除后无法恢复，且必须确保没有团队占用此池。</strong></p>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">取消</button>
+     <button class="btn btn-danger" onclick="confirmDeletePool('${poolId}')">删除</button>`
+  );
+}
+
+async function confirmDeletePool(poolId) {
+  showLoading();
+  closeModal();
+  try {
+    await api(`/pools/${poolId}`, { method: 'DELETE' });
+    toast('success', '已删除', '存储池已删除');
+    loadPools();
+  } catch (err) {
+    toast('error', '错误', err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+async function refreshPool(poolId) {
+  showLoading();
+  try {
+    await api(`/pools/${poolId}/refresh`, { method: 'POST' });
+    toast('success', '已刷新', '容量信息已更新');
+    loadPools();
+  } catch (err) {
+    toast('error', '错误', err.message);
   } finally {
     hideLoading();
   }
@@ -1088,6 +1971,7 @@ async function createFile() {
 
 // Utility
 function escapeHtml(str) {
+  if (!str) return '';
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
