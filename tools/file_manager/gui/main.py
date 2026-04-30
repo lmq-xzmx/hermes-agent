@@ -1,25 +1,42 @@
 """
-PyQt6 File Manager GUI
+PyQt6 File Manager GUI — Thin shell with embedded WebView
 Connects to FastAPI at http://localhost:8080
+
+Phase 1: QWebEngineView replaces all PyQt file browser widgets.
+Phase 2: Native menu bar, drag-and-drop upload, proper polish.
+Phase 3: Auto-launch server, offline file:// mode.
 """
 
 import sys
 import os
 import requests
-from io import BytesIO
+import subprocess
+import time
+import socket
+import threading
+from pathlib import Path
 
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QDialog, QLineEdit, QPushButton, QLabel, QMessageBox, QTreeWidget,
-    QTreeWidgetItem, QListWidget, QListWidgetItem, QFileDialog,
-    QToolBar, QStatusBar, QMenuBar, QMenu, QTextEdit, QInputDialog,
-    QSplitter, QDialogButtonBox, QFormLayout
+    QApplication, QMainWindow, QWidget, QVBoxLayout,
+    QDialog, QLineEdit, QLabel, QPushButton, QMessageBox,
+    QMenuBar, QMenu, QStatusBar, QFileDialog, QInputDialog,
+    QDialogButtonBox, QFormLayout, QHBoxLayout, QVBoxLayout,
+    QProgressDialog
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize
-from PyQt6.QtGui import QAction, QIcon, QPalette, QColor, QCursor
+from PyQt6.QtCore import Qt, QTimer, QUrl, QObject, pyqtSignal, QProcess
+from PyQt6.QtGui import QAction
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebEngineCore import QWebEngineProfile
 
 
 BASE_URL = "http://localhost:8080"
+WEB_URL = f"{BASE_URL}/static/"
+
+# Path to this file's directory
+_GUI_DIR = Path(__file__).parent.resolve()
+_FILE_MANAGER_ROOT = _GUI_DIR.parent.resolve()
+_WEB_DIR = _FILE_MANAGER_ROOT / "web"
+_SERVER_SCRIPT = _FILE_MANAGER_ROOT / "server.py"
 
 
 # ============== Dark Theme Stylesheet ==============
@@ -27,12 +44,6 @@ DARK_STYLESHEET = """
 QMainWindow, QDialog {
     background-color: #1e1e1e;
     color: #e0e0e0;
-}
-QWidget {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    font-size: 10pt;
 }
 QMenuBar {
     background-color: #2d2d2d;
@@ -49,91 +60,45 @@ QMenu {
 QMenu::item:selected {
     background-color: #3d3d3d;
 }
-QToolBar {
-    background-color: #2d2d2d;
-    border: none;
-    spacing: 4px;
-    padding: 4px;
-}
-QToolButton {
-    background-color: transparent;
-    border: none;
-    padding: 6px;
-    border-radius: 4px;
-}
-QToolButton:hover {
-    background-color: #3d3d3d;
-}
-QLineEdit, QTextEdit {
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-    border: 1px solid #3d3d3d;
-    border-radius: 4px;
-    padding: 4px;
-}
-QLineEdit:focus, QTextEdit:focus {
-    border: 1px solid #0078d4;
-}
-QPushButton {
-    background-color: #0e639c;
-    color: #ffffff;
-    border: none;
-    border-radius: 4px;
-    padding: 6px 16px;
-    min-width: 70px;
-}
-QPushButton:hover {
-    background-color: #1177bb;
-}
-QPushButton:pressed {
-    background-color: #0d5a8c;
-}
-QPushButton:disabled {
-    background-color: #3d3d3d;
-    color: #808080;
-}
-QTreeWidget, QListWidget {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-    border: 1px solid #3d3d3d;
-    border-radius: 4px;
-    outline: none;
-}
-QTreeWidget::item:hover, QListWidget::item:hover {
-    background-color: #2d2d2d;
-}
-QTreeWidget::item:selected, QListWidget::item:selected {
-    background-color: #094771;
-}
-QTreeWidget::branch:has-children:!has-siblings:closed,
-QTreeWidget::branch:closed:has-children:has-siblings {
-    border-image: none;
-    image: url(dark/branch-closed.png);
-}
-QTreeWidget::branch:open:has-children:!has-siblings,
-QTreeWidget::branch:open:has-children:has-siblings {
-    border-image: none;
-    image: url(dark/branch-open.png);
-}
-QHeaderView::section {
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-    border: none;
-    border-right: 1px solid #3d3d3d;
-    border-bottom: 1px solid #3d3d3d;
-    padding: 4px;
-}
 QStatusBar {
     background-color: #2d2d2d;
     color: #e0e0e0;
 }
-QDialogButtonBox QPushButton {
-    min-width: 80px;
-}
-QSplitter::handle {
-    background-color: #3d3d3d;
-}
 """
+
+
+# ============== Server Utilities ==============
+
+def is_server_running(host="localhost", port=8080, timeout=1):
+    """Check if the API server is reachable."""
+    try:
+        sock = socket.create_connection((host, port), timeout=timeout)
+        sock.close()
+        return True
+    except (socket.timeout, ConnectionRefused, OSError):
+        return False
+
+
+def wait_for_server(timeout=15):
+    """Wait for the server to become ready, returning True if it does."""
+    start = time.time()
+    while time.time() - start < timeout:
+        if is_server_running():
+            return True
+        time.sleep(0.5)
+    return False
+
+
+def start_server_process(log_file=None):
+    """Launch server.py as a background process. Returns the process."""
+    import site
+    venv_python = sys.executable
+    process = QProcess()
+    if log_file:
+        process.setStandardOutputFile(str(log_file))
+        process.setStandardErrorFile(str(log_file))
+    process.start(venv_python, [str(_SERVER_SCRIPT)])
+    return process
 
 
 # ============== Login / Register Dialog ==============
@@ -173,7 +138,6 @@ class LoginDialog(QDialog):
         self.password_input.setPlaceholderText("密码（至少6个字符）")
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
 
-        # Extra field for register mode (confirm password)
         self.confirm_password_input = QLineEdit()
         self.confirm_password_input.setPlaceholderText("确认密码")
         self.confirm_password_input.setEchoMode(QLineEdit.EchoMode.Password)
@@ -191,7 +155,6 @@ class LoginDialog(QDialog):
         self.status_label.setVisible(False)
         layout.addWidget(self.status_label)
 
-        # Toggle link
         self.toggle_label = QLabel(
             '<a href="#" style="color: #58a6ff; text-decoration: none;">没有账户？立即注册</a>'
         )
@@ -200,7 +163,6 @@ class LoginDialog(QDialog):
         self.toggle_label.linkActivated.connect(self.toggle_mode)
         layout.addWidget(self.toggle_label)
 
-        # Buttons
         self.btn_box = QDialogButtonBox()
         self.submit_btn = QPushButton("登录")
         self.submit_btn.setDefault(True)
@@ -306,7 +268,6 @@ class LoginDialog(QDialog):
                 timeout=10
             )
             if response.status_code == 200:
-                # Auto-login after register
                 self.do_login(username, password)
             else:
                 try:
@@ -315,711 +276,310 @@ class LoginDialog(QDialog):
                     detail = f"HTTP {response.status_code}"
                 self.show_error(detail)
         except requests.exceptions.ConnectionError:
-            self.show_error("Cannot connect to server.\nIs the API server running?")
+            self.show_error("无法连接服务器。\n请确认 API 服务是否正在运行？")
         except Exception as e:
-            self.show_error(f"Error: {str(e)}")
+            self.show_error(f"错误：{str(e)}")
 
 
-# ============== Text Editor Dialog ==============
-class TextEditorDialog(QDialog):
-    def __init__(self, filename, content, readonly=False, parent=None):
-        super().__init__(parent)
-        self.filename = filename
-        self.original_content = content
-        self.readonly = readonly
-        self.setup_ui()
-
-    def setup_ui(self):
-        self.setWindowTitle(f"编辑：{self.filename}" if not self.readonly else self.filename)
-        self.setMinimumSize(700, 500)
-
-        layout = QVBoxLayout()
-
-        self.toolbar = QHBoxLayout()
-        self.save_btn = QPushButton("保存")
-        self.save_btn.clicked.connect(self.save_file)
-        self.cancel_btn = QPushButton("取消")
-        self.cancel_btn.clicked.connect(self.close)
-        self.toolbar.addWidget(self.save_btn)
-        self.toolbar.addStretch()
-        self.toolbar.addWidget(self.cancel_btn)
-        layout.addLayout(self.toolbar)
-
-        self.text_edit = QTextEdit()
-        self.text_edit.setPlainText(self.original_content)
-        if self.readonly:
-            self.text_edit.setReadOnly(True)
-            self.save_btn.setVisible(False)
-        layout.addWidget(self.text_edit)
-
-        self.setLayout(layout)
-
-    def save_file(self):
-        self.original_content = self.text_edit.toPlainText()
-        self.accept()
-
-
-# ============== File Item Widget ==============
-class FileItem(QWidget):
-    def __init__(self, name, is_dir, size=0, path="", parent=None):
-        super().__init__(parent)
-        self.name = name
-        self.is_dir = is_dir
-        self.size = size
-        self.path = path
-        self.setup_ui()
-
-    def setup_ui(self):
-        layout = QHBoxLayout()
-        layout.setContentsMargins(5, 2, 5, 2)
-
-        icon_label = QLabel("📁" if self.is_dir else "📄")
-        icon_label.setStyleSheet("font-size: 16pt;")
-        layout.addWidget(icon_label)
-
-        name_label = QLabel(self.name)
-        name_label.setStyleSheet("color: #e0e0e0;")
-        layout.addWidget(name_label, 1)
-
-        if not self.is_dir:
-            size_label = QLabel(self.format_size(self.size))
-            size_label.setStyleSheet("color: #808080;")
-            layout.addWidget(size_label)
-
-        self.setLayout(layout)
-
-    def format_size(self, size):
-        if size < 1024:
-            return f"{size} B"
-        elif size < 1024 * 1024:
-            return f"{size / 1024:.1f} KB"
-        elif size < 1024 * 1024 * 1024:
-            return f"{size / (1024 * 1024):.1f} MB"
-        else:
-            return f"{size / (1024 * 1024 * 1024):.1f} GB"
-
-
-# ============== Share Dialog ==============
-class ShareDialog(QDialog):
-    def __init__(self, share_url, parent=None):
-        super().__init__(parent)
-        self.share_url = share_url
-        self.setup_ui()
-
-    def setup_ui(self):
-        self.setWindowTitle("分享文件")
-        self.setMinimumWidth(450)
-
-        layout = QVBoxLayout()
-        layout.addWidget(QLabel("<h3>文件分享成功</h3>"))
-
-        layout.addWidget(QLabel("分享链接："))
-        url_layout = QHBoxLayout()
-        self.url_input = QLineEdit()
-        self.url_input.setText(self.share_url)
-        self.url_input.setReadOnly(True)
-        copy_btn = QPushButton("复制")
-        copy_btn.clicked.connect(self.copy_url)
-        url_layout.addWidget(self.url_input)
-        url_layout.addWidget(copy_btn)
-        layout.addLayout(url_layout)
-
-        self.status_label = QLabel("")
-        self.status_label.setStyleSheet("color: #4caf50;")
-        layout.addWidget(self.status_label)
-
-        close_btn = QPushButton("关闭")
-        close_btn.clicked.connect(self.close)
-        layout.addWidget(close_btn)
-
-        self.setLayout(layout)
-
-    def copy_url(self):
-        clipboard = QApplication.clipboard()
-        clipboard.setText(self.share_url)
-        self.status_label.setText("已复制到剪贴板！")
-
-
-# ============== Main Window ==============
+# ============== Main Window with WebView + Drag-and-Drop ==============
 class FileManagerWindow(QMainWindow):
-    def __init__(self, token):
+    # Signal emitted when a file drop completes
+    upload_requested = pyqtSignal(list, str)  # file_paths, dest_path
+
+    def __init__(self, token, username, server_process=None):
         super().__init__()
         self.token = token
-        self.headers = {"Authorization": f"Bearer {self.token}"}
-        self.current_path = "/"
-        self.clipboard = None
-        self.clipboard_action = None
+        self.username = username
+        self.server_process = server_process  # Keep alive while window is open
+        self.web_view = None
+        self._upload_progress = None
         self.setup_ui()
+        self.inject_auth_token()
 
     def setup_ui(self):
         self.setWindowTitle("文件管理器")
-        self.setMinimumSize(900, 600)
+        self.setMinimumSize(1100, 700)
 
         self.setup_menu_bar()
-        self.setup_tool_bar()
         self.setup_central_widget()
         self.setup_status_bar()
 
-        self.apply_dark_theme()
-        self.load_root()
-
-    def apply_dark_theme(self):
         self.setStyleSheet(DARK_STYLESHEET)
+        self.setAcceptDrops(True)
 
     def setup_menu_bar(self):
         menubar = self.menuBar()
 
+        # --- File menu ---
         file_menu = menubar.addMenu("文件")
 
-        upload_action = QAction("上传文件", self)
+        upload_action = QAction("上传文件...", self)
         upload_action.setShortcut("Ctrl+U")
-        upload_action.triggered.connect(self.upload_file)
+        upload_action.triggered.connect(self.native_upload_file)
         file_menu.addAction(upload_action)
 
-        new_folder_action = QAction("新建文件夹", self)
+        new_folder_action = QAction("新建文件夹...", self)
         new_folder_action.setShortcut("Ctrl+N")
         new_folder_action.triggered.connect(self.create_folder)
         file_menu.addAction(new_folder_action)
 
+        file_menu.addSeparator()
+
         refresh_action = QAction("刷新", self)
         refresh_action.setShortcut("F5")
-        refresh_action.triggered.connect(self.refresh_current)
+        refresh_action.triggered.connect(self.reload_webview)
         file_menu.addAction(refresh_action)
 
         file_menu.addSeparator()
+
         logout_action = QAction("退出登录", self)
         logout_action.triggered.connect(self.logout)
         file_menu.addAction(logout_action)
 
-        edit_menu = menubar.addMenu("编辑")
-
-        cut_action = QAction("剪切", self)
-        cut_action.setShortcut("Ctrl+X")
-        cut_action.triggered.connect(lambda: self.cut_copy("cut"))
-        edit_menu.addAction(cut_action)
-
-        copy_action = QAction("复制", self)
-        copy_action.setShortcut("Ctrl+C")
-        copy_action.triggered.connect(lambda: self.cut_copy("copy"))
-        edit_menu.addAction(copy_action)
-
-        paste_action = QAction("粘贴", self)
-        paste_action.setShortcut("Ctrl+V")
-        paste_action.triggered.connect(self.paste)
-        edit_menu.addAction(paste_action)
-
-        delete_action = QAction("删除", self)
-        delete_action.setShortcut("Delete")
-        delete_action.triggered.connect(self.delete_selected)
-        edit_menu.addAction(delete_action)
-
+        # --- View menu ---
         view_menu = menubar.addMenu("视图")
 
-        list_view_action = QAction("列表视图", self)
-        list_view_action.setCheckable(True)
-        list_view_action.setChecked(True)
-        list_view_action.triggered.connect(self.set_list_view)
-        view_menu.addAction(list_view_action)
+        reload_action = QAction("重新加载", self)
+        reload_action.setShortcut("Ctrl+R")
+        reload_action.triggered.connect(self.reload_webview)
+        view_menu.addAction(reload_action)
 
-        tree_view_action = QAction("树状视图", self)
-        tree_view_action.setCheckable(True)
-        tree_view_action.triggered.connect(self.set_tree_view)
-        view_menu.addAction(tree_view_action)
+        devtools_action = QAction("开发者工具", self)
+        devtools_action.setShortcut("F12")
+        devtools_action.triggered.connect(self.toggle_devtools)
+        view_menu.addAction(devtools_action)
 
-    def setup_tool_bar(self):
-        toolbar = QToolBar("Main Toolbar")
-        toolbar.setIconSize(QSize(24, 24))
-        self.addToolBar(toolbar)
+        view_menu.addSeparator()
 
-        back_btn = QPushButton("←")
-        back_btn.clicked.connect(self.go_back)
-        back_btn.setFixedSize(35, 35)
-        toolbar.addWidget(back_btn)
+        # Toggle between online (localhost) and offline (file://) mode
+        self.offline_action = QAction("离线模式", self)
+        self.offline_action.setCheckable(True)
+        self.offline_action.setChecked(False)
+        self.offline_action.triggered.connect(self.toggle_offline_mode)
+        view_menu.addAction(self.offline_action)
 
-        forward_btn = QPushButton("→")
-        forward_btn.clicked.connect(self.go_forward)
-        forward_btn.setFixedSize(35, 35)
-        toolbar.addWidget(forward_btn)
+        # --- Help menu ---
+        help_menu = menubar.addMenu("帮助")
 
-        up_btn = QPushButton("↑")
-        up_btn.clicked.connect(self.go_up)
-        up_btn.setFixedSize(35, 35)
-        toolbar.addWidget(up_btn)
-
-        self.path_input = QLineEdit()
-        self.path_input.setPlaceholderText("导航至路径...")
-        self.path_input.setMinimumWidth(300)
-        self.path_input.returnPressed.connect(self.navigate_to_path)
-        toolbar.addWidget(self.path_input)
-
-        home_btn = QPushButton("🏠")
-        home_btn.clicked.connect(self.go_home)
-        home_btn.setFixedSize(35, 35)
-        toolbar.addWidget(home_btn)
-
-        toolbar.addSeparator()
-
-        upload_btn = QPushButton("⬆ 上传")
-        upload_btn.clicked.connect(self.upload_file)
-        toolbar.addWidget(upload_btn)
-
-        new_folder_btn = QPushButton("📁 新建文件夹")
-        new_folder_btn.clicked.connect(self.create_folder)
-        toolbar.addWidget(new_folder_btn)
-
-        refresh_btn = QPushButton("🔄")
-        refresh_btn.clicked.connect(self.refresh_current)
-        refresh_btn.setFixedSize(35, 35)
-        toolbar.addWidget(refresh_btn)
+        about_action = QAction("关于", self)
+        about_action.triggered.connect(self.show_about)
+        help_menu.addAction(about_action)
 
     def setup_central_widget(self):
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
+        central = QWidget()
+        self.setCentralWidget(central)
 
-        main_layout = QVBoxLayout()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
-        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.web_view = QWebEngineView()
+        self.web_view.setUrl(QUrl(WEB_URL))
+        self.web_view.loadFinished.connect(self.on_load_finished)
 
-        # Left panel - file tree
-        self.tree_widget = QTreeWidget()
-        self.tree_widget.setHeaderLabel("文件夹")
-        self.tree_widget.setMinimumWidth(200)
-        self.tree_widget.itemDoubleClicked.connect(self.tree_item_double_clicked)
-        self.tree_widget.itemClicked.connect(self.tree_item_clicked)
-        self.splitter.addWidget(self.tree_widget)
-
-        # Right panel - file list
-        self.list_widget = QListWidget()
-        self.list_widget.setMinimumWidth(400)
-        self.list_widget.itemDoubleClicked.connect(self.list_item_double_clicked)
-        self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.list_widget.customContextMenuRequested.connect(self.show_context_menu)
-        self.splitter.addWidget(self.list_widget)
-
-        self.splitter.setStretchFactor(0, 1)
-        self.splitter.setStretchFactor(1, 3)
-
-        main_layout.addWidget(self.splitter)
-        central_widget.setLayout(main_layout)
+        layout.addWidget(self.web_view)
+        central.setLayout(layout)
 
     def setup_status_bar(self):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("就绪")
+        self.status_bar.showMessage("正在连接...")
 
-    # Navigation history
-    def add_to_history(self, path):
-        self.history_pos = 0
-        self.history = [path]
+    def inject_auth_token(self):
+        js = f"""
+        (function() {{
+            localStorage.setItem('hfm_token', '{self.token}');
+            localStorage.setItem('hfm_username', '{self.username}');
+        }})();
+        """
+        self._pending_inject = js
 
-    # ============== API Methods ==============
-    def api_list_directory(self, path):
-        try:
-            response = requests.get(
-                f"{BASE_URL}/api/v1/files/list",
-                params={"path": path},
-                headers=self.headers,
-                timeout=10
-            )
-            if response.status_code == 200:
-                return response.json()
-            else:
-                self.show_error(f"Failed to list directory: {response.status_code}")
-                return None
-        except Exception as e:
-            self.show_error(f"Connection error: {str(e)}")
-            return None
-
-    def api_create_folder(self, path, name):
-        try:
-            response = requests.post(
-                f"{BASE_URL}/api/v1/files/folder",
-                json={"path": path, "name": name},
-                headers=self.headers,
-                timeout=10
-            )
-            return response.status_code == 200
-        except Exception as e:
-            self.show_error(f"Connection error: {str(e)}")
-            return False
-
-    def api_delete(self, path):
-        try:
-            response = requests.delete(
-                f"{BASE_URL}/api/v1/files/delete",
-                params={"path": path},
-                headers=self.headers,
-                timeout=10
-            )
-            return response.status_code == 200
-        except Exception as e:
-            self.show_error(f"Connection error: {str(e)}")
-            return False
-
-    def api_upload(self, file_data, filename, dest_path):
-        try:
-            files = {"file": (filename, file_data)}
-            data = {"path": dest_path}
-            response = requests.post(
-                f"{BASE_URL}/api/v1/files/upload",
-                files=files,
-                data=data,
-                headers=self.headers,
-                timeout=60
-            )
-            return response.status_code == 200
-        except Exception as e:
-            self.show_error(f"Connection error: {str(e)}")
-            return False
-
-    def api_download(self, path):
-        try:
-            response = requests.get(
-                f"{BASE_URL}/api/v1/files/download",
-                params={"path": path},
-                headers=self.headers,
-                timeout=60
-            )
-            if response.status_code == 200:
-                return response.content
-            else:
-                return None
-        except Exception as e:
-            self.show_error(f"Connection error: {str(e)}")
-            return None
-
-    def api_share(self, path):
-        try:
-            response = requests.post(
-                f"{BASE_URL}/api/v1/files/share",
-                params={"path": path},
-                headers=self.headers,
-                timeout=10
-            )
-            if response.status_code == 200:
-                return response.json().get("url")
-            else:
-                return None
-        except Exception as e:
-            self.show_error(f"Connection error: {str(e)}")
-            return None
-
-    def api_get_content(self, path):
-        try:
-            response = requests.get(
-                f"{BASE_URL}/api/v1/files/content",
-                params={"path": path},
-                headers=self.headers,
-                timeout=10
-            )
-            if response.status_code == 200:
-                return response.text
-            else:
-                return None
-        except Exception as e:
-            self.show_error(f"Connection error: {str(e)}")
-            return None
-
-    def api_save_content(self, path, content):
-        try:
-            response = requests.put(
-                f"{BASE_URL}/api/v1/files/content",
-                json={"path": path, "content": content},
-                headers=self.headers,
-                timeout=10
-            )
-            return response.status_code == 200
-        except Exception as e:
-            self.show_error(f"Connection error: {str(e)}")
-            return False
-
-    def api_move(self, source, dest):
-        try:
-            response = requests.post(
-                f"{BASE_URL}/api/v1/files/move",
-                json={"source": source, "destination": dest},
-                headers=self.headers,
-                timeout=10
-            )
-            return response.status_code == 200
-        except Exception as e:
-            self.show_error(f"Connection error: {str(e)}")
-            return False
-
-    def api_copy(self, source, dest):
-        try:
-            response = requests.post(
-                f"{BASE_URL}/api/v1/files/copy",
-                json={"source": source, "destination": dest},
-                headers=self.headers,
-                timeout=10
-            )
-            return response.status_code == 200
-        except Exception as e:
-            self.show_error(f"Connection error: {str(e)}")
-            return False
-
-    # ============== UI Methods ==============
-    def show_error(self, message):
-        QMessageBox.critical(self, "Error", message)
-
-    def show_success(self, message):
-        QMessageBox.information(self, "Success", message)
-
-    def load_root(self):
-        self.current_path = "/"
-        self.path_input.setText(self.current_path)
-        self.load_directory(self.current_path)
-        self.populate_tree()
-
-    def load_directory(self, path):
-        self.status_bar.showMessage(f"正在加载 {path}...")
-        data = self.api_list_directory(path)
-
-        if data is not None:
-            self.current_path = path
-            self.path_input.setText(path)
-            self.populate_list(data.get("items", []) if isinstance(data, dict) else data)
-
-        self.status_bar.showMessage("就绪")
-
-    def populate_tree(self):
-        self.tree_widget.clear()
-        root_item = QTreeWidgetItem(self.tree_widget, ["/"])
-        root_item.setData(0, Qt.ItemDataRole.UserRole, "/")
-        root_item.setExpanded(True)
-        self.add_tree_children(root_item)
-
-    def add_tree_children(self, parent_item):
-        parent_path = parent_item.data(0, Qt.ItemDataRole.UserRole)
-        data = self.api_list_directory(parent_path)
-        if data:
-            items = data.get("items", []) if isinstance(data, dict) else data
-            for item in items:
-                if item.get("is_dir", False) or item.get("is_directory", False):
-                    child = QTreeWidgetItem(parent_item, [item.get("name", "Unknown")])
-                    child.setData(0, Qt.ItemDataRole.UserRole, item.get("path", ""))
-                    self.add_tree_children(child)
-
-    def populate_list(self, data):
-        self.list_widget.clear()
-
-        # Sort: directories first, then files
-        dirs = sorted([d for d in data if d.get("is_dir", False) or d.get("is_directory", False)], key=lambda x: x.get("name", "").lower())
-        files = sorted([f for f in data if not f.get("is_dir", False) and not f.get("is_directory", False)], key=lambda x: x.get("name", "").lower())
-
-        for item in dirs + files:
-            list_item = QListWidgetItem(self.list_widget)
-            widget = FileItem(
-                name=item.get("name", "Unknown"),
-                is_dir=item.get("is_dir", False) or item.get("is_directory", False),
-                size=item.get("size", 0),
-                path=item.get("path", "")
-            )
-            list_item.setSizeHint(widget.sizeHint())
-            self.list_widget.setItemWidget(list_item, widget)
-
-    # ============== Navigation ==============
-    def navigate_to_path(self):
-        path = self.path_input.text().strip()
-        if path:
-            self.load_directory(path)
-
-    def go_back(self):
-        pass  # Simplified
-
-    def go_forward(self):
-        pass  # Simplified
-
-    def go_up(self):
-        if self.current_path != "/":
-            parts = self.current_path.strip("/").split("/")
-            parent = "/" + "/".join(parts[:-1])
-            self.load_directory(parent if parent else "/")
-
-    def go_home(self):
-        self.load_directory("/")
-
-    def refresh_current(self):
-        self.load_directory(self.current_path)
-
-    # ============== Tree Interactions ==============
-    def tree_item_clicked(self, item, column):
-        pass
-
-    def tree_item_double_clicked(self, item, column):
-        path = item.data(0, Qt.ItemDataRole.UserRole)
-        data = self.api_list_directory(path)
-        if data is None:
-            return
-        self.load_directory(path)
-
-    # ============== List Interactions ==============
-    def list_item_double_clicked(self, item):
-        widget = self.list_widget.itemWidget(item)
-        if widget.is_dir:
-            self.load_directory(widget.path)
+    def on_load_finished(self, ok):
+        if ok:
+            self.status_bar.showMessage("就绪")
+            if hasattr(self, '_pending_inject') and self._pending_inject:
+                js = self._pending_inject
+                self._pending_inject = None
+                self.web_view.page().runJavaScript(js)
+                # Reload so the app picks up the injected token
+                self.web_view.setUrl(QUrl(WEB_URL))
         else:
-            self.open_file(widget.path)
+            self.status_bar.showMessage("加载失败 — 请确认 API 服务是否运行中")
 
-    def open_file(self, path):
-        content = self.api_get_content(path)
-        if content is not None:
-            filename = path.split("/")[-1]
-            editor = TextEditorDialog(filename, content, readonly=True, parent=self)
-            editor.exec()
+    def reload_webview(self):
+        self.web_view.setUrl(QUrl(WEB_URL))
 
-    def edit_file(self, path):
-        content = self.api_get_content(path)
-        if content is not None:
-            filename = path.split("/")[-1]
-            editor = TextEditorDialog(filename, content, parent=self)
-            if editor.exec() == QDialog.DialogCode.Accepted:
-                if self.api_save_content(path, editor.original_content):
-                    self.show_success("文件保存成功")
-                    self.refresh_current()
-                else:
-                    self.show_error("文件保存失败")
+    def toggle_devtools(self):
+        if hasattr(self.web_view, 'setDevToolsVisible'):
+            self.web_view.setDevToolsVisible(not self.web_view.isDevToolsVisible())
+        else:
+            self.web_view.page().triggerAction(
+                self.web_view.page().Action.DebugShowWebInspector
+            )
 
-    # ============== Context Menu ==============
-    def show_context_menu(self, position):
-        item = self.list_widget.itemAt(position)
-        if not item:
+    # ============== Drag-and-Drop Upload ==============
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            # Check that at least one URL is a file path
+            for url in event.mimeData().urls():
+                if url.isLocalFile():
+                    event.acceptProposedAction()
+                    return
+        super().dragEnterEvent(event)
+
+    def dropEvent(self, event):
+        """Handle file drops — upload each dropped file to current directory."""
+        files = []
+        for url in event.mimeData().urls():
+            if url.isLocalFile():
+                files.append(url.toLocalFile())
+
+        if not files:
             return
 
-        widget = self.list_widget.itemWidget(item)
-        menu = QMenu()
+        # Get current path from webview JS
+        self.web_view.page().runJavaScript(
+            "window.currentPath || '/';",
+            lambda path: self._do_drop_upload(files, path or "/")
+        )
 
-        if widget.is_dir:
-            open_action = menu.addAction("打开")
-            open_action.triggered.connect(lambda: self.load_directory(widget.path))
-        else:
-            view_action = menu.addAction("查看")
-            view_action.triggered.connect(lambda: self.open_file(widget.path))
+    def _do_drop_upload(self, file_paths, dest_path):
+        """Perform the actual upload via the API."""
+        self.status_bar.showMessage(f"正在上传 {len(file_paths)} 个文件...")
+        total = len(file_paths)
 
-            edit_action = menu.addAction("编辑")
-            edit_action.triggered.connect(lambda: self.edit_file(widget.path))
+        progress = QProgressDialog(
+            f"正在上传 0/{total} 个文件...",
+            "取消",
+            0,
+            total,
+            self
+        )
+        progress.setWindowTitle("上传文件")
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setValue(0)
 
-            download_action = menu.addAction("下载")
-            download_action.triggered.connect(lambda: self.download_file(widget.path))
+        success_count = 0
+        for i, file_path in enumerate(file_paths):
+            if progress.wasCanceled():
+                break
 
-        menu.addSeparator()
-
-        share_action = menu.addAction("分享")
-        share_action.triggered.connect(lambda: self.share_file(widget.path))
-
-        cut_action = menu.addAction("剪切")
-        cut_action.triggered.connect(lambda: self.cut_copy("cut", widget.path))
-
-        copy_action = menu.addAction("复制")
-        copy_action.triggered.connect(lambda: self.cut_copy("copy", widget.path))
-
-        delete_action = menu.addAction("删除")
-        delete_action.triggered.connect(lambda: self.delete_file(widget.path))
-
-        menu.exec(QCursor.pos())
-
-    # ============== Actions ==============
-    def upload_file(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "选择要上传的文件")
-        if file_path:
             filename = os.path.basename(file_path)
-            with open(file_path, "rb") as f:
-                file_data = f.read()
+            try:
+                with open(file_path, "rb") as f:
+                    file_data = f.read()
 
-            if self.api_upload(file_data, filename, self.current_path):
-                self.show_success(f"文件 '{filename}' 上传成功")
-                self.refresh_current()
-            else:
-                self.show_error("文件上传失败")
+                files = {"file": (filename, file_data)}
+                data = {"path": dest_path}
+                response = requests.post(
+                    f"{BASE_URL}/api/v1/files/upload",
+                    files=files,
+                    data=data,
+                    headers={"Authorization": f"Bearer {self.token}"},
+                    timeout=120
+                )
+                if response.status_code == 200:
+                    success_count += 1
+            except Exception as e:
+                print(f"Upload error for {filename}: {e}")
 
-    def download_file(self, path):
-        filename = path.split("/")[-1]
-        save_path, _ = QFileDialog.getSaveFileName(self, "保存文件", filename)
-        if save_path:
-            content = self.api_download(path)
-            if content:
-                with open(save_path, "wb") as f:
-                    f.write(content)
-                self.show_success("文件下载成功")
-            else:
-                self.show_error("文件下载失败")
+            progress.setLabelText(f"正在上传 {i+1}/{total} 个文件...")
+            progress.setValue(i + 1)
+            QApplication.processEvents()
+
+        progress.close()
+        self.status_bar.showMessage(f"上传完成：{success_count}/{total} 个文件成功")
+
+        if success_count > 0:
+            self.reload_webview()
+
+    # ============== Native File Operations ==============
+    def native_upload_file(self):
+        """Open file picker and upload selected file(s)."""
+        file_paths, _ = QFileDialog.getOpenFileNames(
+            self, "选择要上传的文件", "",
+            "所有文件 (*.*)"
+        )
+        if not file_paths:
+            return
+
+        # Get current path from webview
+        self.web_view.page().runJavaScript(
+            "window.currentPath || '/';",
+            lambda path: self._do_drop_upload(file_paths, path or "/")
+        )
 
     def create_folder(self):
         name, ok = QInputDialog.getText(self, "新建文件夹", "请输入文件夹名称：")
         if ok and name:
-            if self.api_create_folder(self.current_path, name):
-                self.show_success(f"文件夹 '{name}' 已创建")
-                self.refresh_current()
+            # Full path = currentPath + '/' + name
+            js = f"""
+            (function() {{
+                var currentPath = window.currentPath || '/';
+                var fullPath = currentPath === '/' ? '/' + '{name}' : currentPath + '/' + '{name}';
+                fetch('/api/v1/files/mkdir', {{
+                    method: 'POST',
+                    headers: {{
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer {self.token}'
+                    }},
+                    body: JSON.stringify({{ path: fullPath }})
+                }}).then(r => r.json()).then(d => {{
+                    if (d.error) {{
+                        alert('创建失败: ' + d.error);
+                    }} else {{
+                        window.location.reload();
+                    }}
+                }}).catch(err => alert('错误: ' + err.message));
+            }})();
+            """
+            self.web_view.page().runJavaScript(js)
+
+    def toggle_offline_mode(self, checked):
+        """Switch between localhost:8080 and local file:// mode."""
+        if checked:
+            # Switch to offline file:// mode
+            local_file = _WEB_DIR / "app.html"
+            if local_file.exists():
+                self.web_view.setUrl(QUrl.fromLocalFile(str(local_file)))
+                self.status_bar.showMessage("离线模式")
             else:
-                self.show_error("文件夹创建失败")
-
-    def delete_file(self, path):
-        reply = QMessageBox.question(
-            self, "确认删除",
-            f"确定要删除此项目吗？",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        if reply == QMessageBox.StandardButton.Yes:
-            if self.api_delete(path):
-                self.show_success("已删除")
-                self.refresh_current()
-            else:
-                self.show_error("删除失败")
-
-    def delete_selected(self):
-        item = self.list_widget.currentItem()
-        if item:
-            widget = self.list_widget.itemWidget(item)
-            self.delete_file(widget.path)
-
-    def share_file(self, path):
-        url = self.api_share(path)
-        if url:
-            dialog = ShareDialog(url, self)
-            dialog.exec()
+                QMessageBox.warning(
+                    self, "离线模式",
+                    f"找不到本地文件：\n{local_file}\n\n请确保已构建 web 应用。"
+                )
+                self.offline_action.setChecked(False)
         else:
-            self.show_error("Failed to share file")
-
-    def cut_copy(self, action, path=None):
-        if path:
-            self.clipboard = path
-            self.clipboard_action = action
-        else:
-            item = self.list_widget.currentItem()
-            if item:
-                widget = self.list_widget.itemWidget(item)
-                self.clipboard = widget.path
-                self.clipboard_action = action
-
-    def paste(self):
-        if not self.clipboard:
-            return
-
-        name = self.clipboard.split("/")[-1]
-        dest = self.current_path + "/" + name
-
-        if self.clipboard_action == "cut":
-            if self.api_move(self.clipboard, dest):
-                self.show_success("文件已移动")
-                self.refresh_current()
-            else:
-                self.show_error("文件移动失败")
-        elif self.clipboard_action == "copy":
-            if self.api_copy(self.clipboard, dest):
-                self.show_success("文件已复制")
-                self.refresh_current()
-            else:
-                self.show_error("文件复制失败")
-
-    def set_list_view(self):
-        pass
-
-    def set_tree_view(self):
-        pass
+            # Back to online mode
+            self.web_view.setUrl(QUrl(WEB_URL))
+            self.status_bar.showMessage("在线模式")
 
     def logout(self):
-        self.close()
+        js = """
+        (function() {
+            localStorage.removeItem('hfm_token');
+            localStorage.removeItem('hfm_username');
+            window.location.reload();
+        })();
+        """
+        self.web_view.page().runJavaScript(js)
+        QTimer.singleShot(500, self.close)
+
+    def show_about(self):
+        QMessageBox.about(
+            self, "关于",
+            "<b>文件管理器</b><br>"
+            "基于 PyQt6 + QWebEngineView<br>"
+            "后端：FastAPI"
+        )
+
+    def closeEvent(self, event):
+        """Stop the server process when the window is closed (if we own it)."""
+        if self.server_process and self.server_process.state() != QProcess.ProcessState.NotRunning:
+            self.server_process.terminate()
+            self.server_process.waitForFinished(3000)
+        event.accept()
 
 
 # ============== Application Entry Point ==============
@@ -1027,14 +587,53 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName("文件管理器")
 
-    # Show login dialog
+    server_process = None
+    auto_started = False
+
+    # Phase 3: Auto-launch server if not already running
+    if not is_server_running():
+        reply = QMessageBox.question(
+            None,  # No parent yet
+            "启动文件管理器",
+            "API 服务未运行。是否自动启动服务器？",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            # Create a log file for server output
+            log_path = _GUI_DIR / "server.log"
+            server_process = start_server_process(log_file=log_path)
+            if not wait_for_server():
+                QMessageBox.critical(
+                    None, "启动失败",
+                    f"无法在 {_SERVER_SCRIPT} 启动 API 服务。\n"
+                    "请查看 server.log 了解详情。"
+                )
+                server_process.terminate()
+                sys.exit(1)
+            auto_started = True
+        else:
+            QMessageBox.information(
+                None, "提示",
+                "GUI 将无法加载内容，除非手动启动：\n"
+                f"  python {_SERVER_SCRIPT}"
+            )
+
+    # Show login dialog (native — better IME/input support)
     login = LoginDialog()
     if login.exec() != QDialog.DialogCode.Accepted:
+        if server_process:
+            server_process.terminate()
         sys.exit(0)
 
-    # Show main window
-    window = FileManagerWindow(login.token)
+    # Show main window — web content inside native shell
+    window = FileManagerWindow(login.token, login.username, server_process=server_process)
     window.show()
+
+    if auto_started:
+        QTimer.singleShot(2000, lambda: window.status_bar.showMessage(
+            "API 服务已自动启动"
+        ))
 
     sys.exit(app.exec())
 
