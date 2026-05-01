@@ -675,7 +675,7 @@ class AdminService:
         self,
         request: AuditQueryRequestDTO,
         user_ctx: PermissionContext,
-    ) -> AuditQueryResponseDTO:
+    ):
         """Query audit logs with filters. Requires admin role."""
         self._require_admin(user_ctx)
 
@@ -691,6 +691,8 @@ class AdminService:
             if request.end_date:
                 end_date = datetime.fromisoformat(request.end_date)
 
+            # For export, get all matching records (up to limit)
+            fetch_limit = request.limit if request.limit <= 10000 else 10000
             logs = audit.query(
                 user_id=request.user_id,
                 action=request.action,
@@ -698,7 +700,7 @@ class AdminService:
                 result=request.result,
                 start_date=start_date,
                 end_date=end_date,
-                limit=request.limit,
+                limit=fetch_limit,
                 offset=request.offset,
             )
 
@@ -718,6 +720,41 @@ class AdminService:
                 for log in logs
             ]
 
+            # CSV export
+            if request.export_format == "csv":
+                import csv
+                import io
+                output = io.StringIO()
+                writer = csv.writer(output)
+                # Header
+                writer.writerow([
+                    "id", "timestamp", "action", "result",
+                    "user_id", "username", "path", "ip_address", "user_agent"
+                ])
+                # Data rows
+                for entry in entries:
+                    writer.writerow([
+                        entry.id,
+                        entry.timestamp.isoformat() if entry.timestamp else "",
+                        entry.action,
+                        entry.result,
+                        entry.user_id or "",
+                        entry.username or "",
+                        entry.path or "",
+                        entry.ip_address or "",
+                        entry.user_agent or "",
+                    ])
+                csv_content = output.getvalue()
+                from fastapi import Response
+                return Response(
+                    content=csv_content,
+                    media_type="text/csv",
+                    headers={
+                        "Content-Disposition": f"attachment; filename=audit_logs_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+                    }
+                )
+
+            # JSON export (default)
             return AuditQueryResponseDTO(logs=entries, total=len(entries))
         finally:
             session.close()

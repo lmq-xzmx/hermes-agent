@@ -91,10 +91,11 @@ class User(Base):
     
     # Relationships
     role = relationship("Role", back_populates="users")
-    team_memberships = relationship("TeamMember", back_populates="user", cascade="all, delete-orphan")
+    team_memberships = relationship("SpaceMember", back_populates="user", cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
     shared_links = relationship("SharedLink", back_populates="creator", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
     
     def set_password(self, password: str) -> None:
         """Hash and set password"""
@@ -267,6 +268,40 @@ class AuditLog(Base):
         }
 
 
+class Notification(Base):
+    """In-app notification for users (quota warnings, etc.)"""
+    __tablename__ = "hfm_notifications"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("hfm_users.id"), nullable=False, index=True)
+    type = Column(String(32), nullable=False, index=True)  # "quota_warning", "space_invite", "collaboration", "system"
+    title = Column(String(128), nullable=False)
+    message = Column(Text, nullable=False)
+    link = Column(String(255), nullable=True)  # Optional link to related resource
+    is_read = Column(Boolean, default=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    # Relationships
+    user = relationship("User", back_populates="notifications")
+
+    __table_args__ = (
+        Index("ix_hfm_notifications_user_read", "user_id", "is_read"),
+        Index("ix_hfm_notifications_created", "created_at"),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "type": self.type,
+            "title": self.title,
+            "message": self.message,
+            "link": self.link,
+            "is_read": self.is_read,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 class SharedLink(Base):
     """Shared link model"""
     __tablename__ = "hfm_shared_links"
@@ -369,7 +404,7 @@ class StoragePool(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    teams = relationship("Team", back_populates="storage_pool")
+    spaces = relationship("Space", back_populates="storage_pool")
 
     def to_dict(self) -> dict:
         return {
@@ -385,85 +420,119 @@ class StoragePool(Base):
         }
 
 
-class Team(Base):
-    """Team - a group of users sharing a storage quota"""
-    __tablename__ = "hfm_teams"
+class Space(Base):
+    """
+    Space - hierarchical storage space for teams and individuals.
+
+    Hierarchy:
+      Root Space (created by admin, binds to StoragePool)
+        └── Team Space (shared by team members)
+              └── Private Space (personal space granted to member)
+    """
+    __tablename__ = "hfm_spaces"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    code = Column(String(16), nullable=True)  # Human-readable code, e.g. "SP-2026-001"
     name = Column(String(64), nullable=False)
+    parent_id = Column(String(36), ForeignKey("hfm_spaces.id"), nullable=True)  # null for root spaces
     storage_pool_id = Column(String(36), ForeignKey("hfm_storage_pools.id"), nullable=False)
-    max_bytes = Column(BigInteger, default=0)                         # Max bytes allowed (0 = unlimited within pool)
-    used_bytes = Column(BigInteger, default=0)                        # Current usage
     owner_id = Column(String(36), ForeignKey("hfm_users.id"), nullable=False)
-    is_active = Column(Boolean, default=True)
+    max_bytes = Column(BigInteger, default=0)  # 0 = unlimited within pool
+    used_bytes = Column(BigInteger, default=0)
+    space_type = Column(String(16), default="team")  # "root" | "team" | "private"
+    status = Column(String(16), default="active")  # "active" | "pending" | "archived"
+    description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    storage_pool = relationship("StoragePool", back_populates="teams")
+    storage_pool = relationship("StoragePool", back_populates="spaces")
     owner = relationship("User", foreign_keys=[owner_id])
-    members = relationship("TeamMember", back_populates="team", cascade="all, delete-orphan")
-    credentials = relationship("TeamCredential", back_populates="team", cascade="all, delete-orphan")
+    parent = relationship("Space", remote_side=[id], back_populates="children")
+    children = relationship("Space", back_populates="parent", cascade="all, delete-orphan")
+    members = relationship("SpaceMember", back_populates="space", cascade="all, delete-orphan")
+    credentials = relationship("SpaceCredential", back_populates="space", cascade="all, delete-orphan")
+    requests = relationship("SpaceRequest", back_populates="space", cascade="all, delete-orphan")
+    versions = relationship("FileVersion", back_populates="space", cascade="all, delete-orphan")
+    workflows = relationship("Workflow", back_populates="space", cascade="all, delete-orphan")
+    notebooks = relationship("Notebook", back_populates="space", cascade="all, delete-orphan")
+    file_locks = relationship("FileLock", back_populates="space", cascade="all, delete-orphan")
+    collaboration_sessions = relationship("CollaborationSession", back_populates="space", cascade="all, delete-orphan")
 
     __table_args__ = (
-        Index("ix_hfm_teams_pool", "storage_pool_id"),
+        Index("ix_hfm_spaces_pool", "storage_pool_id"),
+        Index("ix_hfm_spaces_parent", "parent_id"),
     )
 
-    def to_dict(self, include_members: bool = False) -> dict:
+    def to_dict(self, include_members: bool = False, include_stats: bool = False) -> dict:
         data = {
             "id": self.id,
+            "code": self.code,
             "name": self.name,
+            "parent_id": self.parent_id,
             "storage_pool_id": self.storage_pool_id,
             "pool_name": self.storage_pool.name if self.storage_pool else None,
-            "max_bytes": self.max_bytes,
-            "used_bytes": self.used_bytes,
             "owner_id": self.owner_id,
             "owner_name": self.owner.username if self.owner else None,
-            "is_active": self.is_active,
+            "max_bytes": self.max_bytes,
+            "used_bytes": self.used_bytes,
+            "space_type": self.space_type,
+            "status": self.status,
+            "description": self.description,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
         if include_members:
             data["members"] = [m.to_dict() for m in self.members]
+        if include_stats:
+            data["member_count"] = len([m for m in self.members if m.status == "active"])
+            data["workflow_count"] = len(self.workflows)
+            data["notebook_count"] = len(self.notebooks)
         return data
 
 
-class TeamMember(Base):
-    """Team membership"""
-    __tablename__ = "hfm_team_members"
+class SpaceMember(Base):
+    """Space membership - user belongs to a space with a specific role"""
+    __tablename__ = "hfm_space_members"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    team_id = Column(String(36), ForeignKey("hfm_teams.id"), nullable=False)
+    space_id = Column(String(36), ForeignKey("hfm_spaces.id"), nullable=False)
     user_id = Column(String(36), ForeignKey("hfm_users.id"), nullable=False)
-    role = Column(String(16), default="member")                        # "owner" | "member"
+    role = Column(String(16), default="member")  # "owner" | "member" | "viewer"
+    quota_bytes = Column(BigInteger, default=0)  # 0 = use space default
     joined_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(String(16), default="active")  # "active" | "pending" | "rejected"
 
     # Relationships
-    team = relationship("Team", back_populates="members")
+    space = relationship("Space", back_populates="members")
     user = relationship("User")
 
     __table_args__ = (
-        Index("ix_hfm_team_members_unique", "team_id", "user_id", unique=True),
+        Index("ix_hfm_space_members_unique", "space_id", "user_id", unique=True),
     )
 
     def to_dict(self) -> dict:
         return {
             "id": self.id,
-            "team_id": self.team_id,
+            "space_id": self.space_id,
+            "space_name": self.space.name if self.space else None,
             "user_id": self.user_id,
             "username": self.user.username if self.user else None,
             "role": self.role,
+            "quota_bytes": self.quota_bytes,
             "joined_at": self.joined_at.isoformat() if self.joined_at else None,
+            "status": self.status,
         }
 
 
-class TeamCredential(Base):
-    """Invite token for joining a team"""
-    __tablename__ = "hfm_team_credentials"
+class SpaceCredential(Base):
+    """Invite token for joining a space"""
+    __tablename__ = "hfm_space_credentials"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    team_id = Column(String(36), ForeignKey("hfm_teams.id"), nullable=False)
+    space_id = Column(String(36), ForeignKey("hfm_spaces.id"), nullable=False)
     token = Column(String(64), unique=True, nullable=False, index=True)
-    max_uses = Column(Integer, nullable=True)                         # None = unlimited
+    max_uses = Column(Integer, nullable=True)  # None = unlimited
     used_count = Column(Integer, default=0)
     expires_at = Column(DateTime, nullable=True)
     created_by = Column(String(36), ForeignKey("hfm_users.id"), nullable=False)
@@ -471,7 +540,7 @@ class TeamCredential(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    team = relationship("Team", back_populates="credentials")
+    space = relationship("Space", back_populates="credentials")
     creator = relationship("User", foreign_keys=[created_by])
 
     def is_valid(self) -> bool:
@@ -487,8 +556,8 @@ class TeamCredential(Base):
     def to_dict(self, include_token: bool = False) -> dict:
         data = {
             "id": self.id,
-            "team_id": self.team_id,
-            "team_name": self.team.name if self.team else None,
+            "space_id": self.space_id,
+            "space_name": self.space.name if self.space else None,
             "max_uses": self.max_uses,
             "used_count": self.used_count,
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
@@ -500,6 +569,368 @@ class TeamCredential(Base):
         if include_token:
             data["token"] = self.token
         return data
+
+
+class SpaceRequest(Base):
+    """Request for private sub-space within a parent space"""
+    __tablename__ = "hfm_space_requests"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    space_id = Column(String(36), ForeignKey("hfm_spaces.id"), nullable=False)
+    requester_id = Column(String(36), ForeignKey("hfm_users.id"), nullable=False)
+    requested_name = Column(String(64), nullable=False)
+    requested_bytes = Column(BigInteger, default=0)
+    reason = Column(Text, nullable=True)
+    status = Column(String(16), default="pending")  # "pending" | "approved" | "rejected"
+    reviewed_by = Column(String(36), ForeignKey("hfm_users.id"), nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+    review_note = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    space = relationship("Space", back_populates="requests")
+    requester = relationship("User", foreign_keys=[requester_id])
+    reviewer = relationship("User", foreign_keys=[reviewed_by])
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "space_id": self.space_id,
+            "space_name": self.space.name if self.space else None,
+            "requester_id": self.requester_id,
+            "requester_name": self.requester.username if self.requester else None,
+            "requested_name": self.requested_name,
+            "requested_bytes": self.requested_bytes,
+            "reason": self.reason,
+            "status": self.status,
+            "reviewed_by": self.reviewed_by,
+            "reviewer_name": self.reviewer.username if self.reviewer else None,
+            "reviewed_at": self.reviewed_at.isoformat() if self.reviewed_at else None,
+            "review_note": self.review_note,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class FileVersion(Base):
+    """
+    File version tracking for all file operations.
+    Each create/update/delete operation creates a version record.
+    """
+    __tablename__ = "hfm_file_versions"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    space_id = Column(String(36), ForeignKey("hfm_spaces.id"), nullable=False)
+    path = Column(Text, nullable=False)  # File path (unique within space + version)
+    name = Column(String(255), nullable=False)
+    is_directory = Column(Boolean, default=False)
+    size = Column(BigInteger, default=0)
+    checksum = Column(String(64), nullable=True)  # SHA256
+    version = Column(Integer, nullable=False)  # Auto-increment per path
+    action = Column(String(16), nullable=False)  # "create" | "update" | "delete"
+    created_by = Column(String(36), ForeignKey("hfm_users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    extra_data = Column(JSON, nullable=True)
+
+    # Relationships
+    space = relationship("Space", back_populates="versions")
+    creator = relationship("User", foreign_keys=[created_by])
+
+    __table_args__ = (
+        Index("ix_hfm_file_versions_space", "space_id"),
+        Index("ix_hfm_file_versions_path", "path"),
+        Index("ix_hfm_file_versions_path_version", "path", "version"),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "file_id": self.file_id,
+            "space_id": self.space_id,
+            "path": self.path,
+            "name": self.name,
+            "is_directory": self.is_directory,
+            "size": self.size,
+            "checksum": self.checksum,
+            "version": self.version,
+            "action": self.action,
+            "created_by": self.created_by,
+            "creator_name": self.creator.username if self.creator else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "metadata": self.extra_data,
+        }
+
+
+class DeletedFile(Base):
+    """Soft-deleted file record for trash/recovery mechanism."""
+    __tablename__ = "hfm_deleted_files"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    space_id = Column(String(36), ForeignKey("hfm_spaces.id"), nullable=False)
+    original_path = Column(Text, nullable=False)  # Original path before deletion
+    name = Column(String(255), nullable=False)
+    is_directory = Column(Boolean, default=False)
+    file_size = Column(BigInteger, default=0)
+    deleted_by = Column(String(36), ForeignKey("hfm_users.id"), nullable=False)
+    deleted_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)  # Auto-purge after this time (30 days default)
+
+    # Relationships
+    space = relationship("Space")
+    user = relationship("User", foreign_keys=[deleted_by])
+
+    __table_args__ = (
+        Index("ix_hfm_deleted_files_space", "space_id"),
+        Index("ix_hfm_deleted_files_expires", "expires_at"),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "space_id": self.space_id,
+            "original_path": self.original_path,
+            "name": self.name,
+            "is_directory": self.is_directory,
+            "file_size": self.file_size,
+            "deleted_by": self.deleted_by,
+            "deleted_at": self.deleted_at.isoformat() if self.deleted_at else None,
+            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+        }
+
+
+class WorkflowStep(Base):
+    """Workflow step - single command in a workflow"""
+    __tablename__ = "hfm_workflow_steps"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    workflow_id = Column(String(36), ForeignKey("hfm_workflows.id"), nullable=False)
+    order = Column(Integer, nullable=False)  # 1-based execution order
+    command = Column(Text, nullable=False)  # Shell command
+    explanation = Column(Text, nullable=True)  # Human-readable description
+    confirm_required = Column(Boolean, default=False)  # Pause before exec
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    workflow = relationship("Workflow", back_populates="steps")
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "workflow_id": self.workflow_id,
+            "order": self.order,
+            "command": self.command,
+            "explanation": self.explanation,
+            "confirm_required": self.confirm_required,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class Workflow(Base):
+    """Workflow - saved command sequence, reusable like Warp Workflows"""
+    __tablename__ = "hfm_workflows"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    space_id = Column(String(36), ForeignKey("hfm_spaces.id"), nullable=False)
+    owner_id = Column(String(36), ForeignKey("hfm_users.id"), nullable=False)
+    name = Column(String(128), nullable=False)
+    description = Column(Text, nullable=True)
+    is_shared = Column(Boolean, default=False)  # Visible to space members
+    tags = Column(JSON, nullable=True)  # ["git", "deploy", "db-migration"]
+    usage_count = Column(Integer, default=0)  # Popularity metric
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    space = relationship("Space", back_populates="workflows")
+    owner = relationship("User", foreign_keys=[owner_id])
+    steps = relationship(
+        "WorkflowStep",
+        back_populates="workflow",
+        cascade="all, delete-orphan",
+        order_by="WorkflowStep.order"
+    )
+
+    __table_args__ = (
+        Index("ix_hfm_workflows_space", "space_id"),
+        Index("ix_hfm_workflows_owner", "owner_id"),
+    )
+
+    def to_dict(self, include_steps: bool = False) -> dict:
+        data = {
+            "id": self.id,
+            "space_id": self.space_id,
+            "owner_id": self.owner_id,
+            "owner_name": self.owner.username if self.owner else None,
+            "name": self.name,
+            "description": self.description,
+            "is_shared": self.is_shared,
+            "tags": self.tags or [],
+            "usage_count": self.usage_count,
+            "step_count": len(self.steps),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+        if include_steps:
+            data["steps"] = [s.to_dict() for s in self.steps]
+        return data
+
+
+class NotebookVariable(Base):
+    """Predefined variable in a notebook"""
+    __tablename__ = "hfm_notebook_variables"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    notebook_id = Column(String(36), ForeignKey("hfm_notebooks.id"), nullable=False)
+    name = Column(String(64), nullable=False)  # Variable name e.g. "$DATABASE_URL"
+    default_value = Column(Text, nullable=True)  # Default value
+    description = Column(Text, nullable=True)  # Usage description
+    is_required = Column(Boolean, default=True)  # Must be provided at runtime
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    notebook = relationship("Notebook", back_populates="variables")
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "notebook_id": self.notebook_id,
+            "name": self.name,
+            "default_value": self.default_value,
+            "description": self.description,
+            "is_required": self.is_required,
+        }
+
+
+class Notebook(Base):
+    """Notebook - interactive tutorial document like Warp Notebooks"""
+    __tablename__ = "hfm_notebooks"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    space_id = Column(String(36), ForeignKey("hfm_spaces.id"), nullable=False)
+    owner_id = Column(String(36), ForeignKey("hfm_users.id"), nullable=False)
+    name = Column(String(128), nullable=False)
+    description = Column(Text, nullable=True)
+    content = Column(Text, nullable=False)  # Markdown content
+    is_shared = Column(Boolean, default=False)
+    tags = Column(JSON, nullable=True)  # ["tutorial", "onboarding", "devops"]
+    usage_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    space = relationship("Space", back_populates="notebooks")
+    owner = relationship("User", foreign_keys=[owner_id])
+    variables = relationship(
+        "NotebookVariable",
+        back_populates="notebook",
+        cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        Index("ix_hfm_notebooks_space", "space_id"),
+        Index("ix_hfm_notebooks_owner", "owner_id"),
+    )
+
+    def to_dict(self, include_variables: bool = False) -> dict:
+        data = {
+            "id": self.id,
+            "space_id": self.space_id,
+            "owner_id": self.owner_id,
+            "owner_name": self.owner.username if self.owner else None,
+            "name": self.name,
+            "description": self.description,
+            "content": self.content,
+            "is_shared": self.is_shared,
+            "tags": self.tags or [],
+            "usage_count": self.usage_count,
+            "variable_count": len(self.variables),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+        if include_variables:
+            data["variables"] = [v.to_dict() for v in self.variables]
+        return data
+
+
+class FileLock(Base):
+    """文件锁 - 防止并发编辑冲突"""
+    __tablename__ = "hfm_file_locks"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid_lib.uuid4()))
+    space_id = Column(String(36), ForeignKey("hfm_spaces.id"), nullable=False)
+    path = Column(Text, nullable=False)  # 相对于 space 的路径
+    locked_by = Column(String(36), ForeignKey("hfm_users.id"), nullable=False)
+    locked_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+    lock_type = Column(String(16), default="edit")  # "edit" | "read"
+    is_active = Column(Boolean, default=True)
+
+    __table_args__ = (
+        Index("ix_hfm_file_locks_space_path", "space_id", "path"),
+        Index("ix_hfm_file_locks_locked_by", "locked_by"),
+    )
+
+    # Relationships
+    space = relationship("Space", back_populates="file_locks")
+    user = relationship("User", foreign_keys=[locked_by])
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "space_id": self.space_id,
+            "path": self.path,
+            "locked_by": self.locked_by,
+            "locked_by_name": self.user.username if self.user else None,
+            "locked_at": self.locked_at.isoformat() if self.locked_at else None,
+            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "lock_type": self.lock_type,
+            "is_active": self.is_active,
+        }
+
+    def is_expired(self) -> bool:
+        return datetime.utcnow() > self.expires_at
+
+
+class CollaborationSession(Base):
+    """协作会话 - 跨 Space 临时授权"""
+    __tablename__ = "hfm_collaboration_sessions"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid_lib.uuid4()))
+    space_id = Column(String(36), ForeignKey("hfm_spaces.id"), nullable=False)
+    created_by = Column(String(36), ForeignKey("hfm_users.id"), nullable=False)
+    target_user_id = Column(String(36), ForeignKey("hfm_users.id"), nullable=False)
+    permissions = Column(JSON)  # ["read", "write"] 等
+    started_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+    is_active = Column(Boolean, default=True)
+
+    __table_args__ = (
+        Index("ix_hfm_collab_sessions_space", "space_id"),
+        Index("ix_hfm_collab_sessions_target", "target_user_id"),
+    )
+
+    # Relationships
+    space = relationship("Space", back_populates="collaboration_sessions")
+    creator = relationship("User", foreign_keys=[created_by])
+    target_user = relationship("User", foreign_keys=[target_user_id])
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "space_id": self.space_id,
+            "space_name": self.space.name if self.space else None,
+            "created_by": self.created_by,
+            "created_by_name": self.creator.username if self.creator else None,
+            "target_user_id": self.target_user_id,
+            "target_user_name": self.target_user.username if self.target_user else None,
+            "permissions": self.permissions or [],
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "is_active": self.is_active,
+        }
+
+    def is_expired(self) -> bool:
+        return datetime.utcnow() > self.expires_at
+
+
+# Deprecated aliases - will be removed in future version
 
 
 # Database initialization utilities

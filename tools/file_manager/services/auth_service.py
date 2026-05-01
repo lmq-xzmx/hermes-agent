@@ -202,7 +202,81 @@ class AuthService:
                 {"user_id": user.id, "username": user.username, "ip_address": ip_address, "user_agent": user_agent},
             ))
 
+            # Auto-create Private Space for the user
+            self._setup_user_space(user.id)
+
             return user.to_response()
+        finally:
+            session.close()
+
+    def _setup_user_space(self, user_id: str) -> None:
+        """
+        After registration, automatically:
+        1. Create a Private Space for the user (2GB default quota)
+        2. Assign user to the default Team Space (if exists) as member
+        """
+        try:
+            from .space_service import SpaceService
+            space_svc = SpaceService(db_factory=self.db_factory)
+
+            # 1. Create Private Space for the user
+            private_space = space_svc.create_space(
+                name="我的空间",
+                owner_id=user_id,
+                storage_pool_id=self._get_default_pool_id(),
+                parent_id=None,
+                max_bytes=2 * 1024 * 1024 * 1024,  # 2GB
+                space_type="private",
+                description="个人空间",
+            )
+
+            # 2. Assign to default Team Space (if any)
+            default_team = self._get_default_team_space()
+            if default_team:
+                try:
+                    space_svc.add_member(
+                        space_id=default_team["id"],
+                        user_id=user_id,
+                        requesting_user_id=user_id,
+                        role="member",
+                    )
+                except Exception:
+                    pass  # Already a member or no default team
+        except Exception:
+            pass  # Non-critical: space creation should not block registration
+
+    def _get_default_pool_id(self) -> str:
+        """Get the first active storage pool ID, creating one if needed."""
+        from .team_service import TeamService
+        team_svc = TeamService(db_factory=self.db_factory)
+        pools = team_svc.list_pools()
+        active_pools = [p for p in pools if p.get("is_active", True)]
+        if active_pools:
+            return active_pools[0]["id"]
+        # Create default pool if none exists
+        import os
+        from pathlib import Path
+        hermes_home = os.environ.get("HERMES_HOME", str(Path.home() / ".hermes"))
+        default_path = str(Path(hermes_home) / "file_manager" / "storage")
+        result = team_svc.create_pool(
+            name="默认存储",
+            base_path=default_path,
+            protocol="local",
+            total_bytes=0,
+            description="系统默认存储池",
+        )
+        return result["id"]
+
+    def _get_default_team_space(self) -> Optional[dict]:
+        """Get the first Team Space (space_type=team) as default team."""
+        from ..engine.models import Space
+        session = self.db_factory()
+        try:
+            team = session.query(Space).filter(
+                Space.space_type == "team",
+                Space.status == "active"
+            ).first()
+            return team.to_dict() if team else None
         finally:
             session.close()
 

@@ -73,4 +73,16 @@ def __getattr__(name):
             RuleNotFound, CannotDeleteSelf, CannotDeleteRoleWithUsers,
         )
         return locals()[name]
+    if name == "SpaceService":
+        from .space_service import SpaceService
+        return SpaceService
+    if name in ("SpaceNotFound", "SpaceQuotaExceeded", "SpaceRequestNotFound",
+                "SpaceRequestInvalid", "NotSpaceOwner", "UserAlreadyInSpace",
+                "CredentialNotFound", "CredentialExpired", "QuotaExceeded"):
+        from .space_service import (
+            SpaceNotFound, SpaceQuotaExceeded, SpaceRequestNotFound,
+            SpaceRequestInvalid, NotSpaceOwner, UserAlreadyInSpace,
+            CredentialNotFound, CredentialExpired, QuotaExceeded,
+        )
+        return locals()[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

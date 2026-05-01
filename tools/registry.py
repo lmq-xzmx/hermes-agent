@@ -57,12 +57,29 @@ def _module_registers_tools(module_path: Path) -> bool:
 def discover_builtin_tools(tools_dir: Optional[Path] = None) -> List[str]:
     """Import built-in self-registering tool modules and return their module names."""
     tools_path = Path(tools_dir) if tools_dir is not None else Path(__file__).resolve().parent
-    module_names = [
-        f"tools.{path.stem}"
-        for path in sorted(tools_path.glob("*.py"))
-        if path.name not in {"__init__.py", "registry.py", "mcp_tool.py"}
-        and _module_registers_tools(path)
-    ]
+
+    # Collect both top-level .py files and subdirectory __init__.py files
+    all_paths: List[Path] = []
+
+    # Top-level .py files (exclude __init__, registry, mcp_tool)
+    for path in tools_path.glob("*.py"):
+        if path.name not in {"__init__.py", "registry.py", "mcp_tool.py"}:
+            all_paths.append(path)
+
+    # Subdirectory __init__.py files that register tools
+    for path in tools_path.glob("*/__init__.py"):
+        if _module_registers_tools(path):
+            all_paths.append(path)
+
+    # Build module names
+    module_names: List[str] = []
+    for path in all_paths:
+        if path.name == "__init__.py":
+            # Subdirectory module: tools/<subdir>
+            module_names.append(f"tools.{path.parent.name}")
+        else:
+            # Top-level .py file: tools/<file>
+            module_names.append(f"tools.{path.stem}")
 
     imported: List[str] = []
     for mod_name in module_names:

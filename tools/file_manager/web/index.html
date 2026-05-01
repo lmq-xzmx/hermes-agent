@@ -338,7 +338,6 @@
   }
 
   .breadcrumb .sep { color: var(--text-secondary); }
-  .breadcrumb .space-root { color: var(--accent); font-weight: 500; }
 
   /* Toolbar */
   .toolbar {
@@ -985,9 +984,6 @@
       <div class="nav-item" id="nav-knowledge" onclick="navigateTo('knowledge')">
         <span class="nav-icon">🧠</span> 知识
       </div>
-      <div class="nav-item" id="nav-trash" onclick="navigateTo('trash')">
-        <span class="nav-icon">🗑️</span> 回收站
-      </div>
     </nav>
     <div class="sidebar-footer">
       <div class="user-info">
@@ -1155,23 +1151,6 @@
       </div>
     </div>
 
-    <!-- Trash View -->
-    <div class="view-container" id="view-trash">
-      <div class="view-header">
-        <h3 class="section-title">🗑️ 回收站</h3>
-        <div style="display:flex;gap:8px;align-items:center">
-          <select id="trashSpaceSelect" onchange="onTrashSpaceChange(this.value)" style="padding:6px 10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary)">
-            <option value="">-- 选择空间 --</option>
-          </select>
-          <button class="btn btn-secondary" onclick="loadTrash()">🔄 刷新</button>
-          <button class="btn btn-danger" onclick="emptyTrash()">🗑️ 清空回收站</button>
-        </div>
-      </div>
-      <div id="trashContent" style="padding:20px">
-        <div id="trashList"></div>
-      </div>
-    </div>
-
     <!-- Spaces View -->
     <div class="view-container" id="view-spaces">
       <div class="view-header">
@@ -1271,27 +1250,10 @@
 const API_BASE = 'http://localhost:8080/api/v1';
 const TOKEN_KEY = 'hfm_token';
 
-// Tauri API shim - use window.__TAURI__ if available
-let tauri = { invoke: async () => { throw new Error('Tauri not available'); } };
-if (window.__TAURI__) {
-  tauri.invoke = window.__TAURI__.core.invoke;
-}
-
-// Handle file:// origin issue - use a fallback for Tauri desktop app
-function getOrigin() {
-  const origin = window.location.origin;
-  if (!origin || origin === 'null' || origin === 'file://') {
-    return 'http://localhost:8080';
-  }
-  return origin;
-}
-
 // State
 let currentPath = '/';
 let currentView = 'files';
-let currentSpaceId = null;  // Current active space (used in API headers)
 let token = localStorage.getItem(TOKEN_KEY) || null;
-const baseUrl = getOrigin();
 let currentUserData = null;
 let myTeams = [];
 let myStorageContexts = [];
@@ -1349,10 +1311,6 @@ function formatDate(str) {
 async function api(endpoint, options = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  // Pass active_space_id via header for backend to use
-  if (currentSpaceId) {
-    headers['X-Space-Id'] = currentSpaceId;
-  }
   const res = await fetch(API_BASE + endpoint, { ...options, headers });
   const contentType = res.headers.get('content-type') || '';
   let data;
@@ -1404,7 +1362,7 @@ function navigateTo(view) {
   document.getElementById('knowledgeToolbar').style.display = view === 'knowledge' ? '' : 'none';
 
   // Update header title
-  const titles = { files: '文件', teams: '团队管理', pools: '存储池管理', knowledge: '知识管理', spaces: '空间管理', trash: '回收站' };
+  const titles = { files: '文件', teams: '团队管理', pools: '存储池管理', knowledge: '知识管理', spaces: '空间管理' };
   document.getElementById('viewTitle').textContent = titles[view] || view;
 
   // Hide breadcrumb for non-files views
@@ -1415,7 +1373,6 @@ function navigateTo(view) {
   if (view === 'pools') loadPools();
   if (view === 'knowledge') loadKnowledgeView();
   if (view === 'spaces') loadSpaces();
-  if (view === 'trash') loadTrash();
 }
 
 // Auth
@@ -1545,50 +1502,22 @@ async function loadStorageContexts() {
 
 function renderSpaceSelector() {
   const sel = document.getElementById('spaceSelect');
-  const trashSel = document.getElementById('trashSpaceSelect');
   const wrapper = document.getElementById('storageSelector');
   if (!myStorageContexts || myStorageContexts.length === 0) {
     wrapper.style.display = 'none';
-    if (trashSel) trashSel.innerHTML = '<option value="">-- 选择空间 --</option>';
     return;
   }
   wrapper.style.display = '';
-  const options = '<option value="">-- 选择空间 --</option>' +
+  sel.innerHTML = '<option value="">-- 选择空间 --</option>' +
     myStorageContexts.map(c =>
       `<option value="${c.space_id}">${escHtml(c.space_name || c.space_id)}</option>`
     ).join('');
-  sel.innerHTML = options;
-  if (trashSel) trashSel.innerHTML = options;
-  // Auto-select current space if set
-  if (currentSpaceId) {
-    sel.value = currentSpaceId;
-    if (trashSel) trashSel.value = currentSpaceId;
-  }
-}
-
-function onTrashSpaceChange(spaceId) {
-  if (!spaceId) {
-    currentSpaceId = null;
-    document.getElementById('trashList').innerHTML = '<p style="color:var(--text-secondary)">请先选择一个空间</p>';
-    return;
-  }
-  currentSpaceId = spaceId;
-  // Sync header selector
-  const sel = document.getElementById('spaceSelect');
-  if (sel) sel.value = spaceId;
-  loadTrash();
 }
 
 function onSpaceChange(spaceId) {
-  if (!spaceId) {
-    // No space selected - reset to root, user must select a space
-    currentSpaceId = null;
-    return;
-  }
+  if (!spaceId) return;
   const ctx = myStorageContexts.find(c => c.space_id === spaceId);
   if (ctx) {
-    currentSpaceId = spaceId;  // Also update the global state!
-    currentPath = '/';  // Reset to space root on space switch
     navigateTo('files');
     loadFiles(currentPath);
   }
@@ -1712,10 +1641,8 @@ document.getElementById('logoutBtn2').addEventListener('click', logout);
 
 // Breadcrumb
 function updateBreadcrumb() {
-  const sel = document.getElementById('spaceSelect');
-  const spaceName = sel && sel.selectedOptions[0] && sel.selectedOptions[0].text !== '-- 选择空间 --' ? sel.selectedOptions[0].text : null;
   const parts = currentPath.split('/').filter(Boolean);
-  let html = `<span data-path="/" class="space-root">${spaceName ? `📁 ${spaceName}` : '首页'}</span>`;
+  let html = '<span data-path="/">首页</span>';
   let path = '';
   parts.forEach(p => {
     path += '/' + p;
@@ -1834,87 +1761,45 @@ function renderFiles(files) {
       <td>${formatDate(f.modified)}</td>
       <td>
         <div class="file-actions">
-          ${f.is_directory
-            ? `<button onclick="openInFinder('${escapeHtml(f.path)}')">📂 在 Finder 中显示</button>`
-            : `<button onclick="openInFinder('${escapeHtml(f.path)}')">Finder 中显示</button>`
-          }
+          ${!f.is_directory ? `
+            <button onclick="viewFile('${escapeHtml(f.path)}')">查看</button>
+            <button onclick="editFile('${escapeHtml(f.path)}')">编辑</button>
+          ` : ''}
           <button class="danger" onclick="deleteItem('${escapeHtml(f.path)}', '${f.is_directory ? 'directory' : 'file'}')">删除</button>
+          ${f.is_directory ? `<button onclick="openInFinder('${escapeHtml(f.path)}')">📂 在 Finder 中显示</button>` : ''}
           <button onclick="shareItem('${escapeHtml(f.path)}')">分享</button>
         </div>
       </td>
     </tr>
   `).join('');
 
-  // Click to navigate (directories) or reveal in Finder (files)
+  // Click to navigate
   fileListBody.querySelectorAll('.file-name').forEach(el => {
     el.addEventListener('click', () => {
       if (el.dataset.type === 'directory') {
         currentPath = el.dataset.path;
         loadFiles(currentPath);
       } else {
-        // All files: open in Finder (shows in system default app or Finder)
-        openInFinder(el.dataset.path);
+        viewFile(el.dataset.path);
       }
     });
   });
 }
 
 function openInFinder(path) {
-  // path from API is relative like "spaces/xxx/shared/file.txt"
-  // Rust backend will construct the full path using storage_root
-
   if (window.__TAURI__) {
-    // Tauri mode: use backend command to open in system file manager
-    console.log('[openInFinder] Calling tauri command with path:', path);
-    tauri.invoke('open_path_in_finder', { path: path })
-      .then(() => {
-        console.log('[openInFinder] Success');
-        toast('success', '已打开', '文件已在 Finder 中显示');
-      })
-      .catch(e => {
-        console.error('[openInFinder] Error:', e);
-        console.error('[openInFinder] Error type:', typeof e);
-        console.error('[openInFinder] Error message:', e?.message || e);
-        toast('error', '错误', '无法打开: ' + (e?.message || e));
-      });
-  } else {
-    // Web mode: show path in modal with copy button
-    // Manually construct the full path for display
-    const storageRoot = '/Users/xzmx/.hermes/file_manager/storage';
-    const absolutePath = storageRoot + '/' + path;
-    openModal('文件位置', `
-      <div style="margin-bottom:12px">
-        <p style="color:var(--text-secondary);margin-bottom:8px">本地路径（复制后可在 Finder 中前往）：</p>
-        <input type="text" readonly value="${absolutePath}"
-          style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:monospace;font-size:12px"
-          onclick="this.select();navigator.clipboard.writeText(this.value)">
-      </div>
-      <button class="btn btn-primary" onclick="closeModal()">关闭</button>
-    `, '');
-  }
-}
-
-async function downloadFile(fileId, fileName) {
-  try {
-    showLoading();
-    const response = await fetch(API_BASE + `/files/${fileId}/download`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+    tauri.invoke('open_path_in_finder', { path }).catch(e => {
+      toast('error', '错误', '无法打开文件夹: ' + e);
     });
-    if (!response.ok) throw new Error('下载失败');
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName || 'download';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    hideLoading();
-    toast('success', '已下载', fileName);
-  } catch (e) {
-    hideLoading();
-    toast('error', '下载失败', e.message);
+  } else {
+    // Fallback: get storage root and construct full path
+    api('/storage/info').then(r => r.json()).then(data => {
+      const storageRoot = data.storage_root || '';
+      const fullPath = path === '/' ? storageRoot : storageRoot + '/' + path;
+      window.open(`file://${fullPath}`, '_blank');
+    }).catch(() => {
+      toast('error', '错误', '无法定位文件位置');
+    });
   }
 }
 
@@ -2053,7 +1938,7 @@ async function createShare(path) {
       method: 'POST',
       body: JSON.stringify({ path, password: password || null })
     });
-    const shareUrl = `${getOrigin()}/share/${data.token}`;
+    const shareUrl = `${window.location.origin}/share/${data.token}`;
     document.getElementById('shareLink').value = shareUrl;
     document.getElementById('shareLink').select();
     toast('success', '已分享', '分享链接已创建');
@@ -2574,14 +2459,6 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-function formatFileSize(bytes) {
-  if (!bytes || bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
-
 // ==================== KNOWLEDGE / SYNC ====================
 
 const LLM_WIKI_API = 'http://localhost:1421';
@@ -2708,49 +2585,42 @@ async function saveSyncSettings() {
   }
 }
 
-async function openLlmWiki() {
-  // Try Tauri invoke first
-  if (typeof tauri?.invoke === 'function') {
-    try {
-      await tauri.invoke('open_llm_wiki');
-      toast('success', '已启动', '知识库 FM 已打开');
-      return;
-    } catch (e) {
-      // Tauri invoke failed, continue to fallback
-    }
-  }
-
-  // Fallback: call HTTP API which will start the GUI via backend
-  try {
-    const response = await fetch(`${API_BASE}/llm_wiki/open`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` }
+function openLlmWiki() {
+  // Launch llm_wiki desktop app via Tauri
+  if (window.__TAURI__) {
+    toast('info', '启动中', '正在打开知识库...');
+    tauri.invoke('open_llm_wiki').then(() => {
+      // Wait a bit for the GUI to start, then check port 19827
+      setTimeout(() => {
+        fetch('http://localhost:19827/health').then(r => {
+          if (r.ok) toast('success', '已启动', '知识库 FM 已打开');
+        }).catch(() => {
+          // GUI may take longer to start, try serve URL as fallback
+          fetch('http://localhost:1421/health').then(r => {
+            if (r.ok) toast('success', '已启动', '知识库 FM 已打开');
+          }).catch(() => {});
+        });
+      }, 3000);
+    }).catch(e => {
+      toast('warning', '提示', '请通过托盘菜单或桌面图标打开知识库');
     });
-    if (response.ok) {
-      toast('success', '已启动', '知识库 FM 已打开');
-    } else {
-      throw new Error('HTTP ' + response.status);
-    }
-  } catch (e) {
-    // Last resort: open via system
+  } else {
+    // Fallback: open serve URL in browser
     window.open('http://localhost:19827', '_blank');
-    toast('success', '已打开', '知识库已在浏览器中打开');
+    toast('info', '已打开', '知识库已在浏览器中打开');
   }
 }
 
 // Update knowledge toolbar based on llm_wiki status
 async function updateKnowledgeToolbar() {
   try {
-    const status = await fetch('http://localhost:8080/system/status').then(r => r.json());
-    const btn = document.querySelector('#knowledgeToolbar .btn-secondary');
-    if (!btn) return;
-
-    if (status.llm_wiki_gui_running || status.llm_wiki_api_running) {
-      btn.textContent = '🧠 知识库已连接';
-      btn.disabled = true;
-    } else {
-      btn.textContent = '🧠 打开知识库';
-      btn.disabled = false;
+    const res = await fetch('http://localhost:1421/health');
+    if (res.ok) {
+      const btn = document.querySelector('#knowledgeToolbar .btn-secondary');
+      if (btn && btn.textContent.includes('打开知识库')) {
+        btn.textContent = '🧠 知识库已连接';
+        btn.disabled = true;
+      }
     }
   } catch (e) {
     // llm_wiki not running
@@ -2833,110 +2703,6 @@ async function searchKnowledge() {
   }
 }
 
-// Trash Functions
-async function loadTrash() {
-  if (!currentSpaceId) {
-    document.getElementById('trashList').innerHTML = '<p style="color:var(--text-secondary)">请先选择一个空间</p>';
-    return;
-  }
-
-  showLoading();
-  try {
-    const data = await api(`/spaces/${currentSpaceId}/trash`);
-    const listEl = document.getElementById('trashList');
-
-    if (!data.items || data.items.length === 0) {
-      listEl.innerHTML = '<p style="color:var(--text-secondary)">回收站是空的</p>';
-      return;
-    }
-
-    listEl.innerHTML = `
-      <div style="color:var(--text-secondary);margin-bottom:16px">
-        共 ${data.total} 个项目，将在 30 天后自动删除
-      </div>
-      <table class="file-table">
-        <thead>
-          <tr>
-            <th>名称</th>
-            <th>类型</th>
-            <th>大小</th>
-            <th>删除时间</th>
-            <th>过期时间</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${data.items.map(item => `
-            <tr>
-              <td>
-                <span style="margin-right:8px">${item.is_directory ? '📁' : '📄'}</span>
-                ${escapeHtml(item.name)}
-              </td>
-              <td>${item.is_directory ? '文件夹' : '文件'}</td>
-              <td>${item.is_directory ? '-' : formatFileSize(item.file_size)}</td>
-              <td>${new Date(item.deleted_at).toLocaleString()}</td>
-              <td>${new Date(item.expires_at).toLocaleString()}</td>
-              <td>
-                <button class="btn btn-sm btn-secondary" onclick="restoreFromTrash('${item.id}')">恢复</button>
-                <button class="btn btn-sm btn-danger" onclick="permanentDeleteTrash('${item.id}')">永久删除</button>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-  } catch (e) {
-    toast('error', '加载失败', e.message);
-  } finally {
-    hideLoading();
-  }
-}
-
-async function restoreFromTrash(itemId) {
-  if (!confirm('确定要恢复此文件吗？')) return;
-
-  showLoading();
-  try {
-    await api(`/spaces/${currentSpaceId}/trash/${itemId}/restore`, { method: 'POST' });
-    toast('success', '恢复成功', '文件已恢复到原位置');
-    loadTrash();
-  } catch (e) {
-    toast('error', '恢复失败', e.message);
-  } finally {
-    hideLoading();
-  }
-}
-
-async function permanentDeleteTrash(itemId) {
-  if (!confirm('确定要永久删除此文件吗？此操作不可恢复！')) return;
-
-  showLoading();
-  try {
-    await api(`/spaces/${currentSpaceId}/trash/${itemId}`, { method: 'DELETE' });
-    toast('success', '已永久删除', '');
-    loadTrash();
-  } catch (e) {
-    toast('error', '删除失败', e.message);
-  } finally {
-    hideLoading();
-  }
-}
-
-async function emptyTrash() {
-  if (!confirm('确定要清空回收站吗？所有文件将被永久删除！')) return;
-
-  showLoading();
-  try {
-    await api(`/spaces/${currentSpaceId}/trash`, { method: 'DELETE' });
-    toast('success', '已清空', '回收站已清空');
-    loadTrash();
-  } catch (e) {
-    toast('error', '清空失败', e.message);
-  } finally {
-    hideLoading();
-  }
-}
-
 // Listen for Tauri events
 if (window.__TAURI__) {
   window.__TAURI__.event.listen('open-llm-wiki', (event) => {
@@ -2955,6 +2721,8 @@ checkAuth();
 // ============================================================================
 // Space Management
 // ============================================================================
+
+let currentSpaceId = null;
 
 async function loadSpaces() {
   try {
@@ -2990,7 +2758,6 @@ function spaceCardHTML(space) {
 
   return `<div class="space-card ${currentSpaceId === space.id ? 'selected' : ''}" onclick="selectSpace('${space.id}', this)">
     <div class="space-card-header">
-      <span class="space-card-code" style="font-size:11px;color:var(--accent);margin-right:8px">${space.code || ''}</span>
       <span class="space-card-name">${escHtml(space.name)}</span>
       <span class="space-card-type ${typeClass}">${typeLabel[typeClass] || typeClass}</span>
     </div>
@@ -3007,7 +2774,6 @@ function spaceCardHTML(space) {
 
 async function selectSpace(spaceId, cardEl) {
   currentSpaceId = spaceId;
-  currentPath = '/';  // Reset to space root when selecting from space list
   // Refresh card selection
   document.querySelectorAll('.space-card').forEach(c => c.classList.remove('selected'));
   if (cardEl) cardEl.classList.add('selected');
@@ -3019,9 +2785,6 @@ async function selectSpace(spaceId, cardEl) {
   } catch (e) {
     toast('error', '加载失败', e.message);
   }
-  // Switch to files view and load
-  navigateTo('files');
-  loadFiles('/');
 }
 
 function showSpaceDetail(space) {
@@ -3086,18 +2849,14 @@ async function loadSpaceWorkflows(spaceId) {
       container.innerHTML = '<p style="color:var(--text-secondary)">暂无工作流</p>';
       return;
     }
-    container.innerHTML = `
-      <div style="margin-bottom:12px">
-        <button class="btn btn-secondary" onclick="showCreateWorkflow()">+ 新建工作流</button>
-      </div>
-      <div class="member-list">${data.workflows.map(w => `
-      <div class="member-item" onclick="viewWorkflow('${w.id}')" style="cursor:pointer">
+    container.innerHTML = `<div class="member-list">${data.workflows.map(w => `
+      <div class="member-item">
         <div class="member-info">
           <div class="member-name">${escHtml(w.name)}</div>
           <div class="member-role">${w.step_count || 0} 步骤 · 使用 ${w.usage_count || 0} 次</div>
         </div>
         <div class="member-actions">
-          <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();executeWorkflow('${w.id}')">▶ 执行</button>
+          <button class="btn btn-secondary btn-sm" onclick="executeWorkflow('${w.id}')">▶ 执行</button>
         </div>
       </div>
     `).join('')}</div>`;
@@ -3177,6 +2936,7 @@ async function loadSpaceSettings(spaceId) {
   container.innerHTML = '<p style="color:var(--text-secondary)">加载中...</p>';
 
   // Generate cleanup commands based on current API base URL
+  const baseUrl = window.location.origin;
   const token = localStorage.getItem('hfm_token') || '<your_token>';
   const authHeader = `Authorization: Bearer ${token}`;
 
@@ -3362,7 +3122,7 @@ async function showInviteSpaceMember() {
       method: 'POST',
       body: JSON.stringify({ max_uses: 10, expires_at: null })
     });
-    const inviteUrl = `${getOrigin()}/join/${cred.token}`;
+    const inviteUrl = `${window.location.origin}/join/${cred.token}`;
     document.getElementById('modalBody').innerHTML = `
       <p style="margin-bottom:12px">邀请链接（复制分享）：</p>
       <input type="text" readonly value="${inviteUrl}" onclick="this.select()" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:monospace;font-size:12px">
@@ -3665,279 +3425,6 @@ async function deleteNotebook(notebookId) {
   }
 }
 
-async function addNotebookVar(notebookId) {
-  try {
-    const name = prompt('变量名（如 $REPO_URL）:');
-    if (!name) return;
-    const default_value = prompt('默认值（可选）:') || '';
-    const description = prompt('说明（可选）:') || '';
-    await api(`/notebooks/${notebookId}/variables`, {
-      method: 'POST',
-      body: JSON.stringify({ name, default_value, description, is_required: true })
-    });
-    toast('success', '已添加', '变量已添加');
-    editNotebook(notebookId);
-  } catch (e) {
-    toast('error', '添加失败', e.message);
-  }
-}
-
-async function removeNotebookVar(notebookId, varId) {
-  if (!confirm('确定要删除这个变量吗？')) return;
-  try {
-    await api(`/notebooks/variables/${varId}`, { method: 'DELETE' });
-    toast('success', '已删除', '变量已删除');
-    editNotebook(notebookId);
-  } catch (e) {
-    toast('error', '删除失败', e.message);
-  }
-}
-
-async function viewWorkflow(workflowId) {
-  try {
-    const wf = await api(`/workflows/${workflowId}`);
-    const modal = document.getElementById('modalOverlay');
-    document.getElementById('modalTitle').textContent = wf.name;
-    document.getElementById('modalBody').innerHTML = `
-      <div style="margin-bottom:12px">
-        <span style="color:var(--text-secondary);font-size:13px">${escHtml(wf.description || '无描述')}</span>
-        <span style="color:var(--text-secondary);font-size:12px;margin-left:12px">使用 ${wf.usage_count || 0} 次</span>
-        ${wf.tags && wf.tags.length > 0 ? `<span style="margin-left:12px">🏷 ${wf.tags.join(', ')}</span>` : ''}
-      </div>
-      <div style="margin-top:16px">
-        <h5 style="color:var(--accent);margin-bottom:12px">📋 步骤 (${wf.steps ? wf.steps.length : 0})</h5>
-        ${(wf.steps || []).map((s, i) => `
-          <div style="margin-bottom:12px;padding:12px;background:var(--bg-tertiary);border-radius:6px">
-            <div style="display:flex;align-items:center;margin-bottom:6px">
-              <span style="background:var(--accent);color:#fff;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;margin-right:8px">${i + 1}</span>
-              <strong>${escHtml(s.command || '未命名步骤')}</strong>
-              ${s.confirm_required ? '<span style="margin-left:8px;font-size:12px;color:var(--warning)">⚠️ 需确认</span>' : ''}
-            </div>
-            ${s.explanation ? `<p style="color:var(--text-secondary);font-size:13px;margin-left:32px">${escHtml(s.explanation)}</p>` : ''}
-          </div>
-        `).join('')}
-        ${(!wf.steps || wf.steps.length === 0) ? '<p style="color:var(--text-secondary)">暂无步骤</p>' : ''}
-      </div>
-    `;
-    document.getElementById('modalFooter').innerHTML = `
-      <button class="btn btn-secondary" onclick="duplicateWorkflow('${wf.id}')">📋 复制</button>
-      <button class="btn btn-secondary" onclick="editWorkflow('${wf.id}')">✏️ 编辑</button>
-      <button class="btn btn-danger" onclick="deleteWorkflow('${wf.id}')">🗑 删除</button>
-      <button class="btn" onclick="closeModal()">关闭</button>
-    `;
-    modal.classList.add('active');
-  } catch (e) {
-    toast('error', '加载失败', e.message);
-  }
-}
-
-async function duplicateWorkflow(workflowId) {
-  try {
-    const wf = await api(`/workflows/${workflowId}`);
-    await api(`/spaces/${wf.space_id}/workflows`, {
-      method: 'POST',
-      body: JSON.stringify({
-        name: wf.name + ' (副本)',
-        description: wf.description,
-        is_shared: false,
-        tags: wf.tags
-      })
-    });
-    toast('success', '已复制', '工作流已复制');
-    closeModal();
-  } catch (e) {
-    toast('error', '复制失败', e.message);
-  }
-}
-
-function showCreateWorkflow() {
-  const modal = document.getElementById('modalOverlay');
-  document.getElementById('modalTitle').textContent = '新建工作流';
-  document.getElementById('modalBody').innerHTML = `
-    <div class="form-group">
-      <label>工作流名称</label>
-      <input type="text" id="wf_name" placeholder="如：Git 提交流程" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary)">
-    </div>
-    <div class="form-group">
-      <label>描述（可选）</label>
-      <input type="text" id="wf_desc" placeholder="简要说明用途" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary)">
-    </div>
-    <div class="form-group">
-      <label>标签（可选，用逗号分隔）</label>
-      <input type="text" id="wf_tags" placeholder="如：git,日常" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary)">
-    </div>
-    <div id="wfStepsSection" style="margin-top:16px">
-      <h5 style="color:var(--accent);margin-bottom:8px">📋 步骤</h5>
-      <div id="wfStepsList"></div>
-      <button class="btn btn-secondary btn-sm" onclick="addWorkflowStep()" style="margin-top:8px">+ 添加步骤</button>
-    </div>
-    <div style="margin-top:12px">
-      <label style="font-size:13px;color:var(--text-secondary)">
-        <input type="checkbox" id="wf_shared"> 团队共享
-      </label>
-    </div>
-  `;
-  document.getElementById('modalFooter').innerHTML = `
-    <button class="btn" onclick="createWorkflow()">创建</button>
-    <button class="btn btn-secondary" onclick="closeModal()">取消</button>
-  `;
-  modal.classList.add('active');
-  window.wfSteps = [];
-  renderWorkflowSteps();
-}
-
-let wfSteps = [];
-
-function addWorkflowStep() {
-  wfSteps.push({ command: '', explanation: '', confirm_required: false });
-  renderWorkflowSteps();
-}
-
-function renderWorkflowSteps() {
-  const container = document.getElementById('wfStepsList');
-  if (!container) return;
-  container.innerHTML = wfSteps.map((s, i) => `
-    <div style="margin-bottom:8px;padding:12px;background:var(--bg-tertiary);border-radius:6px">
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <span style="color:var(--accent);font-weight:bold">步骤 ${i + 1}</span>
-        <input type="text" id="wf_step_cmd_${i}" value="${escHtml(s.command)}" placeholder="命令"
-          style="flex:1;padding:6px;background:var(--bg-primary);border:1px solid var(--border);border-radius:4px;color:var(--text-primary)">
-      </div>
-      <input type="text" id="wf_step_exp_${i}" value="${escHtml(s.explanation || '')}" placeholder="说明（可选）"
-        style="width:100%;padding:6px;background:var(--bg-primary);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <label style="font-size:12px;color:var(--text-secondary)">
-          <input type="checkbox" id="wf_step_confirm_${i}" ${s.confirm_required ? 'checked' : ''}> 执行前需确认
-        </label>
-        <button class="btn btn-danger btn-sm" onclick="removeWorkflowStep(${i})">删除</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function removeWorkflowStep(index) {
-  wfSteps.splice(index, 1);
-  renderWorkflowSteps();
-}
-
-async function createWorkflow() {
-  const name = document.getElementById('wf_name').value.trim();
-  const description = document.getElementById('wf_desc').value.trim();
-  const tagsStr = document.getElementById('wf_tags').value.trim();
-  const is_shared = document.getElementById('wf_shared').checked;
-  const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : [];
-
-  if (!name) {
-    toast('error', '请填写', '工作流名称不能为空');
-    return;
-  }
-  if (!currentSpaceId) {
-    toast('error', '错误', '请先选择一个空间');
-    return;
-  }
-
-  // Collect steps from inputs
-  const steps = wfSteps.map((s, i) => ({
-    command: document.getElementById(`wf_step_cmd_${i}`).value.trim(),
-    explanation: document.getElementById(`wf_step_exp_${i}`).value.trim(),
-    confirm_required: document.getElementById(`wf_step_confirm_${i}`).checked
-  })).filter(s => s.command);
-
-  try {
-    await api(`/spaces/${currentSpaceId}/workflows`, {
-      method: 'POST',
-      body: JSON.stringify({ name, description, is_shared, tags, steps })
-    });
-    toast('success', '已创建', `工作流 "${name}" 创建成功`);
-    closeModal();
-    loadSpaceWorkflows(currentSpaceId);
-  } catch (e) {
-    toast('error', '创建失败', e.message);
-  }
-}
-
-async function editWorkflow(workflowId) {
-  try {
-    const wf = await api(`/workflows/${workflowId}`);
-    const modal = document.getElementById('modalOverlay');
-    document.getElementById('modalTitle').textContent = '编辑工作流';
-    document.getElementById('modalBody').innerHTML = `
-      <div class="form-group">
-        <label>工作流名称</label>
-        <input type="text" id="wf_name" value="${escHtml(wf.name)}" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary)">
-      </div>
-      <div class="form-group">
-        <label>描述</label>
-        <input type="text" id="wf_desc" value="${escHtml(wf.description || '')}" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary)">
-      </div>
-      <div style="margin-top:16px">
-        <h5 style="color:var(--accent);margin-bottom:8px">📋 步骤</h5>
-        <div id="wfStepsList"></div>
-        <button class="btn btn-secondary btn-sm" onclick="addWorkflowStep()">+ 添加步骤</button>
-      </div>
-      <div style="margin-top:12px">
-        <label style="font-size:13px;color:var(--text-secondary)">
-          <input type="checkbox" id="wf_shared" ${wf.is_shared ? 'checked' : ''}> 团队共享
-        </label>
-      </div>
-    `;
-    document.getElementById('modalFooter').innerHTML = `
-      <button class="btn" onclick="saveEditWorkflow('${wf.id}')">保存</button>
-      <button class="btn btn-secondary" onclick="viewWorkflow('${wf.id}')">取消</button>
-    `;
-    modal.classList.add('active');
-    // Load existing steps
-    wfSteps = (wf.steps || []).map(s => ({
-      command: s.command || '',
-      explanation: s.explanation || '',
-      confirm_required: s.confirm_required || false
-    }));
-    renderWorkflowSteps();
-  } catch (e) {
-    toast('error', '加载失败', e.message);
-  }
-}
-
-async function saveEditWorkflow(workflowId) {
-  const name = document.getElementById('wf_name').value.trim();
-  const description = document.getElementById('wf_desc').value.trim();
-  const is_shared = document.getElementById('wf_shared').checked;
-
-  if (!name) {
-    toast('error', '请填写', '工作流名称不能为空');
-    return;
-  }
-
-  const steps = wfSteps.map((s, i) => ({
-    command: document.getElementById(`wf_step_cmd_${i}`).value.trim(),
-    explanation: document.getElementById(`wf_step_exp_${i}`).value.trim(),
-    confirm_required: document.getElementById(`wf_step_confirm_${i}`).checked
-  })).filter(s => s.command);
-
-  try {
-    await api(`/workflows/${workflowId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ name, description, is_shared, steps })
-    });
-    toast('success', '已保存', '工作流已更新');
-    viewWorkflow(workflowId);
-  } catch (e) {
-    toast('error', '保存失败', e.message);
-  }
-}
-
-async function deleteWorkflow(workflowId) {
-  if (!confirm('确定要删除这个工作流吗？此操作不可恢复。')) return;
-  try {
-    await api(`/workflows/${workflowId}`, { method: 'DELETE' });
-    toast('success', '已删除', '工作流已删除');
-    closeModal();
-    if (currentSpaceId) loadSpaceWorkflows(currentSpaceId);
-  } catch (e) {
-    toast('error', '删除失败', e.message);
-  }
-}
-
 function fmtTime(iso) {
   if (!iso) return '-';
   const d = new Date(iso);
@@ -3947,43 +3434,6 @@ function fmtTime(iso) {
 function escHtml(s) {
   if (!s) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// Listen for events from floating window
-if (window.__TAURI__) {
-  const { listen } = window.__TAURI__.event;
-
-  listen('quick-upload', () => {
-    document.getElementById('fileInput').click();
-  });
-
-  listen('show-space-usage', () => {
-    switchTab('spaces');
-  });
-
-  listen('focus-search', () => {
-    switchTab('files');
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-      searchInput.focus();
-      searchInput.select();
-    }
-  });
-
-  listen('open-recent-file', (event) => {
-    const filename = event.payload;
-    switchTab('files');
-    // Trigger search for the file
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-      searchInput.value = filename;
-      doSearch();
-    }
-  });
-
-  listen('open-settings', () => {
-    showSettingsModal();
-  });
 }
 </script>
 </body>

@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 from ..engine.models import (
-    StoragePool, Team, TeamMember, TeamCredential, User, Base
+    StoragePool, Team, SpaceMember, TeamCredential, User, Base
 )
 from ..engine.storage import StorageEngine
 
@@ -43,7 +43,7 @@ class TeamNotFound(Exception):
 class TeamQuotaExceeded(Exception):
     """Team quota (max_bytes) reached."""
     def __init__(self, team_name: str, max_bytes: int, used_bytes: int, required: int):
-        self.team_name = team_name
+        self.space_name = team_name
         self.max_bytes = max_bytes
         self.used_bytes = used_bytes
         self.required = required
@@ -202,8 +202,8 @@ class TeamService:
             query = session.query(Team)
             if user_id:
                 team_ids = (
-                    session.query(TeamMember.team_id)
-                    .filter(TeamMember.user_id == user_id)
+                    session.query(SpaceMember.space_id)
+                    .filter(SpaceMember.user_id == user_id)
                     .all()
                 )
                 team_ids = [t[0] for t in team_ids]
@@ -250,14 +250,14 @@ class TeamService:
                 storage_pool_id=storage_pool_id,
                 max_bytes=max_bytes,
                 used_bytes=0,
-                is_active=True,
+                status="active",
             )
             session.add(team)
             session.flush()  # get ID before adding member
 
             # Owner becomes first member
-            member = TeamMember(
-                team_id=team.id,
+            member = SpaceMember(
+                space_id=team.id,
                 user_id=owner_id,
                 role="owner",
             )
@@ -328,7 +328,7 @@ class TeamService:
     def list_members(self, team_id: str) -> List[Dict[str, Any]]:
         session = self._db()
         try:
-            members = session.query(TeamMember).filter(TeamMember.team_id == team_id).all()
+            members = session.query(SpaceMember).filter(SpaceMember.space_id == team_id).all()
             return [m.to_dict() for m in members]
         finally:
             session.close()
@@ -351,8 +351,8 @@ class TeamService:
                 raise TeamNotFound()
 
             member = (
-                session.query(TeamMember)
-                .filter(TeamMember.team_id == team_id, TeamMember.user_id == target_user_id)
+                session.query(SpaceMember)
+                .filter(SpaceMember.space_id == team_id, SpaceMember.user_id == target_user_id)
                 .first()
             )
             if not member:
@@ -366,8 +366,8 @@ class TeamService:
 
             if member.role == "owner":
                 owner_count = (
-                    session.query(TeamMember)
-                    .filter(TeamMember.team_id == team_id, TeamMember.role == "owner")
+                    session.query(SpaceMember)
+                    .filter(SpaceMember.space_id == team_id, SpaceMember.role == "owner")
                     .count()
                 )
                 if owner_count <= 1:
@@ -395,7 +395,7 @@ class TeamService:
                 raise TeamNotFound()
             if team.owner_id != requesting_user_id:
                 raise NotTeamOwner()
-            creds = session.query(TeamCredential).filter(TeamCredential.team_id == team_id).all()
+            creds = session.query(TeamCredential).filter(TeamCredential.space_id == team_id).all()
             return [c.to_dict() for c in creds]
         finally:
             session.close()
@@ -440,7 +440,7 @@ class TeamService:
             cred = session.query(TeamCredential).filter(TeamCredential.id == credential_id).first()
             if not cred:
                 raise CredentialNotFound()
-            team = cred.team
+            team = cred.space
             if team.owner_id != requesting_user_id:
                 raise NotTeamOwner()
             cred.is_active = False
@@ -465,21 +465,21 @@ class TeamService:
             if not cred.is_valid():
                 raise CredentialExpired("凭证已过期或已达使用次数上限")
 
-            team = cred.team
+            team = cred.space
             if not team.is_active:
                 raise RuntimeError("该团队已停用")
 
             # Check if already a member
             existing = (
-                session.query(TeamMember)
-                .filter(TeamMember.team_id == team.id, TeamMember.user_id == user_id)
+                session.query(SpaceMember)
+                .filter(SpaceMember.space_id == team.id, SpaceMember.user_id == user_id)
                 .first()
             )
             if existing:
                 raise UserAlreadyInTeam(f"你已经是团队「{team.name}」的成员了")
 
-            member = TeamMember(
-                team_id=team.id,
+            member = SpaceMember(
+                space_id=team.id,
                 user_id=user_id,
                 role="member",
             )
@@ -508,13 +508,13 @@ class TeamService:
         session = self._db()
         try:
             memberships = (
-                session.query(TeamMember)
-                .filter(TeamMember.user_id == user_id)
+                session.query(SpaceMember)
+                .filter(SpaceMember.user_id == user_id)
                 .all()
             )
             result = []
             for m in memberships:
-                team = m.team
+                team = m.space
                 pool = team.storage_pool
                 result.append({
                     "member_id": m.id,
@@ -633,13 +633,13 @@ class TeamService:
         session = self._db()
         try:
             memberships = (
-                session.query(TeamMember)
-                .filter(TeamMember.user_id == user_id)
+                session.query(SpaceMember)
+                .filter(SpaceMember.user_id == user_id)
                 .all()
             )
             contexts = []
             for m in memberships:
-                team = m.team
+                team = m.space
                 pool = team.storage_pool
                 if not pool or not pool.is_active:
                     continue
