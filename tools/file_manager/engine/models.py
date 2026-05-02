@@ -930,7 +930,10 @@ class CollaborationSession(Base):
         return datetime.utcnow() > self.expires_at
 
 
-# Deprecated aliases - will be removed in future version
+# Backward compatibility aliases (Deprecated: use Space/SpaceMember instead)
+Team = Space
+TeamMember = SpaceMember
+TeamCredential = SpaceCredential
 
 
 # Database initialization utilities
