@@ -80,3 +80,4 @@ web/package-lock.json
 
 # Tauri/Rust build output
 tools/file_manager/src-tauri/target/
+tools/file_manager/src-tauri/gen/

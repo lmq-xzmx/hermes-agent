@@ -85,4 +85,10 @@ def __getattr__(name):
             CredentialNotFound, CredentialExpired, QuotaExceeded,
         )
         return locals()[name]
+    if name == "AdminAnalyticsService":
+        from .admin_analytics_service import AdminAnalyticsService
+        return AdminAnalyticsService
+    if name == "AdminAccessDenied":
+        from .admin_analytics_service import AdminAccessDenied
+        return AdminAccessDenied
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

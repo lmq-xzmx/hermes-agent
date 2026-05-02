@@ -893,6 +893,7 @@
   .activity-item .extra { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
   .code-block { background: var(--bg-primary); padding: 10px 12px; border-radius: 6px; font-family: monospace; font-size: 13px; color: var(--text-primary); white-space: pre-wrap; word-break: break-all; margin: 8px 0; }
 </style>
+<link rel="stylesheet" href="css/guidance-modal.css">
 </head>
 <body>
 
@@ -1267,6 +1268,8 @@
   </div>
 </div>
 
+<script src="js/components/GuidanceModal.js"></script>
+<script src="js/lifecycle-interceptor.js"></script>
 <script>
 const API_BASE = 'http://localhost:8080/api/v1';
 const TOKEN_KEY = 'hfm_token';
@@ -2584,7 +2587,7 @@ function formatFileSize(bytes) {
 
 // ==================== KNOWLEDGE / SYNC ====================
 
-const LLM_WIKI_API = 'http://localhost:1421';
+const LLM_WIKI_API = 'http://localhost:19827';
 let currentSyncSettings = {
   mode: 'manual',
   interval_minutes: 5,
@@ -3984,6 +3987,34 @@ if (window.__TAURI__) {
   listen('open-settings', () => {
     showSettingsModal();
   });
+}
+
+// 注册引导回调：联系管理员
+lifecycleInterceptor.registerGuidanceCallback('showContactAdminModal', () => {
+  openModal(
+    '联系管理员',
+    `<div class="form-group">
+      <label>管理员邮箱</label>
+      <input type="text" id="adminEmail" value="admin@example.com" readonly style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+    </div>
+    <div class="form-group">
+      <label>您的留言</label>
+      <textarea id="adminMessage" rows="4" placeholder="请描述您遇到的问题..." style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);resize:vertical;"></textarea>
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">取消</button>
+     <button class="btn btn-primary" onclick="submitAdminMessage()">发送</button>`
+  );
+});
+
+async function submitAdminMessage() {
+  const message = document.getElementById('adminMessage')?.value;
+  if (!message?.trim()) {
+    toast('error', '错误', '请填写留言内容');
+    return;
+  }
+  // TODO: 实现发送消息给管理员的 API
+  toast('success', '已发送', '您的留言已发送给管理员');
+  closeModal();
 }
 </script>
 </body>

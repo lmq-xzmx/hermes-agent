@@ -1,0 +1,139 @@
+/* web/css/guidance-modal.css */
+
+.guidance-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.guidance-modal.show {
+    opacity: 1;
+}
+
+.guidance-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.guidance-dialog {
+    position: relative;
+    background: var(--bg-secondary, #1a1f26);
+    border: 1px solid var(--border, #30363d);
+    border-radius: 12px;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    transform: scale(0.95);
+    transition: transform 0.2s ease;
+}
+
+.guidance-modal.show .guidance-dialog {
+    transform: scale(1);
+}
+
+.guidance-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border, #30363d);
+}
+
+.guidance-icon {
+    font-size: 24px;
+}
+
+.guidance-title {
+    flex: 1;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #e6edf3);
+}
+
+.guidance-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: var(--text-secondary, #8b949e);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+
+.guidance-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.guidance-body {
+    padding: 20px;
+}
+
+.guidance-message {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-secondary, #8b949e);
+}
+
+.guidance-footer {
+    display: flex;
+    gap: 12px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border, #30363d);
+}
+
+.guidance-action {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.guidance-action.primary {
+    background: var(--primary-color, #238636);
+    color: white;
+}
+
+.guidance-action.primary:hover {
+    background: var(--primary-hover, #2ea043);
+}
+
+.guidance-dismiss {
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 6px;
+    color: var(--text-primary, #e6edf3);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.guidance-dismiss:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.action-icon {
+    font-size: 16px;
+}

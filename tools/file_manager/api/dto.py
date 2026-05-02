@@ -514,3 +514,122 @@ class NotebookListResponseDTO(BaseModel):
 
 class DuplicateNotebookRequestDTO(BaseModel):
     new_name: Optional[str] = None
+
+
+# =============================================================================
+# Admin Analytics DTOs
+# =============================================================================
+
+class StoragePoolAnalyticsDTO(BaseModel):
+    id: str
+    name: str
+    protocol: str
+    base_path: str
+    total_bytes: int
+    used_bytes: int
+    free_bytes: int
+    usage_rate: float
+    team_count: int
+    space_count: int
+    status: str  # "normal" | "warning" | "critical"
+
+
+class StoragePoolsResponseDTO(BaseModel):
+    pools: List[StoragePoolAnalyticsDTO] = []
+    summary: dict
+
+
+class UserSpaceNodeDTO(BaseModel):
+    id: str
+    name: str
+    type: str  # "user" | "team" | "space"
+    role: Optional[str] = None
+
+
+class UserSpaceLinkDTO(BaseModel):
+    source: str
+    target: str
+    value: float
+    role: Optional[str] = None
+
+
+class UserSpacesResponseDTO(BaseModel):
+    nodes: List[UserSpaceNodeDTO] = []
+    links: List[UserSpaceLinkDTO] = []
+    stats: dict
+
+
+class QuotaHeatmapEntryDTO(BaseModel):
+    space_id: str
+    space_name: str
+    usage_rate: float
+    status: str  # "normal" | "warning" | "critical"
+
+
+class QuotaHeatmapTeamDTO(BaseModel):
+    team_id: str
+    team_name: str
+    spaces: List[QuotaHeatmapEntryDTO] = []
+
+
+class QuotaHeatmapResponseDTO(BaseModel):
+    heatmap: List[QuotaHeatmapTeamDTO] = []
+    legend: dict
+
+
+class OperationTrendSeriesDTO(BaseModel):
+    name: str
+    data: List[int] = []
+
+
+class OperationTrendsResponseDTO(BaseModel):
+    dates: List[str] = []
+    series: List[OperationTrendSeriesDTO] = []
+
+
+class ActiveUserDTO(BaseModel):
+    user_id: str
+    username: str
+    email: Optional[str] = None
+    action_count: int
+    last_action: Optional[datetime] = None
+
+
+class ActiveUsersResponseDTO(BaseModel):
+    users: List[ActiveUserDTO] = []
+    total: int
+
+
+class AlertDTO(BaseModel):
+    id: str
+    type: str
+    level: str  # "info" | "warning" | "critical"
+    resource: str
+    resource_id: str
+    resource_name: str
+    message: str
+    usage_rate: Optional[float] = None
+    created_at: Optional[datetime] = None
+
+
+class RecentActivityDTO(BaseModel):
+    id: str
+    user_id: str
+    username: Optional[str] = None
+    action: str
+    target: str
+    target_name: Optional[str] = None
+    result: str
+    created_at: Optional[datetime] = None
+
+
+class AnalyticsOverviewResponseDTO(BaseModel):
+    total_users: int
+    active_users_7d: int
+    new_users_7d: int
+    total_teams: int
+    total_spaces: int
+    total_pools: int
+    storage: dict
+    alerts: List[AlertDTO] = []
+    recent_activities: List[RecentActivityDTO] = []

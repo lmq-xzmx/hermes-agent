@@ -7,11 +7,11 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, RunEvent, WindowEvent,
 };
-use tracing::{error, info};
+use tracing::info;
 use tracing_subscriber::{fmt, EnvFilter};
 
 const PYTHON_API_URL: &str = "http://localhost:8080";
-const LLM_WIKI_SERVE_PORT: u16 = 1421;
+const LLM_WIKI_SERVE_PORT: u16 = 19827;
 
 fn get_storage_root() -> String {
     env::var("HERMES_STORAGE_ROOT")
@@ -24,9 +24,9 @@ fn get_storage_root() -> String {
 
 fn get_llm_wiki_bundle() -> Option<std::path::PathBuf> {
     let candidates = vec![
-        std::path::PathBuf::from("/Applications/LLM Wiki.app"),
-        std::path::PathBuf::from("./llm_wiki_FM/target/release/bundle/macos/LLM Wiki.app"),
-        std::env::current_dir().ok().map(|p| p.join("llm_wiki_FM/target/release/bundle/macos/LLM Wiki.app")),
+        std::path::PathBuf::from("/Applications/LLM Wiki FM.app"),
+        std::path::PathBuf::from("./llm_wiki_FM/target/release/bundle/macos/LLM Wiki FM.app"),
+        std::env::current_dir().ok()?.join("llm_wiki_FM/target/release/bundle/macos/LLM Wiki FM.app"),
     ];
     for candidate in candidates {
         if candidate.exists() {
@@ -120,7 +120,7 @@ async fn open_path_in_finder(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn show_floating_window(app: tauri::AppHandle) -> Result<(), String> {
+async fn show_floating_window(app: AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("floating") {
         window.show().map_err(|e| e.to_string())?;
         window.set_focus().map_err(|e| e.to_string())?;
@@ -129,7 +129,7 @@ async fn show_floating_window(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn hide_floating_window(app: tauri::AppHandle) -> Result<(), String> {
+async fn hide_floating_window(app: AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("floating") {
         window.hide().map_err(|e| e.to_string())?;
     }
@@ -137,7 +137,7 @@ async fn hide_floating_window(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn show_main_window(app: tauri::AppHandle) -> Result<(), String> {
+async fn show_main_window(app: AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("main") {
         window.show().map_err(|e| e.to_string())?;
         window.set_focus().map_err(|e| e.to_string())?;
@@ -146,7 +146,7 @@ async fn show_main_window(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn quick_upload(app: tauri::AppHandle) -> Result<(), String> {
+async fn quick_upload(app: AppHandle) -> Result<(), String> {
     app.emit("quick-upload", ()).map_err(|e| e.to_string())?;
     if let Some(window) = app.get_webview_window("main") {
         window.show().map_err(|e| e.to_string())?;
@@ -156,25 +156,25 @@ async fn quick_upload(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn show_space_usage(app: tauri::AppHandle) -> Result<(), String> {
+async fn show_space_usage(app: AppHandle) -> Result<(), String> {
     app.emit("show-space-usage", ()).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-async fn focus_search(app: tauri::AppHandle) -> Result<(), String> {
+async fn focus_search(app: AppHandle) -> Result<(), String> {
     app.emit("focus-search", ()).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-async fn open_recent_file(app: tauri::AppHandle, filename: String) -> Result<(), String> {
+async fn open_recent_file(app: AppHandle, filename: String) -> Result<(), String> {
     app.emit("open-recent-file", filename).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-async fn open_settings(app: tauri::AppHandle) -> Result<(), String> {
+async fn open_settings(app: AppHandle) -> Result<(), String> {
     app.emit("open-settings", ()).map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -188,7 +188,6 @@ fn main() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .setup(|app| {
             info!("Setting up Tauri application...");
@@ -200,8 +199,9 @@ fn main() {
             let show_item = MenuItem::with_id(app, "show", "显示/隐藏主窗口", true, None::<&str>)?;
             let floating_item = MenuItem::with_id(app, "floating", "显示/隐藏浮窗", true, None::<&str>)?;
             let open_llm_wiki_item = MenuItem::with_id(app, "open_llm_wiki", "打开/关闭知识库", true, None::<&str>)?;
-            let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show_item, &floating_item, &open_llm_wiki_item, &quit_item])?;
+            let quit_hermes_item = MenuItem::with_id(app, "quit_hermes", "退出 Hermes File Manager", true, None::<&str>)?;
+            let quit_both_item = MenuItem::with_id(app, "quit_both", "退出全部", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&show_item, &floating_item, &open_llm_wiki_item, &quit_hermes_item, &quit_both_item])?;
             let tray_icon = app.default_window_icon().cloned().expect("窗口图标未配置，请在 tauri.conf.json 中添加 icon");
             let _tray = TrayIconBuilder::new()
                 .icon(tray_icon)
@@ -236,7 +236,10 @@ fn main() {
                             }
                         }
                         "open_llm_wiki" => {
-                            let is_running = reqwest::blocking::Client::new().get(format!("http://localhost:{}/health", LLM_WIKI_SERVE_PORT)).send().is_ok();
+                            let rt = tokio::runtime::Runtime::new().unwrap();
+                            let is_running = rt.block_on(async {
+                                reqwest::get(format!("http://localhost:{}/health", LLM_WIKI_SERVE_PORT)).await.is_ok()
+                            });
                             if is_running {
                                 let _ = Command::new("pkill").arg("-f").arg("llm-wiki-fm").spawn();
                                 info!("LLM Wiki GUI closed");
@@ -244,8 +247,14 @@ fn main() {
                                 let _ = spawn_llm_wiki_gui();
                             }
                         }
-                        "quit" => {
-                            app.exit(0);
+                        "quit_hermes" => {
+                            info!("Quit Hermes requested");
+                            std::process::exit(0);
+                        }
+                        "quit_both" => {
+                            let _ = Command::new("pkill").arg("-f").arg("llm-wiki-fm").spawn();
+                            info!("Quitting both Hermes and LLM Wiki");
+                            std::process::exit(0);
                         }
                         _ => {}
                     }
@@ -285,13 +294,7 @@ fn main() {
         .expect("Failed to build Tauri application");
 
     info!("Tauri application built successfully");
-    app.run(move |app_handle, event| {
-        if let RunEvent::ExitRequested { api, .. } = event {
-            if let Some(main_window) = app_handle.get_webview_window("main") {
-                if main_window.is_visible().unwrap_or(false) {
-                    api.prevent_exit();
-                }
-            }
-        }
+    app.run(move |_app_handle, _event| {
+        // Exit handling done via window close handler and menu quit actions
     });
 }

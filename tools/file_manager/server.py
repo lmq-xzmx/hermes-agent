@@ -56,6 +56,7 @@ from file_manager.api.webhook import (
 from file_manager.api.auth import security, get_client_info
 from file_manager.services.share_service import ShareService
 from file_manager.services.admin_service import AdminService
+from file_manager.services.admin_analytics_service import AdminAnalyticsService
 from file_manager.services.team_service import TeamService
 from file_manager.services.space_service import SpaceService
 from file_manager.services.workflow_service import WorkflowService
@@ -179,6 +180,10 @@ async def lifespan(app: FastAPI):
         db_factory=db_factory,
         event_bus=event_bus,
     )
+    admin_analytics_service = AdminAnalyticsService(
+        db_factory=db_factory,
+        event_bus=event_bus,
+    )
     team_service = TeamService(db_factory=db_factory)
     space_service = SpaceService(db_factory=db_factory)
     workflow_service = WorkflowService(db_factory=db_factory)
@@ -210,6 +215,7 @@ async def lifespan(app: FastAPI):
     _api_instances["file_service"] = file_service
     _api_instances["share_service"] = share_service
     _api_instances["admin_service"] = admin_service
+    _api_instances["admin_analytics_service"] = admin_analytics_service
     _api_instances["team_service"] = team_service
     _api_instances["space_service"] = space_service
     _api_instances["workflow_service"] = workflow_service
@@ -264,6 +270,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Register lifecycle violation handler
+from file_manager.api.lifecycle_handler import register_lifecycle_handlers
+register_lifecycle_handlers(app)
+
 
 # ============================================================================
 # Service Access Helpers (FastAPI dependencies)
@@ -280,6 +290,9 @@ def get_share_service() -> ShareService:
 
 def get_admin_service() -> AdminService:
     return _api_instances.get("admin_service")
+
+def get_admin_analytics_service() -> AdminAnalyticsService:
+    return _api_instances.get("admin_analytics_service")
 
 def get_team_service() -> TeamService:
     return _api_instances.get("team_service")
@@ -418,7 +431,7 @@ async def system_status():
         "llm_wiki_gui_running": llm_gui_ok,
         "llm_wiki_api_running": llm_api_ok,
         "llm_wiki_gui_url": "http://localhost:19827",
-        "llm_wiki_api_url": "http://localhost:1421",
+        "llm_wiki_api_url": "http://localhost:19827",
     }
 
 @app.post("/api/v1/llm_wiki/open")
@@ -1024,6 +1037,84 @@ async def cleanup_expired(
             audit = AuditLogger(db_factory=_api_instances.get("db_factory"))
             results["audit_cleaned"] = audit.cleanup_old_logs(retention_days=90)
         return results
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+# ============================================================================
+# Admin Analytics Endpoints
+# ============================================================================
+
+@app.get("/api/v1/admin/analytics/overview", tags=["admin"])
+async def get_analytics_overview(
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Get combined overview data for admin dashboard."""
+    svc = get_admin_analytics_service()
+    try:
+        return svc.get_overview(user_ctx)
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+@app.get("/api/v1/admin/analytics/storage-pools", tags=["admin"])
+async def get_storage_pools_analytics(
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Get storage pool statistics."""
+    svc = get_admin_analytics_service()
+    try:
+        return svc.get_storage_pools(user_ctx)
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+@app.get("/api/v1/admin/analytics/user-spaces", tags=["admin"])
+async def get_user_spaces_analytics(
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Get user-space relationships for Sankey diagram."""
+    svc = get_admin_analytics_service()
+    try:
+        return svc.get_user_space_relationships(user_ctx)
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+@app.get("/api/v1/admin/analytics/quota-heatmap", tags=["admin"])
+async def get_quota_heatmap(
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Get quota usage heatmap."""
+    svc = get_admin_analytics_service()
+    try:
+        return svc.get_quota_heatmap(user_ctx)
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+@app.get("/api/v1/admin/analytics/operation-trends", tags=["admin"])
+async def get_operation_trends(
+    days: int = 30,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Get operation trends over time."""
+    svc = get_admin_analytics_service()
+    try:
+        return svc.get_operation_trends(user_ctx, days=days)
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+@app.get("/api/v1/admin/analytics/active-users", tags=["admin"])
+async def get_active_users(
+    days: int = 7,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Get active users statistics."""
+    svc = get_admin_analytics_service()
+    try:
+        return svc.get_active_users(user_ctx, days=days)
     except Exception as e:
         raise _handle_admin_error(e)
 

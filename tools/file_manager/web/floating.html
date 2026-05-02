@@ -152,7 +152,9 @@
         <div class="path-section">
             <div class="path-label">目标路径</div>
             <div class="path-row">
-                <input type="text" class="path-input" id="pathInput" placeholder="spaces/xxx/shared/folder">
+                <select class="path-input" id="pathInput" style="width:100%;padding:10px 12px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;font-size:12px;">
+                    <option value="">请选择已分配空间</option>
+                </select>
                 <button class="btn" id="saveBtn">保存</button>
             </div>
             <div class="path-hint">
@@ -175,6 +177,19 @@
 
         let savedPath = localStorage.getItem('floating_upload_path') || '';
         let token = localStorage.getItem('hfm_token') || '';
+        let spaces = [];
+
+        async function api(path, opts = {}) {
+            const res = await fetch(API_BASE + path, {
+                ...opts,
+                headers: { 'Authorization': 'Bearer ' + token, ...opts.headers }
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ detail: res.statusText }));
+                throw new Error(err.detail || '请求失败');
+            }
+            return res.json();
+        }
 
         function showToast(msg, isError = false) {
             const t = document.getElementById('toast');
@@ -200,8 +215,29 @@
             } catch (e) {
                 updateStatus(false, 'API 未运行');
             }
-            document.getElementById('pathInput').value = savedPath;
+            token = localStorage.getItem('hfm_token') || '';
+            await loadSpaces();
             updateTargetDisplay();
+        }
+
+        async function loadSpaces() {
+            const select = document.getElementById('pathInput');
+            select.innerHTML = '<option value="">加载中...</option>';
+            try {
+                const data = await api('/spaces');
+                spaces = data.spaces || [];
+                select.innerHTML = '<option value="">请选择已分配空间</option>';
+                spaces.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = `spaces/${s.id}`;
+                    opt.textContent = s.name || s.id;
+                    select.appendChild(opt);
+                });
+                if (savedPath) select.value = savedPath;
+            } catch (e) {
+                select.innerHTML = '<option value="">加载失败</option>';
+                console.error('Failed to load spaces:', e);
+            }
         }
 
         function updateTargetDisplay() {
@@ -210,7 +246,7 @@
         }
 
         document.getElementById('saveBtn').onclick = () => {
-            const path = document.getElementById('pathInput').value.trim();
+            const path = document.getElementById('pathInput').value;
             savedPath = path;
             localStorage.setItem('floating_upload_path', path);
             updateTargetDisplay();
