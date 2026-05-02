@@ -71,3 +71,12 @@ result
 website/static/api/skills-index.json
 models-dev-upstream/
 config.yaml
+
+# Package manager lock files
+web/package-lock.json
+
+# Claude Code local config
+.claude/
+
+# Tauri/Rust build output
+tools/file_manager/src-tauri/target/
