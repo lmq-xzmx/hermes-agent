@@ -230,7 +230,8 @@ class SMBStorageAdapter(StorageAdapter):
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             tmp_path = tmp.name
         try:
-            r = self._run_smb(f"get \"{sp}\" \"{tmp_path.replace('\\', '/')}\"", "quit")
+            tmp_path_normalized = tmp_path.replace('\\', '/')
+            r = self._run_smb(f"get \"{sp}\" \"{tmp_path_normalized}\"", "quit")
             if r.returncode != 0:
                 raise FileNotFoundError(f"SMB read failed: {r.stderr}")
             with open(tmp_path, "rb") as f:
@@ -246,8 +247,9 @@ class SMBStorageAdapter(StorageAdapter):
             tmp.write(content)
             tmp_path = tmp.name
         try:
+            tmp_path_normalized = tmp_path.replace('\\', '/')
             r = self._run_smb(
-                f"cd \"{dir_part}\"", f"put \"{tmp_path.replace('\\', '/')}\" \"{file_part}\"", "quit"
+                f"cd \"{dir_part}\"", f"put \"{tmp_path_normalized}\" \"{file_part}\"", "quit"
             )
             if r.returncode != 0:
                 raise IOError(f"SMB write failed: {r.stderr}")

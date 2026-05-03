@@ -50,6 +50,16 @@ class EventType(str, Enum):
     ADMIN_USER_DELETE = "admin.user_delete"
     ADMIN_ROLE_UPDATE = "admin.role_update"
 
+    # Lifecycle constraint events
+    LIFECYCLE_VIOLATION = "lifecycle.violation"
+
+    # Guidance events
+    GUIDANCE_TRIGGER = "guidance.trigger"
+
+    # Quota events
+    QUOTA_WARNING = "quota.warning"
+    QUOTA_CRITICAL = "quota.critical"
+
 
 @dataclass
 class Event:

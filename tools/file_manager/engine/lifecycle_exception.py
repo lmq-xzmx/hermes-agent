@@ -14,21 +14,25 @@ class ErrorCode(Enum):
     # Storage Pool
     POOL_NOT_FOUND = "POOL_NOT_FOUND"
     POOL_IN_USE = "STORAGE_POOL_IN_USE"
-    POOL_INACTIVE = "STORAGE_POOL_INACTIVE"
+    POOL_INACTIVE = "POOL_INACTIVE"
+    POOL_TEAMS_MIGRATING = "POOL_TEAMS_MIGRATING"
     NO_AVAILABLE_POOL = "NO_AVAILABLE_POOL"
 
     # Space
     SPACE_NOT_FOUND = "SPACE_NOT_FOUND"
     SPACE_HAS_MEMBERS = "SPACE_HAS_MEMBERS"
+    SPACE_HAS_PENDING_REQUESTS = "SPACE_HAS_PENDING_REQUESTS"
     NOT_SPACE_OWNER = "NOT_SPACE_OWNER"
     NOT_SPACE_MEMBER = "NOT_SPACE_MEMBER"
     SPACE_QUOTA_EXCEEDED = "SPACE_QUOTA_EXCEEDED"
+    SPACE_QUOTA_RESERVED = "SPACE_QUOTA_RESERVED"
 
     # Team
     TEAM_NOT_FOUND = "TEAM_NOT_FOUND"
     NOT_TEAM_OWNER = "NOT_TEAM_OWNER"
     MEMBER_LIMIT_EXCEEDED = "MEMBER_LIMIT_EXCEEDED"
     TEAM_QUOTA_EXCEEDED = "TEAM_QUOTA_EXCEEDED"
+    MEMBER_RECENTLY_REMOVED = "MEMBER_RECENTLY_REMOVED"
 
     # Credential
     INVALID_CREDENTIAL = "INVALID_CREDENTIAL"
@@ -43,12 +47,12 @@ class ErrorCode(Enum):
 @dataclass
 class GuidanceAction:
     """User guidance for resolving a lifecycle violation."""
-    label: str                          # Button text
-    icon: str = ""                      # Icon emoji
-    action_type: str = "navigate"       # navigate | callback | modal
-    path: Optional[str] = None           # Navigation path
-    callback: Optional[str] = None       # Callback function name
-    modal_config: Optional[Dict] = None  # Modal configuration
+    label: str = ""                       # Button text
+    icon: str = ""                         # Icon emoji
+    action_type: str = "navigate"          # navigate | callback | modal
+    path: Optional[str] = None             # Navigation path
+    callback: Optional[str] = None         # Callback function name
+    modal_config: Optional[Dict] = None    # Modal configuration
 
 
 @dataclass
@@ -68,19 +72,20 @@ class LifecycleViolation(Exception):
         super().__init__(self.message)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to API response format."""
+        """Convert to API response format.
+
+        Returns top-level structure for direct frontend consumption.
+        """
         return {
-            "error": {
-                "code": self.code,
-                "message": self.message,
-                "details": self.details,
-                "guidance": {
-                    "label": self.guidance.label if self.guidance else None,
-                    "icon": self.guidance.icon if self.guidance else None,
-                    "action_type": self.guidance.action_type if self.guidance else None,
-                    "path": self.guidance.path if self.guidance else None,
-                    "callback": self.guidance.callback if self.guidance else None,
-                }
+            "code": self.code,
+            "message": self.message,
+            "details": self.details,
+            "guidance": {
+                "label": self.guidance.label if self.guidance else None,
+                "icon": self.guidance.icon if self.guidance else None,
+                "action_type": self.guidance.action_type if self.guidance else None,
+                "path": self.guidance.path if self.guidance else None,
+                "callback": self.guidance.callback if self.guidance else None,
             }
         }
 
@@ -229,6 +234,74 @@ class LifecycleViolation(Exception):
                 icon="👥",
                 action_type="navigate",
                 path="/space/members"
+            ),
+            http_status=409
+        )
+
+    # -------------------------------------------------------------------------
+    # Factory methods for edge case violations
+    # -------------------------------------------------------------------------
+
+    @classmethod
+    def pool_teams_migrating(cls, pool_id: str, migrating_count: int) -> "LifecycleViolation":
+        """Teams are currently migrating to/from this pool."""
+        return cls(
+            code=ErrorCode.POOL_TEAMS_MIGRATING.value,
+            message=f"该存储池有 {migrating_count} 个团队正在迁移中，暂时无法删除。请等待迁移完成后再试。",
+            details={"pool_id": pool_id, "migrating_count": migrating_count},
+            guidance=GuidanceAction(
+                label="查看迁移进度",
+                icon="🔄",
+                action_type="navigate",
+                path="/admin/teams?status=migrating"
+            ),
+            http_status=409
+        )
+
+    @classmethod
+    def quota_reserved(cls, space_name: str, reserved: int, available: int) -> "LifecycleViolation":
+        """Concurrent uploads have reserved quota, making upload temporarily unavailable."""
+        return cls(
+            code=ErrorCode.SPACE_QUOTA_RESERVED.value,
+            message=f"空间「{space_name}」当前有文件正在上传，配额已被临时占用（{reserved} 字节）。请稍后重试。",
+            details={"space_name": space_name, "reserved_bytes": reserved, "available_bytes": available},
+            guidance=GuidanceAction(
+                label="刷新状态",
+                icon="🔄",
+                action_type="callback",
+                callback="refreshQuota"
+            ),
+            http_status=409
+        )
+
+    @classmethod
+    def space_has_pending_requests(cls, space_id: str, request_count: int) -> "LifecycleViolation":
+        """Space has pending private sub-space requests."""
+        return cls(
+            code=ErrorCode.SPACE_HAS_PENDING_REQUESTS.value,
+            message=f"该空间仍有 {request_count} 个待审核的私人空间申请，无法删除。请先处理这些申请。",
+            details={"space_id": space_id, "pending_count": request_count},
+            guidance=GuidanceAction(
+                label="查看申请",
+                icon="📋",
+                action_type="navigate",
+                path=f"/space/requests?space_id={space_id}"
+            ),
+            http_status=409
+        )
+
+    @classmethod
+    def member_recently_removed(cls, user_id: str, space_name: str, hours_ago: int) -> "LifecycleViolation":
+        """Member was recently removed and cannot be re-invited immediately."""
+        return cls(
+            code=ErrorCode.MEMBER_RECENTLY_REMOVED.value,
+            message=f"该成员在 {hours_ago} 小时前刚被移除，请稍后再尝试邀请。",
+            details={"user_id": user_id, "space_name": space_name, "hours_ago": hours_ago},
+            guidance=GuidanceAction(
+                label="确定",
+                icon="⏳",
+                action_type="callback",
+                callback="dismiss"
             ),
             http_status=409
         )

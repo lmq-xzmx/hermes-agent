@@ -24,6 +24,9 @@ if str(_tools_dir) not in sys.path:
 
 from contextlib import asynccontextmanager
 from typing import Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -61,6 +64,13 @@ from file_manager.services.team_service import TeamService
 from file_manager.services.space_service import SpaceService
 from file_manager.services.workflow_service import WorkflowService
 from file_manager.services.notebook_service import NotebookService
+from file_manager.services.approval_service import ApprovalService
+from file_manager.services.storage_pool_service import StoragePoolService
+from file_manager.services.quota_transfer_service import QuotaTransferService
+from file_manager.services.capacity_alert_service import CapacityAlertService
+from file_manager.services.space_lifecycle_service import SpaceLifecycleService
+from file_manager.services.resource_plan_service import ResourcePlanService
+from file_manager.services.config_service import ConfigService
 
 
 # ============================================================================
@@ -190,6 +200,13 @@ async def lifespan(app: FastAPI):
     notebook_service = NotebookService(db_factory=db_factory)
     file_lock_service = FileLockService(db_factory=db_factory)
     collaboration_service = CollaborationService(db_factory=db_factory)
+    approval_service = ApprovalService(db_factory=db_factory)
+    storage_pool_service = StoragePoolService(db_factory=db_factory)
+    quota_transfer_service = QuotaTransferService(db_factory=db_factory)
+    capacity_alert_service = CapacityAlertService(db_factory=db_factory)
+    space_lifecycle_service = SpaceLifecycleService(db_factory=db_factory)
+    resource_plan_service = ResourcePlanService(db_factory=db_factory)
+    config_service = ConfigService(db_factory=db_factory)
 
     # Start file lock cleanup background thread
     file_lock_service.start_cleanup_thread(interval_seconds=300)
@@ -207,6 +224,17 @@ async def lifespan(app: FastAPI):
     audit_subscriber = AuditEventSubscriber(db_factory=db_factory, event_bus=event_bus)
     audit_subscriber.register()
 
+    # Initialize AnalyticsBroadcaster for WebSocket real-time updates
+    from file_manager.api.analytics_ws import AnalyticsBroadcaster, get_connection_manager
+    connection_manager = get_connection_manager()
+    analytics_broadcaster = AnalyticsBroadcaster(
+        manager=connection_manager,
+        db_factory=db_factory,
+        event_bus=event_bus
+    )
+    await analytics_broadcaster.start()
+    logger.info("AnalyticsBroadcaster started")
+
     # Store in app state
     _api_instances["config"] = config
     _api_instances["db_factory"] = db_factory
@@ -222,8 +250,16 @@ async def lifespan(app: FastAPI):
     _api_instances["notebook_service"] = notebook_service
     _api_instances["file_lock_service"] = file_lock_service
     _api_instances["collaboration_service"] = collaboration_service
+    _api_instances["approval_service"] = approval_service
+    _api_instances["storage_pool_service"] = storage_pool_service
+    _api_instances["quota_transfer_service"] = quota_transfer_service
+    _api_instances["capacity_alert_service"] = capacity_alert_service
+    _api_instances["space_lifecycle_service"] = space_lifecycle_service
+    _api_instances["resource_plan_service"] = resource_plan_service
+    _api_instances["config_service"] = config_service
     _api_instances["permission_checker"] = permission_checker
     _api_instances["event_bus"] = event_bus
+    _api_instances["analytics_broadcaster"] = analytics_broadcaster
 
     # Mount static files
     _web_dir = str(Path(__file__).parent / "web")
@@ -245,8 +281,10 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Shutdown webhook publisher
+    # Shutdown webhook publisher and analytics broadcaster
     await shutdown_publisher()
+    if "analytics_broadcaster" in _api_instances:
+        await _api_instances["analytics_broadcaster"].stop()
 
     _api_instances.clear()
 
@@ -311,6 +349,27 @@ def get_file_lock_service() -> FileLockService:
 
 def get_collaboration_service() -> CollaborationService:
     return _api_instances.get("collaboration_service")
+
+def get_approval_service() -> ApprovalService:
+    return _api_instances.get("approval_service")
+
+def get_storage_pool_service() -> StoragePoolService:
+    return _api_instances.get("storage_pool_service")
+
+def get_quota_transfer_service() -> QuotaTransferService:
+    return _api_instances.get("quota_transfer_service")
+
+def get_capacity_alert_service() -> CapacityAlertService:
+    return _api_instances.get("capacity_alert_service")
+
+def get_space_lifecycle_service() -> SpaceLifecycleService:
+    return _api_instances.get("space_lifecycle_service")
+
+def get_resource_plan_service() -> ResourcePlanService:
+    return _api_instances.get("resource_plan_service")
+
+def get_config_service() -> ConfigService:
+    return _api_instances.get("config_service")
 
 def get_notification_service() -> "NotificationService":
     from services.notification_service import NotificationService
@@ -986,6 +1045,147 @@ async def list_roles(user_ctx: PermissionContext = Depends(get_current_user_ctx)
         raise _handle_admin_error(e)
 
 
+# =============================================================================
+# RBAC Permission API (T3)
+# =============================================================================
+
+@app.get("/api/v1/permissions")
+async def list_permissions(
+    resource: str = None,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """List all permissions, optionally filtered by resource."""
+    admin_service = get_admin_service()
+    try:
+        return admin_service.list_permissions(resource=resource, user_ctx=user_ctx)
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+@app.get("/api/v1/permissions/{permission_id}")
+async def get_permission(
+    permission_id: str,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Get a permission by ID."""
+    admin_service = get_admin_service()
+    try:
+        return admin_service.get_permission(permission_id=permission_id, user_ctx=user_ctx)
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+@app.post("/api/v1/permissions")
+async def create_permission(
+    request: CreatePermissionRequestDTO,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Create a new permission."""
+    admin_service = get_admin_service()
+    try:
+        return admin_service.create_permission(
+            resource=request.resource,
+            action=request.action,
+            description=request.description,
+            user_ctx=user_ctx,
+        )
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+@app.delete("/api/v1/permissions/{permission_id}")
+async def delete_permission(
+    permission_id: str,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Delete a permission."""
+    admin_service = get_admin_service()
+    try:
+        return admin_service.delete_permission(permission_id=permission_id, user_ctx=user_ctx)
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+@app.get("/api/v1/roles/{role_id}/permissions")
+async def list_role_permissions(
+    role_id: str,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """List all permissions assigned to a role."""
+    admin_service = get_admin_service()
+    try:
+        return admin_service.list_role_permissions(role_id=role_id, user_ctx=user_ctx)
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+@app.post("/api/v1/roles/{role_id}/permissions")
+async def assign_permission_to_role(
+    role_id: str,
+    request: CreateRolePermissionRequestDTO,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Assign a permission to a role."""
+    admin_service = get_admin_service()
+    try:
+        return admin_service.assign_permission_to_role(
+            role_id=role_id,
+            permission_id=request.permission_id,
+            user_ctx=user_ctx,
+        )
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+@app.delete("/api/v1/roles/{role_id}/permissions/{permission_id}")
+async def remove_permission_from_role(
+    role_id: str,
+    permission_id: str,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Remove a permission from a role."""
+    admin_service = get_admin_service()
+    try:
+        return admin_service.remove_permission_from_role(
+            role_id=role_id,
+            permission_id=permission_id,
+            user_ctx=user_ctx,
+        )
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+@app.get("/api/v1/users/{user_id}/roles")
+async def get_user_roles(
+    user_id: str,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Get all roles assigned to a user."""
+    admin_service = get_admin_service()
+    try:
+        return admin_service.get_user_roles(target_user_id=user_id, user_ctx=user_ctx)
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+@app.post("/api/v1/users/{user_id}/roles")
+async def assign_role_to_user(
+    user_id: str,
+    request: AssignRoleRequestDTO,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Assign a role to a user."""
+    admin_service = get_admin_service()
+    try:
+        return admin_service.assign_role_to_user(
+            target_user_id=user_id,
+            role_id=request.role_id,
+            user_ctx=user_ctx,
+        )
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
 @app.post("/api/v1/admin/rules")
 async def create_rule(
     request: CreateRuleRequestDTO,
@@ -1117,6 +1317,92 @@ async def get_active_users(
         return svc.get_active_users(user_ctx, days=days)
     except Exception as e:
         raise _handle_admin_error(e)
+
+
+@app.get("/api/v1/admin/analytics/alerts", tags=["admin"])
+async def get_alerts(
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Get quota alerts for admin dashboard."""
+    svc = get_admin_analytics_service()
+    try:
+        return svc.get_alerts(user_ctx)
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+@app.get("/api/v1/admin/analytics/teams-by-pool/{pool_id}", tags=["admin"])
+async def get_teams_by_pool(
+    pool_id: str,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Get all teams using a specific storage pool. Used for STORAGE_POOL_IN_USE constraint."""
+    svc = get_admin_analytics_service()
+    try:
+        return svc.get_teams_by_pool(user_ctx, pool_id)
+    except Exception as e:
+        raise _handle_admin_error(e)
+
+
+# ============================================================================
+# WebSocket Endpoints
+# ============================================================================
+
+@app.websocket("/ws/admin/analytics")
+async def websocket_admin_analytics(websocket):
+    """
+    WebSocket endpoint for real-time admin analytics updates.
+    Clients connect with auth token as query param: /ws/admin/analytics?token=xxx
+    """
+    import sys
+    print(f"DEBUG: WebSocket handler called! query_params={dict(websocket.query_params)}", file=sys.stderr)
+    sys.stderr.flush()
+    import jwt
+
+    try:
+        token = websocket.query_params.get("token")
+        if not token:
+            await websocket.close(code=4001, reason="Missing token")
+            return
+
+        # Decode token directly (without DB lookup for performance)
+        jwt_secret = os.environ.get("HFM_JWT_SECRET", "change-me-in-production")
+        payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
+
+        role = payload.get("role")
+        import sys
+        print(f"DEBUG WS AUTH: role={repr(role)} type={type(role).__name__}, cmp result: {role == 'admin'}", file=sys.stderr)
+        sys.stderr.flush()
+        logger.info(f"WebSocket auth debug: role={repr(role)} type={type(role).__name__}, 'admin'==role is {role == 'admin'}, ord('admin')={ord('admin') if isinstance(role, str) else 'N/A'}")
+        if role != "admin":
+            logger.warning(f"WebSocket auth failed: role={repr(role)} != 'admin'")
+            await websocket.close(code=4001, reason="Unauthorized")
+            return
+    except jwt.ExpiredSignatureError:
+        logger.warning("WebSocket auth failed: token expired")
+        await websocket.close(code=4001, reason="Token expired")
+        return
+    except Exception as e:
+        logger.warning(f"WebSocket auth failed: {e}")
+        await websocket.close(code=4001, reason="Invalid token")
+        return
+
+    manager = get_connection_manager()
+    await manager.connect(websocket)
+
+    try:
+        from fastapi import WebSocketDisconnect
+        while True:
+            data = await websocket.receive_text()
+            import json
+            try:
+                msg = json.loads(data)
+                if msg.get("type") == "ping":
+                    await websocket.send_json({"type": "pong"})
+            except json.JSONDecodeError:
+                pass
+    except Exception:
+        manager.disconnect(websocket)
 
 
 # ============================================================================
@@ -1668,6 +1954,75 @@ async def remove_space_member(
         raise _handle_space_error(e)
 
 
+# ============================================================================
+# Space Links (Cross-team Collaboration)
+# ============================================================================
+
+@app.get("/api/v1/spaces/{space_id}/links", tags=["space_links"])
+async def list_space_links(
+    space_id: str,
+    user_ctx = Depends(get_current_user_ctx),
+):
+    """List all cross-space collaboration links."""
+    svc = get_space_service()
+    try:
+        return {"links": svc.list_space_links(space_id)}
+    except Exception as e:
+        raise _handle_space_error(e)
+
+
+@app.post("/api/v1/spaces/{space_id}/links", tags=["space_links"])
+async def create_space_link(
+    space_id: str,
+    request: Request,
+    user_ctx = Depends(get_current_user_ctx),
+):
+    """Create a cross-space collaboration link."""
+    body = await request.json()
+    target_space_id = body.get("target_space_id")
+    permission = body.get("permission", "read")
+
+    if not target_space_id:
+        raise HTTPException(status_code=400, detail="target_space_id is required")
+
+    svc = get_space_service()
+    try:
+        return svc.create_space_link(
+            source_space_id=space_id,
+            target_space_id=target_space_id,
+            created_by=str(user_ctx.user_id),
+            permission=permission,
+        )
+    except Exception as e:
+        raise _handle_space_error(e)
+
+
+@app.delete("/api/v1/space-links/{link_id}", tags=["space_links"])
+async def revoke_space_link(
+    link_id: str,
+    user_ctx = Depends(get_current_user_ctx),
+):
+    """Revoke a cross-space collaboration link."""
+    svc = get_space_service()
+    try:
+        svc.revoke_space_link(link_id, str(user_ctx.user_id))
+        return {"message": "Link revoked"}
+    except Exception as e:
+        raise _handle_space_error(e)
+
+
+@app.get("/api/v1/cross-team-spaces", tags=["space_links"])
+async def get_cross_team_spaces(
+    user_ctx = Depends(get_current_user_ctx),
+):
+    """Get all spaces accessible through cross-team collaboration."""
+    svc = get_space_service()
+    try:
+        return {"spaces": svc.get_cross_team_spaces(str(user_ctx.user_id))}
+    except Exception as e:
+        raise _handle_space_error(e)
+
+
 @app.post("/api/v1/spaces/{space_id}/invite", tags=["spaces"])
 async def create_space_credential(
     space_id: str,
@@ -1987,10 +2342,13 @@ def _handle_share_error(e: Exception):
 def _handle_admin_error(e: Exception):
     """Map admin service exceptions to HTTP responses."""
     from file_manager.services.admin_service import UserNotFound, RoleNotFound
+    from file_manager.services.lifecycle_engine import LifecycleViolation
     if isinstance(e, UserNotFound):
         raise HTTPException(status_code=404, detail=str(e))
     if isinstance(e, RoleNotFound):
         raise HTTPException(status_code=404, detail=str(e))
+    if isinstance(e, LifecycleViolation):
+        raise HTTPException(status_code=422, detail=e.to_dict())
     raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -2435,10 +2793,553 @@ async def duplicate_notebook(
 
 
 # ============================================================================
+# Approvals API
+# ============================================================================
+
+class CreateApprovalRequest(BaseModel):
+    type: str  # join_team, private_space, quota_extend, team_create, storage_pool
+    target_id: Optional[str] = None
+    reason: Optional[str] = None
+    params: Optional[dict] = None
+
+
+class ProcessApprovalRequest(BaseModel):
+    decision: str  # approved, rejected
+    comment: Optional[str] = None
+
+
+@app.post("/api/v1/approvals", tags=["approvals"])
+async def create_approval(
+    request: CreateApprovalRequest,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Create a new approval request."""
+    svc = get_approval_service()
+    try:
+        return svc.create_approval_request(
+            approval_type=request.type,
+            applicant_id=str(user_ctx.user_id),
+            target_id=request.target_id,
+            reason=request.reason,
+            params=request.params,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/approvals/my", tags=["approvals"])
+async def get_my_approvals(
+    status: Optional[str] = None,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Get my approval requests."""
+    svc = get_approval_service()
+    try:
+        return svc.get_my_requests(
+            user_id=str(user_ctx.user_id),
+            status=status,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/approvals/pending", tags=["approvals"])
+async def get_pending_approvals(
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Get pending approvals for admin."""
+    svc = get_approval_service()
+    try:
+        return svc.get_pending_requests(approver_id=str(user_ctx.user_id))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/approvals/{request_id}", tags=["approvals"])
+async def get_approval(
+    request_id: str,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Get approval request details."""
+    svc = get_approval_service()
+    try:
+        return svc.get_request(request_id=request_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/approvals/{request_id}/decide", tags=["approvals"])
+async def process_approval_decision(
+    request_id: str,
+    body: ProcessApprovalRequest,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Process an approval decision (approve/reject)."""
+    svc = get_approval_service()
+    try:
+        return svc.process_approval(
+            request_id=request_id,
+            approver_id=str(user_ctx.user_id),
+            decision=body.decision,
+            comment=body.comment,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/v1/approvals/{request_id}", tags=["approvals"])
+async def cancel_approval(
+    request_id: str,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Cancel an approval request (by applicant)."""
+    svc = get_approval_service()
+    try:
+        return svc.cancel_request(
+            request_id=request_id,
+            user_id=str(user_ctx.user_id),
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# Quota & Storage Pool APIs (Module C)
+# ============================================================================
+
+# --- Admin Storage Pool Management (C-1) ---
+
+@app.get("/api/v1/admin/pools", tags=["admin", "storage"])
+async def get_storage_pools(user_ctx: PermissionContext = Depends(get_current_user_ctx)):
+    """Get all storage pools with statistics."""
+    svc = get_storage_pool_service()
+    try:
+        return svc.get_all_pools_stats()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/admin/pools/{pool_id}", tags=["admin", "storage"])
+async def get_storage_pool(pool_id: str, user_ctx: PermissionContext = Depends(get_current_user_ctx)):
+    """Get storage pool details."""
+    svc = get_storage_pool_service()
+    try:
+        result = svc.get_pool(pool_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="Pool not found")
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/v1/admin/pools/{pool_id}/config", tags=["admin", "storage"])
+async def update_pool_config(
+    pool_id: str,
+    reserved_bytes: Optional[int] = None,
+    allow_overcommit: Optional[bool] = None,
+    soft_warning_ratio: Optional[float] = None,
+    hard_block_ratio: Optional[float] = None,
+    buffer_ratio: Optional[float] = None,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Update storage pool configuration."""
+    svc = get_storage_pool_service()
+    try:
+        svc.update_pool_config(
+            pool_id=pool_id,
+            reserved_bytes=reserved_bytes,
+            allow_overcommit=allow_overcommit,
+            soft_warning_ratio=soft_warning_ratio,
+            hard_block_ratio=hard_block_ratio,
+            buffer_ratio=buffer_ratio,
+        )
+        return {"status": "ok"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/admin/pools/{pool_id}/stats", tags=["admin", "storage"])
+async def get_pool_stats(pool_id: str, user_ctx: PermissionContext = Depends(get_current_user_ctx)):
+    """Get storage pool statistics."""
+    svc = get_storage_pool_service()
+    try:
+        return svc.get_pool_stats(pool_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- Quota Management (C-2) ---
+
+@app.get("/api/v1/admin/quotas", tags=["admin", "quota"])
+async def get_all_quotas(user_ctx: PermissionContext = Depends(get_current_user_ctx)):
+    """Get all quota allocations (admin)."""
+    from file_manager.engine.models import Space
+    session = get_space_lifecycle_service()._get_session()
+    try:
+        spaces = session.query(Space).filter(Space.committed_bytes > 0).all()
+        return [
+            {
+                "space_id": s.id,
+                "space_name": s.name,
+                "owner_id": s.owner_id,
+                "source_id": s.source_id,
+                "quota_source": s.quota_source,
+                "quota_type": s.quota_type,
+                "committed_bytes": s.committed_bytes,
+                "actual_used_bytes": s.actual_used_bytes,
+            }
+            for s in spaces
+        ]
+    finally:
+        session.close()
+
+
+@app.get("/api/v1/admin/quotas/spaces/{space_id}", tags=["admin", "quota"])
+async def get_space_quota(space_id: str, user_ctx: PermissionContext = Depends(get_current_user_ctx)):
+    """Get space quota details."""
+    svc = get_space_lifecycle_service()
+    try:
+        result = svc.get_space_with_quota(space_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="Space not found")
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/v1/admin/quotas/spaces/{space_id}", tags=["admin", "quota"])
+async def update_space_quota(
+    space_id: str,
+    new_quota: int,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Update space quota."""
+    svc = get_space_lifecycle_service()
+    try:
+        svc.update_space_quota(space_id, new_quota, updated_by=str(user_ctx.user_id))
+        return {"status": "ok", "space_id": space_id, "new_quota": new_quota}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- Quota Transfer API (C-3) ---
+
+class QuotaTransferRequest(BaseModel):
+    from_space_id: str
+    to_space_id: str
+    transfer_bytes: int
+    reason: str
+    duration_days: int = 7
+
+
+@app.get("/api/v1/quota/transfers", tags=["quota"])
+async def get_quota_transfers(
+    space_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Get quota transfer history."""
+    svc = get_quota_transfer_service()
+    try:
+        return svc.get_transfer_history(space_id=space_id, user_id=user_id or str(user_ctx.user_id))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/quota/transfers", tags=["quota"])
+async def request_quota_transfer(
+    request: QuotaTransferRequest,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Request quota transfer."""
+    from file_manager.services.quota_transfer_service import QuotaTransferRequest as QTRequest
+    svc = get_quota_transfer_service()
+    try:
+        qt_request = QTRequest(
+            from_space_id=request.from_space_id,
+            to_space_id=request.to_space_id,
+            transfer_bytes=request.transfer_bytes,
+            reason=request.reason,
+            requested_by=str(user_ctx.user_id),
+            duration_days=request.duration_days,
+        )
+        return svc.request_transfer(qt_request)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/v1/quota/transfers/{transfer_id}/approve", tags=["quota"])
+async def approve_quota_transfer(
+    transfer_id: str,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Approve quota transfer."""
+    svc = get_quota_transfer_service()
+    try:
+        svc.approve_transfer(transfer_id, approved_by=str(user_ctx.user_id))
+        return {"status": "ok", "transfer_id": transfer_id}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/v1/quota/transfers/{transfer_id}/reject", tags=["quota"])
+async def reject_quota_transfer(
+    transfer_id: str,
+    reason: str = "",
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Reject quota transfer."""
+    svc = get_quota_transfer_service()
+    try:
+        svc.reject_transfer(transfer_id, rejected_by=str(user_ctx.user_id), reason=reason)
+        return {"status": "ok", "transfer_id": transfer_id}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/v1/quota/transfers/{transfer_id}", tags=["quota"])
+async def cancel_quota_transfer(
+    transfer_id: str,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Cancel quota transfer request."""
+    svc = get_quota_transfer_service()
+    try:
+        svc.cancel_transfer(transfer_id, user_id=str(user_ctx.user_id))
+        return {"status": "ok", "transfer_id": transfer_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- Capacity Alert API (C-4) ---
+
+@app.get("/api/v1/admin/alerts", tags=["admin", "alerts"])
+async def get_alerts(
+    space_id: Optional[str] = None,
+    pool_id: Optional[str] = None,
+    acknowledged: Optional[bool] = None,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Get capacity alert history."""
+    svc = get_capacity_alert_service()
+    try:
+        return svc.get_alert_history(space_id=space_id, pool_id=pool_id, acknowledged=acknowledged)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/admin/alerts/unacknowledged", tags=["admin", "alerts"])
+async def get_unacknowledged_alerts(user_ctx: PermissionContext = Depends(get_current_user_ctx)):
+    """Get unacknowledged alerts."""
+    svc = get_capacity_alert_service()
+    try:
+        return svc.get_unacknowledged_alerts()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/v1/admin/alerts/{alert_id}/ack", tags=["admin", "alerts"])
+async def acknowledge_alert(
+    alert_id: str,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Acknowledge an alert."""
+    svc = get_capacity_alert_service()
+    try:
+        svc.acknowledge_alert(alert_id, acknowledged_by=str(user_ctx.user_id))
+        return {"status": "ok", "alert_id": alert_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- Resource Plan API (C-5) ---
+
+@app.get("/api/v1/plans", tags=["plans"])
+async def get_available_plans():
+    """Get available resource plans."""
+    svc = get_resource_plan_service()
+    try:
+        return svc.get_available_plans()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/plans/{plan_id}", tags=["plans"])
+async def get_plan(plan_id: str):
+    """Get resource plan details."""
+    svc = get_resource_plan_service()
+    try:
+        result = svc.get_plan(plan_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="Plan not found")
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/users/{user_id}/subscription", tags=["plans"])
+async def subscribe_plan(
+    user_id: str,
+    plan_id: str,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Subscribe to a plan."""
+    svc = get_resource_plan_service()
+    try:
+        svc.subscribe_plan(user_id=user_id, plan_id=plan_id)
+        return {"status": "ok", "user_id": user_id, "plan_id": plan_id}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/users/{user_id}/subscription", tags=["plans"])
+async def get_user_subscription(user_id: str):
+    """Get user's subscription."""
+    svc = get_resource_plan_service()
+    try:
+        result = svc.get_user_subscription(user_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="No active subscription")
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/users/{user_id}/usage", tags=["plans"])
+async def get_user_usage(user_id: str):
+    """Get user's resource usage."""
+    svc = get_resource_plan_service()
+    try:
+        return svc.get_user_usage(user_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- Space Lifecycle API (C-6) ---
+
+class CreateSpaceRequest(BaseModel):
+    name: str
+    owner_id: str
+    storage_pool_id: Optional[str] = None
+    space_type: str = "private"
+    team_id: Optional[str] = None
+    quota_bytes: int = 0
+
+
+@app.post("/api/v1/spaces", tags=["spaces"])
+async def create_space(
+    request: CreateSpaceRequest,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Create a new space with quota allocation."""
+    from file_manager.services.space_lifecycle_service import CreateSpaceRequest as CSRequest
+    svc = get_space_lifecycle_service()
+    try:
+        # Use storage_pool_id if provided, otherwise fall back to team_id
+        pool_id = request.storage_pool_id or request.team_id
+        cs_request = CSRequest(
+            name=request.name,
+            owner_id=request.owner_id,
+            space_type=request.space_type,
+            team_id=pool_id,
+            quota_bytes=request.quota_bytes,
+        )
+        return svc.create_space_with_quota(cs_request)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/spaces/{space_id}/archive", tags=["spaces"])
+async def archive_space(
+    space_id: str,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Archive a space (reclaim quota)."""
+    svc = get_space_lifecycle_service()
+    try:
+        svc.archive_space(space_id)
+        return {"status": "ok", "space_id": space_id}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/spaces/{space_id}/transfer", tags=["spaces"])
+async def transfer_space_ownership(
+    space_id: str,
+    new_owner_id: str,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+):
+    """Transfer space ownership."""
+    svc = get_space_lifecycle_service()
+    try:
+        svc.transfer_space_ownership(space_id, new_owner_id)
+        return {"status": "ok", "space_id": space_id, "new_owner_id": new_owner_id}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- Config API (Module F) ---
+
+@app.get("/api/v1/config", tags=["config"])
+async def get_config_api():
+    """Get system configuration."""
+    svc = get_config_service()
+    try:
+        return svc.get_all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/config/{key}", tags=["config"])
+async def get_config_value(key: str):
+    """Get configuration value by key."""
+    svc = get_config_service()
+    try:
+        value = svc.get(key)
+        if value is None:
+            raise HTTPException(status_code=404, detail="Config key not found")
+        return {"key": key, "value": value}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
 # Main
 # ============================================================================
 
 if __name__ == "__main__":
     import uvicorn
     config = get_config()
-    uvicorn.run(app, host=config["host"], port=config["port"])
+    uvicorn.run(app, host=config["host"], port=config["port"], reload=False)

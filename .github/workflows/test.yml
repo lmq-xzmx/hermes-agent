@@ -1,0 +1,222 @@
+# GitHub Actions CI/CD 测试自动化配置
+# T8: CI/CD测试自动化集成
+
+name: Hermes File Manager Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ==================== 后端测试 ====================
+  backend-tests:
+    name: Backend Tests (Python/pytest)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: hermes
+          POSTGRES_PASSWORD: hermes_test
+          POSTGRES_DB: hermes_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install pytest pytest-cov pytest-asyncio hypothesis schemathesis
+
+      - name: Run unit tests
+        run: |
+          pytest tests/ -v --cov=. --cov-report=xml --cov-report=html
+
+      - name: Run integration tests
+        run: |
+          pytest tests/integration/ -v --cov=. --cov-report=xml
+
+      - name: Run contract tests
+        run: |
+          pytest tests/contract/ -v
+
+      - name: Upload coverage to Codecov
+        if: github.event_name == 'push'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+
+  # ==================== 前端单元测试 (Vitest) ====================
+  frontend-unit-tests:
+    name: Frontend Unit Tests (Vitest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/file_manager/web
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: tools/file_manager/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Vitest unit tests
+        run: npm run test -- --coverage --reporter=json
+
+      - name: Upload coverage to Codecov
+        if: github.event_name == 'push'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.json
+          fail_ci_if_error: false
+
+  # ==================== 前端 E2E 测试 (Playwright) ====================
+  frontend-e2e-tests:
+    name: Frontend E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/file_manager/web
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: tools/file_manager/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build frontend
+        run: npm run build || true
+
+      - name: Run Playwright E2E tests
+        run: npx playwright test --reporter=html --reporter=junit
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            tools/file_manager/web/playwright-report/
+            test-results/
+          retention-days: 14
+
+  # ==================== 完整集成测试 ====================
+  integration-tests:
+    name: Full Integration Tests
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-unit-tests]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install pytest pytest-asyncio httpx
+
+      - name: Start backend server
+        run: |
+          python -c "from tools.file_manager.engine.models import init_db; init_db()" &
+          sleep 5
+
+      - name: Run full integration test suite
+        run: |
+          pytest tests/integration/ tests/contract/ -v --tb=short
+
+  # ==================== 代码质量检查 ====================
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install linting tools
+        run: pip install flake8 black isort mypy
+
+      - name: Run Python linting
+        run: |
+          flake8 tools/file_manager --max-line-length=100 --ignore=E501,W503 || true
+          black --check tools/file_manager --diff || true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: tools/file_manager/web/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint || true
+
+# ==================== 测试报告生成 ====================
+  test-report:
+    name: Test Report
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [backend-tests, frontend-unit-tests, frontend-e2e-tests]
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Generate test summary
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend Tests | ${{ needs.backend-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend Unit Tests | ${{ needs.frontend-unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend E2E Tests | ${{ needs.frontend-e2e-tests.result }} |" >> $GITHUB_STEP_SUMMARY

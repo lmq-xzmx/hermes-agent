@@ -29,6 +29,7 @@ from .lifecycle_decorators import (
     require_membership,
     require_owner,
 )
+from .guidance_engine import GuidanceEngine, GuidanceEvent, GuidanceStep, GuidanceTour
 
 __all__ = [
     "User",
@@ -56,4 +57,9 @@ __all__ = [
     "pre_check",
     "require_membership",
     "require_owner",
+    # Guidance
+    "GuidanceEngine",
+    "GuidanceEvent",
+    "GuidanceStep",
+    "GuidanceTour",
 ]

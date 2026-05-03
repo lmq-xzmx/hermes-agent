@@ -30,11 +30,12 @@ class AuthenticatedUser:
     """
     id: str
     username: str
-    email: Optional[str]
-    role_id: Optional[str]
-    role_name: Optional[str]
-    permission_rules: List[str]  # e.g. ["read:/projects/**", "write:/public/**"]
-    is_active: bool
+    email: Optional[str] = None
+    role_id: Optional[str] = None
+    role_name: Optional[str] = None
+    permission_rules: List[str] = field(default_factory=list)  # e.g. ["read:/projects/**", "write:/public/**"]
+    rbac_permissions: List[str] = field(default_factory=list)  # e.g. ["file:read", "space:create"]
+    is_active: bool = True
     created_at: Optional[datetime] = None
     last_login: Optional[datetime] = None
 
@@ -120,6 +121,15 @@ class AuthService:
             role_name = user_orm.role.name if user_orm.role else None
             permission_rules = [rule.to_primitive() for rule in user_orm.role.permission_rules] if user_orm.role else []
 
+            # Load RBAC permissions via RolePermission
+            rbac_permissions = []
+            if user_orm.role and hasattr(user_orm.role, 'role_permissions'):
+                rbac_permissions = [
+                    f"{rp.permission.resource}:{rp.permission.action}"
+                    for rp in user_orm.role.role_permissions
+                    if rp.permission
+                ]
+
             # Update last login
             user_orm.last_login = datetime.utcnow()
             session.commit()
@@ -132,6 +142,7 @@ class AuthService:
                 role_id=user_orm.role_id,
                 role_name=role_name,
                 permission_rules=permission_rules,
+                rbac_permissions=rbac_permissions,
                 is_active=user_orm.is_active,
                 created_at=user_orm.created_at,
                 last_login=user_orm.last_login,
@@ -181,9 +192,15 @@ class AuthService:
 
             role_name = None
             permission_rules: List[str] = []
+            rbac_permissions: List[str] = []
             if user_orm.role:
                 role_name = user_orm.role.name
                 permission_rules = [rule.to_primitive() for rule in user_orm.role.permission_rules]
+                rbac_permissions = [
+                    f"{rp.permission.resource}:{rp.permission.action}"
+                    for rp in user_orm.role.role_permissions
+                    if rp.permission
+                ]
 
             user = AuthenticatedUser(
                 id=user_orm.id,
@@ -192,6 +209,7 @@ class AuthService:
                 role_id=user_orm.role_id,
                 role_name=role_name,
                 permission_rules=permission_rules,
+                rbac_permissions=rbac_permissions,
                 is_active=user_orm.is_active,
                 created_at=user_orm.created_at,
                 last_login=user_orm.last_login,
@@ -308,6 +326,13 @@ class AuthService:
 
             role_name = user_orm.role.name if user_orm.role else None
             permission_rules = [rule.to_primitive() for rule in user_orm.role.permission_rules] if user_orm.role else []
+            rbac_permissions = []
+            if user_orm.role and hasattr(user_orm.role, 'role_permissions'):
+                rbac_permissions = [
+                    f"{rp.permission.resource}:{rp.permission.action}"
+                    for rp in user_orm.role.role_permissions
+                    if rp.permission
+                ]
 
             user = AuthenticatedUser(
                 id=user_orm.id,
@@ -316,6 +341,7 @@ class AuthService:
                 role_id=user_orm.role_id,
                 role_name=role_name,
                 permission_rules=permission_rules,
+                rbac_permissions=rbac_permissions,
                 is_active=user_orm.is_active,
                 created_at=user_orm.created_at,
                 last_login=user_orm.last_login,
@@ -366,6 +392,13 @@ class AuthService:
 
             role_name = user_orm.role.name if user_orm.role else None
             permission_rules = [rule.to_primitive() for rule in user_orm.role.permission_rules] if user_orm.role else []
+            rbac_permissions = []
+            if user_orm.role and hasattr(user_orm.role, 'role_permissions'):
+                rbac_permissions = [
+                    f"{rp.permission.resource}:{rp.permission.action}"
+                    for rp in user_orm.role.role_permissions
+                    if rp.permission
+                ]
 
             return AuthenticatedUser(
                 id=user_orm.id,
@@ -374,6 +407,7 @@ class AuthService:
                 role_id=user_orm.role_id,
                 role_name=role_name,
                 permission_rules=permission_rules,
+                rbac_permissions=rbac_permissions,
                 is_active=user_orm.is_active,
                 created_at=user_orm.created_at,
                 last_login=user_orm.last_login,

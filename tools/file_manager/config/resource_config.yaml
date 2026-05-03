@@ -1,0 +1,86 @@
+# Resource Quota System Configuration
+# 资源配额系统配置
+
+# 存储池配置
+storage_pool:
+  # 总容量 (2TB)
+  total_bytes: 2147483648000
+  # 预留空间 (500GB)
+  reserved_bytes: 536870912000
+  # 是否允许透支
+  allow_overcommit: true
+  # 软预警阈值 (80%)
+  soft_warning_ratio: 0.8
+  # 硬阻塞阈值 (100%)
+  hard_block_ratio: 1.0
+  # 缓冲比例 (10%)
+  buffer_ratio: 0.1
+
+# 配额配置
+quota:
+  # 团队默认配额 (500GB)
+  team_default_quota: 536870912000
+  # 团队最大配额 (10TB)
+  team_max_quota: 10737418240000
+  # 个人默认配额 (10GB)
+  personal_default_quota: 10737418240
+  # 个人最大配额 (100GB)
+  personal_max_quota: 107374182400
+  # 是否允许配额调配
+  transferable: true
+  # 调配最大有效期（天）
+  transfer_max_duration_days: 30
+
+# 告警配置
+alert:
+  # 是否启用告警
+  enabled: true
+  # 检查间隔（秒）
+  check_interval: 300
+  # 告警渠道
+  channels:
+    - in_app
+  # 告警阈值
+  thresholds:
+    soft_warning: 0.8
+    hard_warning: 0.95
+    critical: 1.0
+
+# 计费配置
+billing:
+  # 是否启用计费
+  enabled: false
+  # 货币
+  currency: CNY
+  # 超用费率 (元/GB)
+  overage_rate: 0.1
+
+# 资源套餐配置
+plans:
+  free:
+    quota_bytes: 10737418240  # 10GB
+    price_monthly: 0
+    price_yearly: 0
+    overage_allowed: false
+    max_overage_bytes: 0
+
+  starter:
+    quota_bytes: 107374182400  # 100GB
+    price_monthly: 29
+    price_yearly: 290
+    overage_allowed: true
+    max_overage_bytes: 53687091200  # 50GB
+
+  professional:
+    quota_bytes: 1099511627776  # 1TB
+    price_monthly: 99
+    price_yearly: 990
+    overage_allowed: true
+    max_overage_bytes: 536870912000  # 500GB
+
+  enterprise:
+    quota_bytes: 10995116277760  # 10TB
+    price_monthly: 299
+    price_yearly: 2990
+    overage_allowed: true
+    max_overage_bytes: 0  # 无限制

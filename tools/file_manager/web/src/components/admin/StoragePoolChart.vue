@@ -18,7 +18,49 @@
           <div class="pool-status" :class="pool.status">
             {{ pool.status === 'critical' ? '⚠ 告警' : pool.status === 'warning' ? '⚡ 注意' : '✓ 正常' }}
           </div>
-          <button class="detail-btn" @click="showPoolDetail(pool)">详情</button>
+          <button class="detail-btn" @click="showPoolTeams(pool)">查看团队</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Teams Modal -->
+    <div v-if="showModal" class="teams-modal" @click.self="closeModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>{{ currentPool?.name }} - 使用中的团队</h3>
+          <button class="modal-close" @click="closeModal">×</button>
+        </div>
+        <div v-if="modalLoading" class="modal-loading">加载中...</div>
+        <div v-else-if="modalError" class="modal-error">{{ modalError }}</div>
+        <div v-else-if="poolTeams.length === 0" class="modal-empty">
+          该存储池下暂无团队
+        </div>
+        <div v-else class="modal-teams">
+          <table class="teams-table">
+            <thead>
+              <tr>
+                <th>团队名称</th>
+                <th>成员数</th>
+                <th>配额</th>
+                <th>已用</th>
+                <th>使用率</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="team in poolTeams" :key="team.team_id">
+                <td>👥 {{ team.team_name }}</td>
+                <td>{{ team.member_count }}</td>
+                <td>{{ team.storage_quota ? formatBytes(team.storage_quota) : '无限' }}</td>
+                <td>{{ formatBytes(team.storage_used) }}</td>
+                <td>
+                  <div class="usage-bar">
+                    <div class="usage-fill" :style="{ width: (team.usage_rate * 100) + '%' }"></div>
+                  </div>
+                  {{ Math.round(team.usage_rate * 100) }}%
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -26,26 +68,36 @@
 </template>
 
 <script setup>
-import { computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import * as echarts from 'echarts'
+import { adminChartTheme, statusColors } from '@/theme/adminTheme'
 
 const props = defineProps({
   pools: { type: Array, required: true }
 })
+
+const showModal = ref(false)
+const currentPool = ref(null)
+const poolTeams = ref([])
+const modalLoading = ref(false)
+const modalError = ref(null)
 
 const totalBytes = computed(() =>
   props.pools.reduce((sum, p) => sum + p.totalBytes, 0)
 )
 
 function getRingOption(pool) {
+  const statusColor = statusColors[pool.status] || statusColors.normal
   return {
+    backgroundColor: 'transparent',
+    tooltip: adminChartTheme.tooltip,
     series: [{
       type: 'pie',
       radius: ['60%', '85%'],
       avoidLabelOverlap: false,
       itemStyle: {
         borderRadius: 4,
-        borderColor: '#1a1f26',
+        borderColor: '#161b22',
         borderWidth: 2
       },
       label: { show: false },
@@ -53,7 +105,7 @@ function getRingOption(pool) {
         {
           value: pool.usedBytes,
           name: '已用',
-          itemStyle: { color: pool.status === 'critical' ? '#f85149' : pool.status === 'warning' ? '#d29922' : '#58a6ff' }
+          itemStyle: { color: statusColor }
         },
         {
           value: pool.freeBytes,
@@ -91,8 +143,29 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
 }
 
-function showPoolDetail(pool) {
-  console.log('Show pool detail:', pool)
+async function showPoolTeams(pool) {
+  currentPool.value = pool
+  showModal.value = true
+  modalLoading.value = true
+  modalError.value = null
+  poolTeams.value = []
+
+  try {
+    const resp = await fetch(`/api/v1/admin/analytics/teams-by-pool/${pool.id}`)
+    if (!resp.ok) throw new Error(`API error: ${resp.status}`)
+    const data = await resp.json()
+    poolTeams.value = data.teams || []
+  } catch (e) {
+    modalError.value = e.message
+  } finally {
+    modalLoading.value = false
+  }
+}
+
+function closeModal() {
+  showModal.value = false
+  currentPool.value = null
+  poolTeams.value = []
 }
 
 onMounted(() => {
@@ -168,5 +241,109 @@ watch(() => props.pools, () => {
   border: none;
   border-radius: 4px;
   cursor: pointer;
+}
+
+/* Modal Styles */
+.teams-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--bg-secondary, #161b22);
+  border: 1px solid var(--border, #30363d);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border, #30363d);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #8b949e);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: var(--text-primary, #e6edf3);
+}
+
+.modal-loading,
+.modal-error,
+.modal-empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-secondary, #8b949e);
+}
+
+.modal-error {
+  color: #f85149;
+}
+
+.modal-teams {
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.teams-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.teams-table th,
+.teams-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border, #30363d);
+}
+
+.teams-table th {
+  font-size: 12px;
+  color: var(--text-secondary, #8b949e);
+  font-weight: 600;
+}
+
+.usage-bar {
+  width: 80px;
+  height: 6px;
+  background: var(--bg-tertiary, #21262d);
+  border-radius: 3px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.usage-fill {
+  height: 100%;
+  background: var(--accent, #58a6ff);
+  border-radius: 3px;
 }
 </style>

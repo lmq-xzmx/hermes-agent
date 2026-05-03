@@ -1,5 +1,6 @@
 """
-Admin API - User, Role, and Rule management
+Admin API - User, Role, Permission, and Rule management
+T3: Role/Permission API
 """
 
 from __future__ import annotations
@@ -11,7 +12,7 @@ from datetime import datetime
 from fastapi import HTTPException, Depends
 from pydantic import BaseModel
 
-from ..engine.models import User, Role, PermissionRule, AuditAction
+from ..engine.models import User, Role, PermissionRule, Permission, RolePermission, AuditAction
 from ..engine.audit import AuditLogger
 from .auth import get_current_user
 
@@ -53,6 +54,28 @@ class UpdateRuleRequest(BaseModel):
     path_pattern: Optional[str] = None
     permissions: Optional[str] = None
     priority: Optional[int] = None
+
+
+# =============================================================================
+# RBAC Permission Models (T3)
+# =============================================================================
+
+class CreatePermissionRequest(BaseModel):
+    """Request to create a new permission (resource-action)."""
+    resource: str
+    action: str
+    description: Optional[str] = None
+
+
+class CreateRolePermissionRequest(BaseModel):
+    """Request to assign a permission to a role."""
+    role_id: str
+    permission_id: str
+
+
+class AssignRoleRequest(BaseModel):
+    """Request to assign a role to a user."""
+    role_id: str
 
 
 class AuditQueryRequest(BaseModel):
@@ -489,7 +512,280 @@ class AdminAPI:
             return {"message": "Rule deleted"}
         finally:
             session.close()
-    
+
+    # =============================================================================
+    # RBAC Permission Management (T3)
+    # =============================================================================
+
+    def list_permissions(
+        self,
+        admin: User,
+        resource: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List all permissions, optionally filtered by resource."""
+        session = self.db_factory()
+        try:
+            query = session.query(Permission)
+            if resource:
+                query = query.filter(Permission.resource == resource)
+            permissions = query.all()
+            return [p.to_dict() for p in permissions]
+        finally:
+            session.close()
+
+    def get_permission(
+        self,
+        permission_id: str,
+        admin: User,
+    ) -> Dict[str, Any]:
+        """Get a permission by ID."""
+        session = self.db_factory()
+        try:
+            perm = session.query(Permission).filter(Permission.id == permission_id).first()
+            if not perm:
+                raise HTTPException(status_code=404, detail="Permission not found")
+            return perm.to_dict()
+        finally:
+            session.close()
+
+    def create_permission(
+        self,
+        request: CreatePermissionRequest,
+        admin: User,
+        ip_address: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Create a new permission."""
+        session = self.db_factory()
+        try:
+            # Check if resource+action already exists
+            existing = session.query(Permission).filter(
+                Permission.resource == request.resource,
+                Permission.action == request.action,
+            ).first()
+            if existing:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Permission '{request.resource}:{request.action}' already exists"
+                )
+
+            perm = Permission(
+                resource=request.resource,
+                action=request.action,
+                description=request.description,
+            )
+            session.add(perm)
+            session.commit()
+
+            # Audit
+            audit = AuditLogger(session)
+            audit.log_admin_action(
+                AuditAction.RULE_CREATE, admin, perm.id,
+                ip_address=ip_address,
+                metadata={"resource": perm.resource, "action": perm.action}
+            )
+
+            return perm.to_dict()
+        finally:
+            session.close()
+
+    def delete_permission(
+        self,
+        permission_id: str,
+        admin: User,
+        ip_address: Optional[str] = None,
+    ) -> Dict[str, str]:
+        """Delete a permission."""
+        session = self.db_factory()
+        try:
+            perm = session.query(Permission).filter(Permission.id == permission_id).first()
+            if not perm:
+                raise HTTPException(status_code=404, detail="Permission not found")
+
+            # Check if any role uses this permission
+            usage_count = session.query(RolePermission).filter(
+                RolePermission.permission_id == permission_id
+            ).count()
+            if usage_count > 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Permission is used by {usage_count} role(s). Remove assignments first."
+                )
+
+            perm_desc = f"{perm.resource}:{perm.action}"
+            session.delete(perm)
+            session.commit()
+
+            # Audit
+            audit = AuditLogger(session)
+            audit.log_admin_action(
+                AuditAction.RULE_DELETE, admin, permission_id,
+                ip_address=ip_address,
+                metadata={"permission": perm_desc}
+            )
+
+            return {"message": f"Permission '{perm_desc}' deleted"}
+        finally:
+            session.close()
+
+    def list_role_permissions(
+        self,
+        admin: User,
+        role_id: str,
+    ) -> List[Dict[str, Any]]:
+        """List all permissions assigned to a role."""
+        session = self.db_factory()
+        try:
+            role = session.query(Role).filter(Role.id == role_id).first()
+            if not role:
+                raise HTTPException(status_code=404, detail="Role not found")
+
+            rps = session.query(RolePermission).filter(
+                RolePermission.role_id == role_id
+            ).all()
+
+            result = []
+            for rp in rps:
+                perm = session.query(Permission).filter(Permission.id == rp.permission_id).first()
+                if perm:
+                    result.append({
+                        "role_id": role_id,
+                        "permission": perm.to_dict(),
+                        "created_at": rp.created_at.isoformat() if rp.created_at else None,
+                    })
+            return result
+        finally:
+            session.close()
+
+    def assign_permission_to_role(
+        self,
+        request: CreateRolePermissionRequest,
+        admin: User,
+        ip_address: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Assign a permission to a role."""
+        session = self.db_factory()
+        try:
+            # Verify role exists
+            role = session.query(Role).filter(Role.id == request.role_id).first()
+            if not role:
+                raise HTTPException(status_code=404, detail="Role not found")
+
+            # Verify permission exists
+            perm = session.query(Permission).filter(Permission.id == request.permission_id).first()
+            if not perm:
+                raise HTTPException(status_code=404, detail="Permission not found")
+
+            # Check if assignment already exists
+            existing = session.query(RolePermission).filter(
+                RolePermission.role_id == request.role_id,
+                RolePermission.permission_id == request.permission_id,
+            ).first()
+            if existing:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Permission already assigned to this role"
+                )
+
+            rp = RolePermission(
+                role_id=request.role_id,
+                permission_id=request.permission_id,
+            )
+            session.add(rp)
+            session.commit()
+
+            return {
+                "message": f"Permission '{perm.resource}:{perm.action}' assigned to role '{role.name}'",
+                "role_id": request.role_id,
+                "permission_id": request.permission_id,
+            }
+        finally:
+            session.close()
+
+    def remove_permission_from_role(
+        self,
+        role_id: str,
+        permission_id: str,
+        admin: User,
+        ip_address: Optional[str] = None,
+    ) -> Dict[str, str]:
+        """Remove a permission from a role."""
+        session = self.db_factory()
+        try:
+            rp = session.query(RolePermission).filter(
+                RolePermission.role_id == role_id,
+                RolePermission.permission_id == permission_id,
+            ).first()
+            if not rp:
+                raise HTTPException(status_code=404, detail="Permission not assigned to role")
+
+            session.delete(rp)
+            session.commit()
+
+            return {"message": "Permission removed from role"}
+        finally:
+            session.close()
+
+    def get_user_roles(
+        self,
+        user_id: str,
+        admin: User,
+    ) -> List[Dict[str, Any]]:
+        """Get all roles assigned to a user."""
+        session = self.db_factory()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+
+            if user.role:
+                return [user.role.to_dict()]
+            return []
+        finally:
+            session.close()
+
+    def assign_role_to_user(
+        self,
+        user_id: str,
+        request: AssignRoleRequest,
+        admin: User,
+        ip_address: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Assign a role to a user."""
+        session = self.db_factory()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+
+            role = session.query(Role).filter(Role.id == request.role_id).first()
+            if not role:
+                raise HTTPException(status_code=404, detail="Role not found")
+
+            old_role_id = user.role_id
+            user.role_id = request.role_id
+            user.updated_at = datetime.utcnow()
+            session.commit()
+
+            # Audit
+            audit = AuditLogger(session)
+            audit.log_admin_action(
+                AuditAction.ROLE_UPDATE, admin, user_id,
+                ip_address=ip_address,
+                metadata={
+                    "old_role_id": old_role_id,
+                    "new_role_id": request.role_id,
+                    "username": user.username,
+                }
+            )
+
+            return {
+                "message": f"Role '{role.name}' assigned to user '{user.username}'",
+                "user_id": user_id,
+                "role_id": request.role_id,
+            }
+        finally:
+            session.close()
+
     # -------------------------------------------------------------------------
     # Audit Log Access
     # -------------------------------------------------------------------------

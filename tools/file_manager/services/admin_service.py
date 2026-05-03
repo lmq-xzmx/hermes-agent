@@ -19,7 +19,7 @@ from ..api.dto import (
     AuditLogEntryDTO, UserListItemDTO, UserListResponseDTO, RoleDTO,
     MessageResponseDTO,
 )
-from ..engine.models import User, Role, PermissionRule, AuditLog, AuditAction
+from ..engine.models import User, Role, PermissionRule, Permission, RolePermission, AuditLog, AuditAction, RoleChangeRecord, Space, SpaceMember
 from ..engine.audit import AuditLogger
 
 
@@ -74,6 +74,26 @@ class CannotDeleteRoleWithUsers(Exception):
     def __init__(self, user_count: int):
         self.user_count = user_count
         super().__init__(f"Cannot delete role with {user_count} assigned users")
+
+
+class RoleChangeBlocked(Exception):
+    """Role change blocked due to asset constraints."""
+    pass
+
+
+class RoleChangeRecordNotFound(Exception):
+    """Role change record not found."""
+    pass
+
+
+class RoleChangeAlreadyRolledBack(Exception):
+    """Role change was already rolled back."""
+    pass
+
+
+class RoleChangeNotRollbackable(Exception):
+    """Role change is not rollbackable."""
+    pass
 
 
 # =============================================================================
@@ -664,6 +684,541 @@ class AdminService:
             ))
 
             return MessageResponseDTO(message="Rule deleted")
+        finally:
+            session.close()
+
+    # =============================================================================
+    # RBAC Permission Management (T3)
+    # =============================================================================
+
+    def list_permissions(
+        self,
+        resource: Optional[str] = None,
+        user_ctx: PermissionContext = None,
+    ) -> List[Dict[str, Any]]:
+        """List all permissions, optionally filtered by resource."""
+        self._require_admin(user_ctx)
+
+        session = self.db_factory()
+        try:
+            query = session.query(Permission)
+            if resource:
+                query = query.filter(Permission.resource == resource)
+            permissions = query.all()
+            return [p.to_dict() for p in permissions]
+        finally:
+            session.close()
+
+    def get_permission(
+        self,
+        permission_id: str,
+        user_ctx: PermissionContext = None,
+    ) -> Dict[str, Any]:
+        """Get a permission by ID."""
+        self._require_admin(user_ctx)
+
+        session = self.db_factory()
+        try:
+            perm = session.query(Permission).filter(Permission.id == permission_id).first()
+            if not perm:
+                raise RoleNotFound(f"Permission not found: {permission_id}")
+            return perm.to_dict()
+        finally:
+            session.close()
+
+    def create_permission(
+        self,
+        resource: str,
+        action: str,
+        description: Optional[str] = None,
+        user_ctx: PermissionContext = None,
+        ip_address: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Create a new permission."""
+        self._require_admin(user_ctx)
+
+        session = self.db_factory()
+        try:
+            # Check if resource+action already exists
+            existing = session.query(Permission).filter(
+                Permission.resource == resource,
+                Permission.action == action,
+            ).first()
+            if existing:
+                raise RoleAlreadyExists(f"Permission '{resource}:{action}' already exists")
+
+            perm = Permission(
+                resource=resource,
+                action=action,
+                description=description,
+            )
+            session.add(perm)
+            session.commit()
+
+            # Audit via event bus
+            self._event_bus.publish(Event.create(
+                EventType.ADMIN_ROLE_UPDATE,
+                {
+                    "operation": "permission_create",
+                    "permission_id": perm.id,
+                    "resource": resource,
+                    "action": action,
+                    "ip_address": ip_address,
+                },
+                user_id=user_ctx.user_id, username=user_ctx.username,
+            ))
+
+            return perm.to_dict()
+        finally:
+            session.close()
+
+    def delete_permission(
+        self,
+        permission_id: str,
+        user_ctx: PermissionContext = None,
+        ip_address: Optional[str] = None,
+    ) -> MessageResponseDTO:
+        """Delete a permission."""
+        self._require_admin(user_ctx)
+
+        session = self.db_factory()
+        try:
+            perm = session.query(Permission).filter(Permission.id == permission_id).first()
+            if not perm:
+                raise RoleNotFound(f"Permission not found: {permission_id}")
+
+            # Check if any role uses this permission
+            usage_count = session.query(RolePermission).filter(
+                RolePermission.permission_id == permission_id
+            ).count()
+            if usage_count > 0:
+                raise CannotDeleteRoleWithUsers(usage_count)
+
+            perm_desc = f"{perm.resource}:{perm.action}"
+            session.delete(perm)
+            session.commit()
+
+            # Audit via event bus
+            self._event_bus.publish(Event.create(
+                EventType.ADMIN_ROLE_UPDATE,
+                {
+                    "operation": "permission_delete",
+                    "permission_id": permission_id,
+                    "permission": perm_desc,
+                    "ip_address": ip_address,
+                },
+                user_id=user_ctx.user_id, username=user_ctx.username,
+            ))
+
+            return MessageResponseDTO(message=f"Permission '{perm_desc}' deleted")
+        finally:
+            session.close()
+
+    def list_role_permissions(
+        self,
+        role_id: str,
+        user_ctx: PermissionContext = None,
+    ) -> List[Dict[str, Any]]:
+        """List all permissions assigned to a role."""
+        self._require_admin(user_ctx)
+
+        session = self.db_factory()
+        try:
+            role = session.query(Role).filter(Role.id == role_id).first()
+            if not role:
+                raise RoleNotFound(f"Role not found: {role_id}")
+
+            rps = session.query(RolePermission).filter(
+                RolePermission.role_id == role_id
+            ).all()
+
+            result = []
+            for rp in rps:
+                perm = session.query(Permission).filter(Permission.id == rp.permission_id).first()
+                if perm:
+                    result.append({
+                        "role_id": role_id,
+                        "permission": perm.to_dict(),
+                        "created_at": rp.created_at.isoformat() if rp.created_at else None,
+                    })
+            return result
+        finally:
+            session.close()
+
+    def assign_permission_to_role(
+        self,
+        role_id: str,
+        permission_id: str,
+        user_ctx: PermissionContext = None,
+        ip_address: Optional[str] = None,
+    ) -> MessageResponseDTO:
+        """Assign a permission to a role."""
+        self._require_admin(user_ctx)
+
+        session = self.db_factory()
+        try:
+            # Verify role exists
+            role = session.query(Role).filter(Role.id == role_id).first()
+            if not role:
+                raise RoleNotFound(f"Role not found: {role_id}")
+
+            # Verify permission exists
+            perm = session.query(Permission).filter(Permission.id == permission_id).first()
+            if not perm:
+                raise RoleNotFound(f"Permission not found: {permission_id}")
+
+            # Check if assignment already exists
+            existing = session.query(RolePermission).filter(
+                RolePermission.role_id == role_id,
+                RolePermission.permission_id == permission_id,
+            ).first()
+            if existing:
+                return MessageResponseDTO(
+                    message=f"Permission '{perm.resource}:{perm.action}' already assigned to role '{role.name}'"
+                )
+
+            rp = RolePermission(
+                role_id=role_id,
+                permission_id=permission_id,
+            )
+            session.add(rp)
+            session.commit()
+
+            # Audit via event bus
+            self._event_bus.publish(Event.create(
+                EventType.ADMIN_ROLE_UPDATE,
+                {
+                    "operation": "permission_assign",
+                    "role_id": role_id,
+                    "permission_id": permission_id,
+                    "ip_address": ip_address,
+                },
+                user_id=user_ctx.user_id, username=user_ctx.username,
+            ))
+
+            return MessageResponseDTO(
+                message=f"Permission '{perm.resource}:{perm.action}' assigned to role '{role.name}'"
+            )
+        finally:
+            session.close()
+
+    def remove_permission_from_role(
+        self,
+        role_id: str,
+        permission_id: str,
+        user_ctx: PermissionContext = None,
+        ip_address: Optional[str] = None,
+    ) -> MessageResponseDTO:
+        """Remove a permission from a role."""
+        self._require_admin(user_ctx)
+
+        session = self.db_factory()
+        try:
+            rp = session.query(RolePermission).filter(
+                RolePermission.role_id == role_id,
+                RolePermission.permission_id == permission_id,
+            ).first()
+            if not rp:
+                raise RoleNotFound("Permission not assigned to role")
+
+            session.delete(rp)
+            session.commit()
+
+            # Audit via event bus
+            self._event_bus.publish(Event.create(
+                EventType.ADMIN_ROLE_UPDATE,
+                {
+                    "operation": "permission_remove",
+                    "role_id": role_id,
+                    "permission_id": permission_id,
+                    "ip_address": ip_address,
+                },
+                user_id=user_ctx.user_id, username=user_ctx.username,
+            ))
+
+            return MessageResponseDTO(message="Permission removed from role")
+        finally:
+            session.close()
+
+    def get_user_roles(
+        self,
+        target_user_id: str,
+        user_ctx: PermissionContext = None,
+    ) -> List[Dict[str, Any]]:
+        """Get all roles assigned to a user."""
+        self._require_admin(user_ctx)
+
+        session = self.db_factory()
+        try:
+            user = session.query(User).filter(User.id == target_user_id).first()
+            if not user:
+                raise UserNotFound(f"User not found: {target_user_id}")
+
+            if user.role:
+                return [user.role.to_dict()]
+            return []
+        finally:
+            session.close()
+
+    def assign_role_to_user(
+        self,
+        target_user_id: str,
+        role_id: str,
+        reason: Optional[str] = None,
+        user_ctx: PermissionContext = None,
+        ip_address: Optional[str] = None,
+    ) -> MessageResponseDTO:
+        """
+        Assign a role to a user with full asset lifecycle management.
+
+        Process:
+        1. Capture asset snapshot before change
+        2. Determine change type (promotion/demotion/transfer)
+        3. Execute role change
+        4. Handle asset reassignment if needed
+        5. Record change for audit/rollback
+
+        Asset handling:
+        - admin → viewer/guest: Admin spaces must be transferred or the change is blocked
+        - viewer/guest → admin: No asset changes needed
+        - viewer ↔ guest: No asset changes needed
+        """
+        self._require_admin(user_ctx)
+
+        session = self.db_factory()
+        try:
+            user = session.query(User).filter(User.id == target_user_id).first()
+            if not user:
+                raise UserNotFound(f"User not found: {target_user_id}")
+
+            role = session.query(Role).filter(Role.id == role_id).first()
+            if not role:
+                raise RoleNotFound(f"Role not found: {role_id}")
+
+            old_role = user.role
+            old_role_id = user.role_id
+            old_account_type = old_role.account_type if old_role else None
+            new_account_type = role.account_type
+
+            # Determine change type
+            change_type = self._determine_change_type(old_account_type, new_account_type)
+
+            # Capture asset snapshot before change
+            asset_snapshot = self._capture_asset_snapshot(session, target_user_id, old_account_type)
+
+            # Check if admin spaces need to be transferred
+            if change_type == "demotion":
+                admin_spaces = self._get_owned_admin_spaces(session, target_user_id)
+                if admin_spaces:
+                    raise RoleChangeBlocked(
+                        f"Cannot demote user who owns {len(admin_spaces)} admin space(s). "
+                        f"Transfer ownership first: {', '.join([s.name for s in admin_spaces])}"
+                    )
+
+            # Execute role change
+            user.role_id = role_id
+            user.updated_at = datetime.utcnow()
+            session.flush()
+
+            # Create change record for audit and rollback
+            change_record = RoleChangeRecord(
+                user_id=target_user_id,
+                changed_by=user_ctx.user_id if user_ctx else None,
+                old_role_id=old_role_id,
+                new_role_id=role_id,
+                asset_snapshot=asset_snapshot,
+                reason=reason,
+                change_type=change_type,
+                rollback_available=True,
+            )
+            session.add(change_record)
+            session.commit()
+
+            # Audit via event bus
+            self._event_bus.publish(Event.create(
+                EventType.ADMIN_ROLE_UPDATE,
+                {
+                    "operation": "role_assign_with_lifecycle",
+                    "target_user_id": target_user_id,
+                    "old_role_id": old_role_id,
+                    "new_role_id": role_id,
+                    "change_type": change_type,
+                    "asset_snapshot": asset_snapshot,
+                    "ip_address": ip_address,
+                },
+                user_id=user_ctx.user_id, username=user_ctx.username,
+            ))
+
+            return MessageResponseDTO(
+                message=f"Role '{role.name}' assigned to user '{user.username}' ({change_type})"
+            )
+        finally:
+            session.close()
+
+    def _determine_change_type(
+        self,
+        old_type: Optional[str],
+        new_type: str,
+    ) -> str:
+        """Determine the type of role change based on role priority.
+
+        Note: This function receives account_type (admin/member/guest) or role name.
+        Priority values: admin=100, editor=50, viewer=10, guest=1
+        """
+        if old_type is None:
+            return "initial_assignment"
+
+        # Role name to priority mapping
+        role_priority_map = {
+            "admin": 100,
+            "editor": 50,
+            "viewer": 10,
+            "guest": 1,
+        }
+
+        # For account_type: map to representative priority
+        account_type_priority = {"admin": 100, "member": 50, "guest": 1}
+
+        # Try role name first, then account_type
+        old_priority = role_priority_map.get(old_type, account_type_priority.get(old_type, 0))
+        new_priority = role_priority_map.get(new_type, account_type_priority.get(new_type, 0))
+
+        if new_priority > old_priority:
+            return "promotion"
+        elif new_priority < old_priority:
+            return "demotion"
+        else:
+            return "transfer"
+
+    def _capture_asset_snapshot(
+        self,
+        session,
+        user_id: str,
+        account_type: Optional[str],
+    ) -> Dict[str, Any]:
+        """Capture current asset state before role change."""
+        from .space_service import SpaceService
+        from .team_service import TeamService
+
+        snapshot = {
+            "captured_at": datetime.utcnow().isoformat(),
+            "account_type": account_type,
+            "owned_spaces": [],
+            "member_spaces": [],
+        }
+
+        if not account_type:
+            return snapshot
+
+        # Get owned spaces (where user is owner)
+        owned = session.query(Space).filter(Space.owner_id == user_id).all()
+        snapshot["owned_spaces"] = [
+            {"id": s.id, "name": s.name, "space_type": s.space_type}
+            for s in owned
+        ]
+
+        # Get member spaces
+        memberships = session.query(SpaceMember).filter(
+            SpaceMember.user_id == user_id,
+            SpaceMember.status == "active"
+        ).all()
+        snapshot["member_spaces"] = [
+            {"space_id": m.space_id, "role": m.role}
+            for m in memberships
+        ]
+
+        return snapshot
+
+    def _get_owned_admin_spaces(self, session, user_id: str) -> List:
+        """Get spaces where user is owner and has admin-type access."""
+        return session.query(Space).filter(Space.owner_id == user_id).all()
+
+    def rollback_role_change(
+        self,
+        change_record_id: str,
+        user_ctx: PermissionContext = None,
+        ip_address: Optional[str] = None,
+    ) -> MessageResponseDTO:
+        """
+        Rollback a previous role change.
+
+        Restores:
+        - Previous role
+        - Asset state from snapshot
+        """
+        self._require_admin(user_ctx)
+
+        session = self.db_factory()
+        try:
+            record = session.query(RoleChangeRecord).filter(
+                RoleChangeRecord.id == change_record_id
+            ).first()
+
+            if not record:
+                raise RoleChangeRecordNotFound(f"Change record not found: {change_record_id}")
+
+            if record.rolled_back:
+                raise RoleChangeAlreadyRolledBack(
+                    f"Change {change_record_id} was already rolled back"
+                )
+
+            if not record.rollback_available:
+                raise RoleChangeNotRollbackable(
+                    f"Change {change_record_id} is not rollbackable"
+                )
+
+            # Restore previous role
+            user = session.query(User).filter(User.id == record.user_id).first()
+            if not user:
+                raise UserNotFound(f"User not found: {record.user_id}")
+
+            user.role_id = record.old_role_id
+            user.updated_at = datetime.utcnow()
+
+            # Mark as rolled back
+            record.rolled_back = True
+            record.rolled_back_at = datetime.utcnow()
+
+            session.commit()
+
+            # Audit
+            self._event_bus.publish(Event.create(
+                EventType.ADMIN_ROLE_UPDATE,
+                {
+                    "operation": "role_change_rollback",
+                    "change_record_id": change_record_id,
+                    "restored_to_role_id": record.old_role_id,
+                    "ip_address": ip_address,
+                },
+                user_id=user_ctx.user_id, username=user_ctx.username,
+            ))
+
+            return MessageResponseDTO(
+                message=f"Role change rolled back. User '{user.username}' restored to role '{record.old_role.name if record.old_role else 'none'}'"
+            )
+        finally:
+            session.close()
+
+    def get_role_change_history(
+        self,
+        target_user_id: Optional[str] = None,
+        limit: int = 50,
+        user_ctx: PermissionContext = None,
+    ) -> List[Dict[str, Any]]:
+        """Get role change history, optionally filtered by user."""
+        self._require_admin(user_ctx)
+
+        session = self.db_factory()
+        try:
+            query = session.query(RoleChangeRecord)
+            if target_user_id:
+                query = query.filter(RoleChangeRecord.user_id == target_user_id)
+
+            records = query.order_by(
+                RoleChangeRecord.created_at.desc()
+            ).limit(limit).all()
+
+            return [r.to_dict() for r in records]
         finally:
             session.close()
 

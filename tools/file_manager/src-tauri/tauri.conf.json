@@ -5,7 +5,7 @@
   "identifier": "com.hermes.file-manager",
   "build": {
     "devUrl": "http://localhost:8080",
-    "frontendDist": "../web"
+    "frontendDist": "../web/dist"
   },
   "app": {
     "withGlobalTauri": true,

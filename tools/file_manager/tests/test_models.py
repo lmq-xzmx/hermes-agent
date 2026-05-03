@@ -15,7 +15,7 @@ from sqlalchemy.pool import StaticPool
 
 from tools.file_manager.engine.models import (
     Base, User, Role, PermissionRule, AuditLog, SharedLink, UserSession,
-    Operation, Permission, AuditAction,
+    Operation, PermissionFlag, Permission, AuditAction,
     init_db, create_builtin_roles,
 )
 
@@ -55,10 +55,10 @@ class TestEnums:
         assert Operation.LIST.value == "list"
 
     def test_permission_values(self):
-        assert Permission.READ.value == "read"
-        assert Permission.WRITE.value == "write"
-        assert Permission.DELETE.value == "delete"
-        assert Permission.MANAGE.value == "manage"
+        assert PermissionFlag.READ.value == "read"
+        assert PermissionFlag.WRITE.value == "write"
+        assert PermissionFlag.DELETE.value == "delete"
+        assert PermissionFlag.MANAGE.value == "manage"
 
     def test_audit_action_values(self):
         assert AuditAction.LOGIN.value == "login"
@@ -403,6 +403,102 @@ class TestDBInit:
         path = get_default_storage_path()
         assert isinstance(path, str)
         assert len(path) > 0
+
+
+# =============================================================================
+# Permission Model (T1: RBAC Enhancement)
+# =============================================================================
+
+class TestPermission:
+    def test_permission_creation(self, session):
+        """Test creating a resource-action permission"""
+        from tools.file_manager.engine.models import Permission
+
+        perm = Permission(
+            resource="approval",
+            action="approve",
+            description="Approve requests",
+        )
+        session.add(perm)
+        session.commit()
+
+        assert perm.id is not None
+        assert perm.resource == "approval"
+        assert perm.action == "approve"
+
+    def test_permission_unique_constraint(self, session):
+        """Test that resource+action must be unique"""
+        from tools.file_manager.engine.models import Permission
+
+        perm1 = Permission(resource="approval", action="read")
+        session.add(perm1)
+        session.commit()
+
+        perm2 = Permission(resource="approval", action="read")
+        session.add(perm2)
+        with pytest.raises(Exception):  # UNIQUE constraint
+            session.commit()
+        session.rollback()
+
+    def test_permission_to_dict(self, session):
+        """Test Permission.to_dict()"""
+        from tools.file_manager.engine.models import Permission
+
+        perm = Permission(resource="workflow", action="execute", description="Execute workflows")
+        session.add(perm)
+        session.commit()
+
+        d = perm.to_dict()
+        assert d["resource"] == "workflow"
+        assert d["action"] == "execute"
+        assert d["description"] == "Execute workflows"
+        assert "id" in d
+        assert "created_at" in d
+
+    def test_role_permission_association(self, session):
+        """Test RolePermission links role to permission"""
+        from tools.file_manager.engine.models import Permission, RolePermission
+
+        admin_role = session.query(Role).filter(Role.name == "admin").first()
+        # Use a permission that doesn't exist yet
+        perm = Permission(resource="workflow", action="create")
+        session.add(perm)
+        session.flush()
+
+        rp = RolePermission(role_id=admin_role.id, permission_id=perm.id)
+        session.add(rp)
+        session.commit()
+
+        # Verify the association
+        assert len(admin_role.role_permissions) > 0
+        perm_ids = [rp.permission_id for rp in admin_role.role_permissions]
+        assert perm.id in perm_ids
+
+    def test_permission_enums_still_work(self):
+        """Verify PermissionFlag enum still works (backward compat)"""
+        from tools.file_manager.engine.models import PermissionFlag
+
+        assert PermissionFlag.READ.value == "read"
+        assert PermissionFlag.WRITE.value == "write"
+        assert PermissionFlag.DELETE.value == "delete"
+        assert PermissionFlag.MANAGE.value == "manage"
+
+
+class TestRolePriority:
+    def test_builtin_roles_have_priority(self, session):
+        """Test that built-in roles have correct priority values"""
+        admin = session.query(Role).filter(Role.name == "admin").first()
+        editor = session.query(Role).filter(Role.name == "editor").first()
+        viewer = session.query(Role).filter(Role.name == "viewer").first()
+        guest = session.query(Role).filter(Role.name == "guest").first()
+
+        assert admin.priority == 100
+        assert editor.priority == 50
+        assert viewer.priority == 10
+        assert guest.priority == 1
+
+        # Higher priority should be > lower priority
+        assert admin.priority > editor.priority > viewer.priority > guest.priority
 
 
 if __name__ == "__main__":

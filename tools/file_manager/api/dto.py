@@ -173,6 +173,27 @@ class CreateRuleRequestDTO(BaseModel):
     priority: int = 0
 
 
+# =============================================================================
+# RBAC Permission DTOs (T3)
+# =============================================================================
+
+class CreatePermissionRequestDTO(BaseModel):
+    """Request to create a new RBAC permission."""
+    resource: str  # e.g. "file", "space", "team", "user", "role", "storage_pool"
+    action: str     # e.g. "create", "read", "update", "delete", "manage"
+    description: Optional[str] = None
+
+
+class CreateRolePermissionRequestDTO(BaseModel):
+    """Request to assign a permission to a role."""
+    permission_id: str
+
+
+class AssignRoleRequestDTO(BaseModel):
+    """Request to assign a role to a user."""
+    role_id: str
+
+
 class AuditQueryRequestDTO(BaseModel):
     user_id: Optional[str] = None
     action: Optional[str] = None

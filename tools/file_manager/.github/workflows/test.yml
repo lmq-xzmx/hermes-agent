@@ -1,0 +1,103 @@
+# .github/workflows/test.yml
+# T8: CI/CD测试自动化集成
+
+name: Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  backend-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install pytest pytest-cov pytest-html coverage
+
+      - name: Run unit tests
+        run: |
+          pytest tests/test_lifecycle_engine.py tests/test_models.py -v --cov=. --cov-report=xml
+
+      - name: Run integration tests
+        run: |
+          pytest tests/integration/ -v --tb=short
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Run contract tests
+        run: |
+          pytest tests/contract/ -v --tb=short
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+
+  frontend-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: cd web && npm ci
+
+      - name: Run Vitest unit tests
+        run: cd web && npm test
+
+      - name: Run Playwright E2E tests
+        run: cd web && npx playwright test
+        env:
+          baseURL: http://localhost:8080
+
+  e2e-test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: cd web && npm ci
+
+      - name: Install Playwright browsers
+        run: cd web && npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: cd web && npx playwright test --reporter=html
+        env:
+          baseURL: http://localhost:8080
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: web/test-results/

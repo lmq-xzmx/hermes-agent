@@ -91,4 +91,39 @@ def __getattr__(name):
     if name == "AdminAccessDenied":
         from .admin_analytics_service import AdminAccessDenied
         return AdminAccessDenied
+    if name == "ConstraintContext":
+        from .lifecycle_engine import ConstraintContext
+        return ConstraintContext
+    if name == "ConstraintResult":
+        from .lifecycle_engine import ConstraintResult
+        return ConstraintResult
+    if name == "ConstraintRule":
+        from .lifecycle_engine import ConstraintRule
+        return ConstraintRule
+    if name == "ConstraintRegistry":
+        from .lifecycle_engine import ConstraintRegistry
+        return ConstraintRegistry
+    if name == "LifecycleViolation":
+        from .lifecycle_engine import LifecycleViolation
+        return LifecycleViolation
+    if name == "get_constraint_registry":
+        from .lifecycle_engine import get_constraint_registry
+        return get_constraint_registry
+    if name == "QuotaService":
+        from .quota_service import QuotaService
+        return QuotaService
+    if name in ("QuotaExceeded",):
+        from .space_service import QuotaExceeded
+        return QuotaExceeded
+    if name == "ApprovalService":
+        from .approval_service import ApprovalService
+        return ApprovalService
+    if name in ("ApprovalNotFound", "ApprovalInvalidStatus", "NotAuthorized", "ApprovalRequired"):
+        from .approval_service import (
+            ApprovalNotFound, ApprovalInvalidStatus, NotAuthorized, ApprovalRequired,
+        )
+        return locals()[name]
+    if name == "SubscriptionService":
+        from .subscription_service import SubscriptionService
+        return SubscriptionService
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

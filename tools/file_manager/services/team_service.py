@@ -176,14 +176,26 @@ class TeamService:
 
     def delete_pool(self, pool_id: str) -> None:
         """Delete a pool (fails if any team uses it)."""
+        from file_manager.engine import get_lifecycle_engine, LifecycleViolation
+
+        engine = get_lifecycle_engine()
+        team_count = engine.get_team_count_for_pool(pool_id, self._db)
+        team_migrating_count = engine.get_team_migrating_count(pool_id, self._db)
+
+        # Check constraint
+        context = {
+            "pool_id": pool_id,
+            "team_count": team_count,
+            "team_migrating_count": team_migrating_count
+        }
+        engine.raise_if_violated("delete_pool", context)
+
+        # If constraint passes, proceed with deletion
         session = self._db()
         try:
             pool = session.query(StoragePool).filter(StoragePool.id == pool_id).first()
             if not pool:
                 raise StoragePoolNotFound()
-            team_count = session.query(Team).filter(Team.storage_pool_id == pool_id).count()
-            if team_count > 0:
-                raise RuntimeError(f"该存储池仍有 {team_count} 个团队使用，无法删除")
             session.delete(pool)
             session.commit()
         finally:
@@ -193,9 +205,14 @@ class TeamService:
     # Team Management
     # -------------------------------------------------------------------------
 
-    def list_teams(self, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_teams(
+        self,
+        user_id: Optional[str] = None,
+        pool_id: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
         """
         List teams. If user_id given, returns only teams that user is a member of.
+        If pool_id given, returns only teams that belong to the specified storage pool.
         """
         session = self._db()
         try:
@@ -210,6 +227,8 @@ class TeamService:
                 if not team_ids:
                     return []
                 query = query.filter(Team.id.in_(team_ids))
+            if pool_id:
+                query = query.filter(Team.storage_pool_id == pool_id)
             return [t.to_dict() for t in query.all()]
         finally:
             session.close()
@@ -236,6 +255,15 @@ class TeamService:
 
         - max_bytes: 0 means unlimited (bounded only by pool free space)
         """
+        from file_manager.engine import get_lifecycle_engine
+
+        engine = get_lifecycle_engine()
+        available_pools = engine.get_available_pool_count(self._db)
+
+        # Check constraint: must have available pool
+        context = {"available_pools": available_pools}
+        engine.raise_if_violated("create_team", context)
+
         session = self._db()
         try:
             pool = session.query(StoragePool).filter(StoragePool.id == storage_pool_id).first()
@@ -303,13 +331,20 @@ class TeamService:
 
     def delete_team(self, team_id: str, requesting_user_id: str) -> None:
         """Delete a team and all its files. Only owner can do this."""
+        from file_manager.engine import get_lifecycle_engine
+
+        engine = get_lifecycle_engine()
+        is_owner = engine.check_owner(requesting_user_id, team_id, self._db)
+
+        # Check constraint: only owner can delete
+        context = {"team_id": team_id, "is_owner": is_owner}
+        engine.raise_if_violated("delete_team", context)
+
         session = self._db()
         try:
             team = session.query(Team).filter(Team.id == team_id).first()
             if not team:
                 raise TeamNotFound()
-            if team.owner_id != requesting_user_id:
-                raise NotTeamOwner()
             # Delete physical files
             pool = team.storage_pool
             if pool and pool.protocol == "local":
@@ -457,13 +492,19 @@ class TeamService:
         Use an invite token to join a team.
         Creates the user's personal directory under the team.
         """
+        from file_manager.engine import get_lifecycle_engine
+
+        engine = get_lifecycle_engine()
+
         session = self._db()
         try:
             cred = session.query(TeamCredential).filter(TeamCredential.token == token).first()
             if not cred:
                 raise CredentialNotFound("凭证不存在")
             if not cred.is_valid():
-                raise CredentialExpired("凭证已过期或已达使用次数上限")
+                # Use lifecycle engine for consistent error handling
+                context = {"is_valid": False}
+                engine.raise_if_violated("join_team", context)
 
             team = cred.space
             if not team.is_active:

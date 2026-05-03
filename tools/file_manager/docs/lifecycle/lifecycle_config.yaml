@@ -1,0 +1,141 @@
+# Lifecycle Constraint Configuration
+# NOTE: This file is for reference only.
+# The authoritative config is now at: config/lifecycle_config.yaml
+# It is loaded by lifecycle_engine.py and served via /api/v1/lifecycle/config
+
+# Enable/disable lifecycle constraint checking
+lifecycle:
+  enabled: true
+  debug: false
+  # Cache TTL for constraint checks (seconds)
+  cache_ttl: 300
+
+# Lifecycle constraint rules
+rules:
+  # Upload file constraints
+  upload_file:
+    - code: NOT_SPACE_MEMBER
+      description: User must be a member of a space/team
+      error_template: "请先加入团队或空间才能上传文件"
+      guidance:
+        label: "加入团队"
+        icon: "👥"
+        path: "/teams"
+
+    - code: QUOTA_SUFFICIENT
+      description: Space must have sufficient quota
+      error_template: "存储配额已用尽，无法上传新文件"
+      guidance:
+        label: "查看回收站"
+        icon: "🗑️"
+        path: "/trash"
+
+  # Create team constraints
+  create_team:
+    - code: NO_AVAILABLE_POOL
+      description: At least one active storage pool must exist
+      error_template: "系统暂无可用存储池，无法创建新团队"
+      guidance:
+        label: "联系管理员"
+        icon: "📧"
+        action: "contact_admin"
+
+  # Delete storage pool constraints
+  delete_pool:
+    - code: STORAGE_POOL_IN_USE
+      description: Pool must have no teams
+      check: team_count_zero
+      error_template: "该存储池仍有 {team_count} 个团队使用"
+      guidance:
+        label: "查看团队"
+        icon: "👥"
+        path: "/admin/teams"
+
+  # Delete space constraints
+  delete_space:
+    - code: SPACE_NO_MEMBERS
+      description: Space must have no active members
+      check: member_count_zero
+      error_template: "该空间仍有 {member_count} 个成员"
+      guidance:
+        label: "查看成员"
+        icon: "👥"
+        path: "/space/members"
+
+  # Invite member constraints
+  invite_member:
+    - code: NOT_SPACE_OWNER
+      description: Only space owner can invite members
+      check: is_owner
+      error_template: "只有空间所有者可以邀请成员"
+      guidance:
+        label: "联系管理员"
+        icon: "📧"
+        action: "contact_admin"
+
+  # Delete team constraints
+  delete_team:
+    - code: NOT_TEAM_OWNER
+      description: Only team owner can delete team
+      check: is_owner
+      error_template: "只有团队所有者可以删除团队"
+      guidance:
+        label: "联系管理员"
+        icon: "📧"
+        action: "contact_admin"
+
+  # Join team constraints
+  join_team:
+    - code: CREDENTIAL_VALID
+      description: Invite credential must be valid
+      check: credential_valid
+      error_template: "邀请码已过期或无效"
+      guidance:
+        label: "返回"
+        icon: "🔙"
+        path: "/teams"
+
+  # Create private space constraints
+  create_private_space:
+    - code: NOT_TEAM_MEMBER
+      description: User must be a team member
+      check: is_team_member
+      error_template: "只有团队成员才能申请私人空间"
+      guidance:
+        label: "加入团队"
+        icon: "👥"
+        path: "/teams"
+
+  # Check quota constraints
+  check_quota:
+    - code: QUOTA_EXCEEDED
+      description: Space quota must not be exceeded
+      check: sufficient_quota
+      error_template: "存储配额已用尽，无法上传新文件"
+      guidance:
+        label: "查看回收站"
+        icon: "🗑️"
+        path: "/trash"
+
+  # Update quota constraints
+  update_quota:
+    - code: NOT_SPACE_OWNER
+      description: Only space owner can update quota
+      check: is_owner
+      error_template: "只有空间所有者可以修改配额"
+      guidance:
+        label: "联系管理员"
+        icon: "📧"
+        action: "contact_admin"
+
+# Guidance callbacks (frontend must implement these)
+guidance_callbacks:
+  contact_admin:
+    label: "联系管理员"
+    icon: "📧"
+    # Frontend should show a modal or navigate to contact page
+
+# Environment variables
+# LIFECYCLE_ENABLED=true
+# LIFECYCLE_DEBUG=false
+# LIFECYCLE_CACHE_TTL=300

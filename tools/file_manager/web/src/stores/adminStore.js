@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { adminAnalyticsApi } from '@/services/adminAnalytics'
+import { connectAdminAnalytics, disconnectAdminAnalytics } from '@/services/websocket'
 
 export const useAdminStore = defineStore('admin', {
   state: () => ({
@@ -10,9 +11,13 @@ export const useAdminStore = defineStore('admin', {
     operationTrends: { dates: [], series: [] },
     activeUsers: [],
     alerts: [],
+    teamsByPool: [],
+    currentPoolName: null,
     loading: false,
     error: null,
-    lastUpdated: null
+    lastUpdated: null,
+    wsEnabled: false,
+    wsToken: null
   }),
 
   getters: {
@@ -97,6 +102,53 @@ export const useAdminStore = defineStore('admin', {
         this.fetchOperationTrends(),
         this.fetchActiveUsers()
       ])
+    },
+
+    async fetchTeamsByPool(poolId) {
+      this.loading = true
+      try {
+        const data = await adminAnalyticsApi.getTeamsByPool(poolId)
+        this.teamsByPool = data.teams
+        this.currentPoolName = data.poolName
+      } catch (e) {
+        this.error = e.message
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * 启用 WebSocket 实时更新
+     * @param {string} token - 认证 token
+     */
+    enableWebSocket(token) {
+      if (this.wsEnabled) return
+
+      this.wsEnabled = true
+      this.wsToken = token
+
+      connectAdminAnalytics(token, (data) => {
+        // 更新各个数据源
+        if (data.overview) {
+          this.overview = { ...this.overview, ...data.overview }
+        }
+        if (data.storagePools) {
+          this.storagePools = data.storagePools
+        }
+        if (data.alerts) {
+          this.alerts = data.alerts
+        }
+        this.lastUpdated = new Date()
+      })
+    },
+
+    /**
+     * 禁用 WebSocket
+     */
+    disableWebSocket() {
+      disconnectAdminAnalytics()
+      this.wsEnabled = false
+      this.wsToken = null
     }
   }
 })

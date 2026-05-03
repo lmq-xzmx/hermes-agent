@@ -12,7 +12,7 @@ from typing import Optional, List
 
 from sqlalchemy import (
     Column, String, Boolean, Integer, DateTime, ForeignKey,
-    Text, JSON, Enum, Index, create_engine, BigInteger
+    Text, JSON, Enum, Index, create_engine, BigInteger, Numeric
 )
 from sqlalchemy.orm import relationship, sessionmaker, Session, declarative_base
 from sqlalchemy.pool import StaticPool, NullPool
@@ -31,12 +31,16 @@ class Operation(PyEnum):
     LIST = "list"
 
 
-class Permission(PyEnum):
-    """Permission flags"""
+class PermissionFlag(PyEnum):
+    """Permission flags (legacy enum, use Permission model for resource-action)"""
     READ = "read"
     WRITE = "write"
     DELETE = "delete"
     MANAGE = "manage"
+
+
+# Backward compatibility alias
+Permission = PermissionFlag
 
 
 class AuditAction(PyEnum):
@@ -96,6 +100,7 @@ class User(Base):
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
     shared_links = relationship("SharedLink", back_populates="creator", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
+    role_change_records = relationship("RoleChangeRecord", foreign_keys="RoleChangeRecord.user_id", back_populates="user", cascade="all, delete-orphan")
     
     def set_password(self, password: str) -> None:
         """Hash and set password"""
@@ -134,23 +139,34 @@ class Role(Base):
     name = Column(String(32), unique=True, nullable=False, index=True)
     description = Column(Text, nullable=True)
     is_system = Column(Boolean, default=False)
+    # Account type: "admin" | "member" | "guest"
+    # - admin: 系统管理员，拥有全部权限
+    # - member: 普通成员，可读写分配给它的资源
+    # - guest: 访客，仅有最小权限
+    account_type = Column(String(16), default="member")
+    priority = Column(Integer, default=0)  # Role priority for permission resolution
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     users = relationship("User", back_populates="role")
     permission_rules = relationship("PermissionRule", back_populates="role", cascade="all, delete-orphan")
-    
-    # Built-in role definitions
+    role_permissions = relationship("RolePermission", back_populates="role", cascade="all, delete-orphan")
+
+    # Built-in role definitions (priority: admin > editor > viewer > guest)
     BUILTIN_ROLES = {
         "admin": {
             "description": "Full access to all resources and management capabilities",
             "is_system": True,
+            "account_type": "admin",
+            "priority": 100,
             "_default_rules": [],
         },
         "editor": {
             "description": "Read and write access to assigned paths, cannot delete or manage",
             "is_system": True,
+            "account_type": "member",
+            "priority": 50,
             "_default_rules": [
                 {"path_pattern": "/**", "permissions": "read,write,list,delete"},
             ],
@@ -158,6 +174,8 @@ class Role(Base):
         "viewer": {
             "description": "Read-only access to assigned paths",
             "is_system": True,
+            "account_type": "member",
+            "priority": 10,
             "_default_rules": [
                 {"path_pattern": "/**", "permissions": "read,list"},
             ],
@@ -165,6 +183,8 @@ class Role(Base):
         "guest": {
             "description": "Minimal read access to shared resources",
             "is_system": True,
+            "account_type": "guest",
+            "priority": 1,
             "_default_rules": [
                 {"path_pattern": "/**", "permissions": "read"},
             ],
@@ -177,6 +197,8 @@ class Role(Base):
             "name": self.name,
             "description": self.description,
             "is_system": self.is_system,
+            "account_type": self.account_type,
+            "priority": self.priority,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -229,6 +251,62 @@ class PermissionRule(Base):
         return f"{perms}:{self.path_pattern}"
 
 
+class Permission(Base):
+    """Permission definition - resource-action format for RBAC.
+
+    Replaces the legacy PermissionRule path-based approach with a cleaner
+    resource-action model. Permissions are assigned to roles via RolePermission.
+    """
+    __tablename__ = "hfm_permissions"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    resource = Column(String(32), nullable=False, index=True)  # file, space, team, storage_pool, user, role
+    action = Column(String(32), nullable=False, index=True)    # create, read, update, delete, manage
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    role_permissions = relationship("RolePermission", back_populates="permission", cascade="all, delete-orphan")
+
+    # Unique constraint on resource+action
+    __table_args__ = (
+        Index("ix_hfm_permissions_resource_action", "resource", "action", unique=True),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "resource": self.resource,
+            "action": self.action,
+            "description": self.description,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class RolePermission(Base):
+    """Role-Permission association table for RBAC.
+
+    Links roles to permissions. A role can have many permissions,
+    and a permission can be assigned to many roles.
+    """
+    __tablename__ = "hfm_role_permissions"
+
+    role_id = Column(String(36), ForeignKey("hfm_roles.id"), primary_key=True)
+    permission_id = Column(String(36), ForeignKey("hfm_permissions.id"), primary_key=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    role = relationship("Role", back_populates="role_permissions")
+    permission = relationship("Permission", back_populates="role_permissions")
+
+    def to_dict(self) -> dict:
+        return {
+            "role_id": self.role_id,
+            "permission_id": self.permission_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 class AuditLog(Base):
     """Audit log for all operations"""
     __tablename__ = "hfm_audit_logs"
@@ -265,6 +343,76 @@ class AuditLog(Base):
             "user_agent": self.user_agent,
             "extra": self.extra,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class RoleChangeRecord(Base):
+    """
+    Role change record for identity lifecycle management.
+
+    Tracks:
+    - User role changes (admin ↔ member ↔ guest)
+    - Asset state before/after change
+    - Who performed the change
+    - Change reason and rollback info
+
+    This enables:
+    - Audit trail of role changes
+    - Asset recovery on role rollback
+    - Compliance reporting
+    """
+    __tablename__ = "hfm_role_change_records"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("hfm_users.id"), nullable=False, index=True)
+    changed_by = Column(String(36), ForeignKey("hfm_users.id"), nullable=True)
+
+    # Role state
+    old_role_id = Column(String(36), ForeignKey("hfm_roles.id"), nullable=True)
+    new_role_id = Column(String(36), ForeignKey("hfm_roles.id"), nullable=False)
+
+    # Asset snapshot (JSON) - captures asset state before change
+    asset_snapshot = Column(JSON, nullable=True)
+
+    # Change metadata
+    reason = Column(Text, nullable=True)
+    change_type = Column(String(32), nullable=False)  # promotion | demotion | transfer | reset
+    rollback_available = Column(Boolean, default=True)
+    rolled_back = Column(Boolean, default=False)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    rolled_back_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id], back_populates="role_change_records")
+    changed_by_user = relationship("User", foreign_keys=[changed_by])
+    old_role = relationship("Role", foreign_keys=[old_role_id])
+    new_role = relationship("Role", foreign_keys=[new_role_id])
+
+    # Indexes
+    __table_args__ = (
+        Index("ix_hfm_role_change_user", "user_id"),
+        Index("ix_hfm_role_change_created", "created_at"),
+        Index("ix_hfm_role_change_change_type", "change_type"),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "changed_by": self.changed_by,
+            "old_role_id": self.old_role_id,
+            "new_role_id": self.new_role_id,
+            "old_role_name": self.old_role.name if self.old_role else None,
+            "new_role_name": self.new_role.name if self.new_role else None,
+            "asset_snapshot": self.asset_snapshot,
+            "reason": self.reason,
+            "change_type": self.change_type,
+            "rollback_available": self.rollback_available,
+            "rolled_back": self.rolled_back,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "rolled_back_at": self.rolled_back_at.isoformat() if self.rolled_back_at else None,
         }
 
 
@@ -403,6 +551,13 @@ class StoragePool(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # A-1: 新增配额管理字段
+    reserved_bytes = Column(BigInteger, default=0)       # 组织预留空间
+    allow_overcommit = Column(Boolean, default=False)     # 允许透支
+    soft_warning_ratio = Column(Numeric(5, 2), default=0.8)  # 软预警阈值 0.80
+    hard_block_ratio = Column(Numeric(5, 2), default=1.0)   # 硬阻塞阈值 1.00
+    buffer_ratio = Column(Numeric(5, 2), default=0.1)      # 缓冲比例 0.10
+
     # Relationships
     spaces = relationship("Space", back_populates="storage_pool")
 
@@ -416,6 +571,11 @@ class StoragePool(Base):
             "free_bytes": self.free_bytes,
             "is_active": self.is_active,
             "description": self.description,
+            "reserved_bytes": self.reserved_bytes,
+            "allow_overcommit": self.allow_overcommit,
+            "soft_warning_ratio": float(self.soft_warning_ratio) if self.soft_warning_ratio else 0.8,
+            "hard_block_ratio": float(self.hard_block_ratio) if self.hard_block_ratio else 1.0,
+            "buffer_ratio": float(self.buffer_ratio) if self.buffer_ratio else 0.1,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -445,6 +605,13 @@ class Space(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # A-2: 新增配额字段
+    quota_type = Column(String(16), default="committed")  # committed | reserved | unlimited
+    committed_bytes = Column(BigInteger, default=0)       # 承诺配额
+    actual_used_bytes = Column(BigInteger, default=0)    # 实际使用
+    quota_source = Column(String(16), default="team")     # team | personal | org
+    source_id = Column(String(36), nullable=True)        # 来源ID (team_id/user_id)
+
     # Relationships
     storage_pool = relationship("StoragePool", back_populates="spaces")
     owner = relationship("User", foreign_keys=[owner_id])
@@ -458,6 +625,8 @@ class Space(Base):
     notebooks = relationship("Notebook", back_populates="space", cascade="all, delete-orphan")
     file_locks = relationship("FileLock", back_populates="space", cascade="all, delete-orphan")
     collaboration_sessions = relationship("CollaborationSession", back_populates="space", cascade="all, delete-orphan")
+    incoming_links = relationship("SpaceLink", foreign_keys="SpaceLink.target_space_id", back_populates="target_space", cascade="all, delete-orphan")
+    outgoing_links = relationship("SpaceLink", foreign_keys="SpaceLink.source_space_id", back_populates="source_space", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_hfm_spaces_pool", "storage_pool_id"),
@@ -481,6 +650,12 @@ class Space(Base):
             "description": self.description,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            # A-2: 新增配额字段
+            "quota_type": self.quota_type,
+            "committed_bytes": self.committed_bytes,
+            "actual_used_bytes": self.actual_used_bytes,
+            "quota_source": self.quota_source,
+            "source_id": self.source_id,
         }
         if include_members:
             data["members"] = [m.to_dict() for m in self.members]
@@ -502,6 +677,7 @@ class SpaceMember(Base):
     quota_bytes = Column(BigInteger, default=0)  # 0 = use space default
     joined_at = Column(DateTime, default=datetime.utcnow)
     status = Column(String(16), default="active")  # "active" | "pending" | "rejected"
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     space = relationship("Space", back_populates="members")
@@ -522,6 +698,7 @@ class SpaceMember(Base):
             "quota_bytes": self.quota_bytes,
             "joined_at": self.joined_at.isoformat() if self.joined_at else None,
             "status": self.status,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
@@ -607,6 +784,42 @@ class SpaceRequest(Base):
             "reviewer_name": self.reviewer.username if self.reviewer else None,
             "reviewed_at": self.reviewed_at.isoformat() if self.reviewed_at else None,
             "review_note": self.review_note,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class SpaceLink(Base):
+    """Cross-space collaboration link - share space with another space/team"""
+    __tablename__ = "hfm_space_links"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    source_space_id = Column(String(36), ForeignKey("hfm_spaces.id"), nullable=False)
+    target_space_id = Column(String(36), ForeignKey("hfm_spaces.id"), nullable=False)
+    created_by = Column(String(36), ForeignKey("hfm_users.id"), nullable=False)
+    permission = Column(String(16), default="read")  # "read" | "write" | "admin"
+    status = Column(String(16), default="active")  # "active" | "revoked"
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    source_space = relationship("Space", foreign_keys=[source_space_id], back_populates="outgoing_links")
+    target_space = relationship("Space", foreign_keys=[target_space_id], back_populates="incoming_links")
+    creator = relationship("User", foreign_keys=[created_by])
+
+    __table_args__ = (
+        Index("ix_hfm_space_links_unique", "source_space_id", "target_space_id", unique=True),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "source_space_id": self.source_space_id,
+            "source_space_name": self.source_space.name if self.source_space else None,
+            "target_space_id": self.target_space_id,
+            "target_space_name": self.target_space.name if self.target_space else None,
+            "created_by": self.created_by,
+            "creator_name": self.creator.username if self.creator else None,
+            "permission": self.permission,
+            "status": self.status,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -888,6 +1101,62 @@ class FileLock(Base):
         return datetime.utcnow() > self.expires_at
 
 
+class FileUpload(Base):
+    """上传跟踪表 - 记录正在进行的文件上传，用于配额预留计算"""
+    __tablename__ = "hfm_file_uploads"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid_lib.uuid4()))
+    space_id = Column(String(36), ForeignKey("hfm_spaces.id"), nullable=False)
+    user_id = Column(String(36), ForeignKey("hfm_users.id"), nullable=False)
+    file_name = Column(String(255), nullable=False)
+    file_size = Column(BigInteger, nullable=False)  # 预计总大小
+    uploaded_bytes = Column(BigInteger, default=0)  # 已上传大小
+    status = Column(String(16), default="uploading")  # "uploading" | "completed" | "failed" | "cancelled"
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+    error_message = Column(Text, nullable=True)
+
+    # Relationships
+    space = relationship("Space")
+    user = relationship("User", foreign_keys=[user_id])
+
+    __table_args__ = (
+        Index("ix_hfm_file_uploads_space_status", "space_id", "status"),
+        Index("ix_hfm_file_uploads_user", "user_id"),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "space_id": self.space_id,
+            "user_id": self.user_id,
+            "file_name": self.file_name,
+            "file_size": self.file_size,
+            "uploaded_bytes": self.uploaded_bytes,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "error_message": self.error_message,
+        }
+
+    def is_active(self) -> bool:
+        return self.status == "uploading"
+
+    def mark_completed(self):
+        self.status = "completed"
+        self.completed_at = datetime.utcnow()
+
+    def mark_failed(self, error: str = None):
+        self.status = "failed"
+        self.completed_at = datetime.utcnow()
+        self.error_message = error
+
+    def cancel(self):
+        self.status = "cancelled"
+        self.completed_at = datetime.utcnow()
+
+
 class CollaborationSession(Base):
     """协作会话 - 跨 Space 临时授权"""
     __tablename__ = "hfm_collaboration_sessions"
@@ -941,15 +1210,20 @@ TeamCredential = SpaceCredential
 def init_db(database_url: str = "sqlite:///hfm.db") -> sessionmaker:
     """Initialize database and return session factory"""
     if "sqlite" in database_url:
-        # NullPool creates a fresh connection for each request, avoiding the
-        # "database is locked" error under concurrent async load.
+        # Use StaticPool for in-memory SQLite so all connections share the same database.
+        # NullPool creates a fresh connection per request, which means in-memory SQLite
+        # each connection sees a different database instance.
+        if ":memory:" in database_url:
+            pool_class = StaticPool
+        else:
+            pool_class = NullPool
         engine = create_engine(
             database_url,
             connect_args={
                 "check_same_thread": False,
                 "timeout": 30,
             },
-            poolclass=NullPool,
+            poolclass=pool_class,
         )
     else:
         engine = create_engine(database_url)
@@ -958,15 +1232,71 @@ def init_db(database_url: str = "sqlite:///hfm.db") -> sessionmaker:
 
 
 def create_builtin_roles(session: Session) -> None:
-    """Create system roles with default permission rules if they don't exist"""
+    """Create system roles with default permission rules and RBAC permissions.
+
+    Also creates default Permission and RolePermission entries based on role priority.
+    """
+    # Define default resource-action permissions for each role
+    ROLE_PERMISSIONS = {
+        "admin": [
+            {"resource": "file", "action": "create"},
+            {"resource": "file", "action": "read"},
+            {"resource": "file", "action": "update"},
+            {"resource": "file", "action": "delete"},
+            {"resource": "space", "action": "create"},
+            {"resource": "space", "action": "read"},
+            {"resource": "space", "action": "update"},
+            {"resource": "space", "action": "delete"},
+            {"resource": "space", "action": "manage"},
+            {"resource": "team", "action": "create"},
+            {"resource": "team", "action": "read"},
+            {"resource": "team", "action": "update"},
+            {"resource": "team", "action": "delete"},
+            {"resource": "team", "action": "manage"},
+            {"resource": "user", "action": "create"},
+            {"resource": "user", "action": "read"},
+            {"resource": "user", "action": "update"},
+            {"resource": "user", "action": "delete"},
+            {"resource": "role", "action": "create"},
+            {"resource": "role", "action": "read"},
+            {"resource": "role", "action": "update"},
+            {"resource": "role", "action": "delete"},
+            {"resource": "storage_pool", "action": "create"},
+            {"resource": "storage_pool", "action": "read"},
+            {"resource": "storage_pool", "action": "update"},
+            {"resource": "storage_pool", "action": "delete"},
+        ],
+        "editor": [
+            {"resource": "file", "action": "create"},
+            {"resource": "file", "action": "read"},
+            {"resource": "file", "action": "update"},
+            {"resource": "file", "action": "delete"},
+            {"resource": "space", "action": "read"},
+            {"resource": "space", "action": "update"},
+        ],
+        "viewer": [
+            {"resource": "file", "action": "read"},
+            {"resource": "space", "action": "read"},
+        ],
+        "guest": [
+            {"resource": "file", "action": "read"},
+        ],
+    }
+
     for name, data in Role.BUILTIN_ROLES.items():
         existing = session.query(Role).filter(Role.name == name).first()
         if not existing:
-            role = Role(name=name, description=data.get("description"), is_system=data.get("is_system", True))
+            role = Role(
+                name=name,
+                description=data.get("description"),
+                is_system=data.get("is_system", True),
+                account_type=data.get("account_type", "member"),
+                priority=data.get("priority", 0),
+            )
             session.add(role)
-            session.flush()  # get the role.id before committing
+            session.flush()
 
-            # Seed default permission rules
+            # Seed default permission rules (legacy path-based)
             for rule_data in data.get("_default_rules", []):
                 rule = PermissionRule(
                     role_id=role.id,
@@ -976,7 +1306,29 @@ def create_builtin_roles(session: Session) -> None:
                     created_by=None,
                 )
                 session.add(rule)
+
+            # Seed RBAC permissions (new resource-action format)
+            for perm_data in ROLE_PERMISSIONS.get(name, []):
+                # Check if permission already exists
+                perm = session.query(Permission).filter(
+                    Permission.resource == perm_data["resource"],
+                    Permission.action == perm_data["action"],
+                ).first()
+                if not perm:
+                    perm = Permission(
+                        resource=perm_data["resource"],
+                        action=perm_data["action"],
+                        description=f"{perm_data['action']} {perm_data['resource']}",
+                    )
+                    session.add(perm)
+                    session.flush()
+                # Link role to permission
+                role_perm = RolePermission(role_id=role.id, permission_id=perm.id)
+                session.add(role_perm)
         else:
+            # Update priority if role exists but priority is not set
+            if existing.priority is None or existing.priority == 0:
+                existing.priority = data.get("priority", 0)
             # Role exists — seed default rules if the role has none
             if not existing.permission_rules:
                 for rule_data in data.get("_default_rules", []):
@@ -988,6 +1340,23 @@ def create_builtin_roles(session: Session) -> None:
                         created_by=None,
                     )
                     session.add(rule)
+            # Seed RBAC permissions if none exist
+            if not existing.role_permissions:
+                for perm_data in ROLE_PERMISSIONS.get(name, []):
+                    perm = session.query(Permission).filter(
+                        Permission.resource == perm_data["resource"],
+                        Permission.action == perm_data["action"],
+                    ).first()
+                    if not perm:
+                        perm = Permission(
+                            resource=perm_data["resource"],
+                            action=perm_data["action"],
+                            description=f"{perm_data['action']} {perm_data['resource']}",
+                        )
+                        session.add(perm)
+                        session.flush()
+                    role_perm = RolePermission(role_id=existing.id, permission_id=perm.id)
+                    session.add(role_perm)
     session.commit()
 
 
@@ -997,3 +1366,245 @@ def get_default_storage_path() -> str:
     from pathlib import Path
     hermes_home = os.environ.get("HERMES_HOME", str(Path.home() / ".hermes"))
     return str(Path(hermes_home) / "file_manager" / "storage")
+
+
+# =============================================================================
+# Approval Models (T4: 审批数据模型)
+# =============================================================================
+
+class ApprovalType(str, PyEnum):
+    """审批类型枚举"""
+    JOIN_TEAM = "join_team"
+    PRIVATE_SPACE = "private_space"
+    QUOTA_EXTEND = "quota_extend"
+    STORAGE_POOL = "storage_pool"
+    TEAM_CREATE = "team_create"
+
+
+class RequestStatus(str, PyEnum):
+    """申请状态枚举"""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+
+
+class ApprovalRequest(Base):
+    """资源申请单"""
+    __tablename__ = "hfm_approval_requests"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid_lib.uuid4()))
+    type = Column(String(32), nullable=False)  # ApprovalType
+    applicant_id = Column(String(36), ForeignKey("hfm_users.id"), nullable=False)
+    target_id = Column(String(36), nullable=True)  # 目标资源ID
+    status = Column(String(16), default=RequestStatus.PENDING.value)
+    reason = Column(Text, nullable=True)
+    params = Column(JSON, nullable=True)  # 申请参数
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    approved_by = Column(String(36), ForeignKey("hfm_users.id"), nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    approval_comment = Column(Text, nullable=True)
+
+    __table_args__ = (
+        Index("ix_approval_request_applicant", "applicant_id"),
+        Index("ix_approval_request_status", "status"),
+        Index("ix_approval_request_type_status", "type", "status"),
+    )
+
+    # Relationships
+    applicant = relationship("User", foreign_keys=[applicant_id])
+    approver = relationship("User", foreign_keys=[approved_by])
+    records = relationship("ApprovalRecord", back_populates="request", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "type": self.type,
+            "applicant_id": self.applicant_id,
+            "target_id": self.target_id,
+            "status": self.status,
+            "reason": self.reason,
+            "params": self.params,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "approved_by": self.approved_by,
+            "approved_at": self.approved_at.isoformat() if self.approved_at else None,
+            "approval_comment": self.approval_comment,
+        }
+
+
+class ApprovalRecord(Base):
+    """审批记录"""
+    __tablename__ = "hfm_approval_records"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid_lib.uuid4()))
+    request_id = Column(String(36), ForeignKey("hfm_approval_requests.id"), nullable=False)
+    approver_id = Column(String(36), ForeignKey("hfm_users.id"), nullable=False)
+    decision = Column(String(16), nullable=False)  # approve/reject
+    comment = Column(Text, nullable=True)
+    decided_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_approval_record_request", "request_id"),
+        Index("ix_approval_record_approver", "approver_id"),
+    )
+
+    # Relationships
+    request = relationship("ApprovalRequest", back_populates="records")
+    approver = relationship("User", foreign_keys=[approver_id])
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "request_id": self.request_id,
+            "approver_id": self.approver_id,
+            "decision": self.decision,
+            "comment": self.comment,
+            "decided_at": self.decided_at.isoformat() if self.decided_at else None,
+        }
+
+
+# =============================================================================
+# Commercial Models (T10: 商业化配额预留)
+# =============================================================================
+
+class ResourcePlan(Base):
+    """资源计划（商业化）- 订阅套餐定义"""
+    __tablename__ = "hfm_resource_plans"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid_lib.uuid4()))
+    name = Column(String(64), nullable=False)
+    description = Column(Text, nullable=True)
+    storage_bytes = Column(BigInteger, nullable=False)  # 存储字节数
+    team_count = Column(Integer, nullable=False)  # 团队数量限制
+    member_count = Column(Integer, nullable=False)  # 成员数量限制
+    price_monthly = Column(Numeric(10, 2), nullable=False)
+    price_yearly = Column(Numeric(10, 2), nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    subscriptions = relationship("Subscription", back_populates="plan")
+
+    __table_args__ = (
+        Index("ix_resource_plans_active", "is_active"),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "storage_bytes": self.storage_bytes,
+            "storage_gb": self.storage_bytes / (1024**3),
+            "team_count": self.team_count,
+            "member_count": self.member_count,
+            "price_monthly": float(self.price_monthly),
+            "price_yearly": float(self.price_yearly),
+            "is_active": self.is_active,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class Subscription(Base):
+    """用户订阅 - 记录用户的套餐订阅状态"""
+    __tablename__ = "hfm_subscriptions"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid_lib.uuid4()))
+    user_id = Column(String(36), ForeignKey("hfm_users.id"), nullable=False)
+    plan_id = Column(String(36), ForeignKey("hfm_resource_plans.id"), nullable=False)
+    status = Column(String(16), default="active")  # "active", "cancelled", "expired"
+    started_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+    billing_cycle = Column(String(16), default="monthly")  # "monthly", "yearly"
+    auto_renew = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    plan = relationship("ResourcePlan", back_populates="subscriptions")
+
+    __table_args__ = (
+        Index("ix_subscriptions_user", "user_id"),
+        Index("ix_subscriptions_status", "status"),
+        Index("ix_subscriptions_expires", "expires_at"),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "plan_id": self.plan_id,
+            "plan_name": self.plan.name if self.plan else None,
+            "status": self.status,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "billing_cycle": self.billing_cycle,
+            "auto_renew": self.auto_renew,
+        }
+
+    def is_expired(self) -> bool:
+        return datetime.utcnow() > self.expires_at
+
+    def is_active(self) -> bool:
+        return self.status == "active" and not self.is_expired()
+
+
+# A-3: 新增 QuotaTransfer 模型
+class QuotaTransfer(Base):
+    """配额调配记录"""
+    __tablename__ = "hfm_quota_transfers"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid_lib.uuid4()))
+    from_space_id = Column(String(36), ForeignKey("hfm_spaces.id"), nullable=False)
+    to_space_id = Column(String(36), ForeignKey("hfm_spaces.id"), nullable=False)
+    transfer_bytes = Column(BigInteger, nullable=False)
+    reason = Column(Text, nullable=True)
+    requested_by = Column(String(36), ForeignKey("hfm_users.id"), nullable=False)
+    approved_by = Column(String(36), ForeignKey("hfm_users.id"), nullable=True)
+    status = Column(String(16), default="pending")  # pending | approved | rejected | expired | cancelled
+    rejection_reason = Column(Text, nullable=True)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    from_space = relationship("Space", foreign_keys=[from_space_id])
+    to_space = relationship("Space", foreign_keys=[to_space_id])
+    requester = relationship("User", foreign_keys=[requested_by])
+    approver = relationship("User", foreign_keys=[approved_by])
+
+    __table_args__ = (
+        Index("ix_quota_transfers_from_space", "from_space_id"),
+        Index("ix_quota_transfers_to_space", "to_space_id"),
+        Index("ix_quota_transfers_status", "status"),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "from_space_id": self.from_space_id,
+            "from_space_name": self.from_space.name if self.from_space else None,
+            "to_space_id": self.to_space_id,
+            "to_space_name": self.to_space.name if self.to_space else None,
+            "transfer_bytes": self.transfer_bytes,
+            "reason": self.reason,
+            "requested_by": self.requested_by,
+            "requester_name": self.requester.username if self.requester else None,
+            "approved_by": self.approved_by,
+            "approver_name": self.approver.username if self.approver else None,
+            "status": self.status,
+            "rejection_reason": self.rejection_reason,
+            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+    def is_expired(self) -> bool:
+        return datetime.utcnow() > self.expires_at
+
+    def can_approve(self) -> bool:
+        return self.status == "pending" and not self.is_expired()

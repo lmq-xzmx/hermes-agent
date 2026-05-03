@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 from ..engine.models import (
-    StoragePool, Space, SpaceMember, SpaceCredential, SpaceRequest, User, Base
+    StoragePool, Space, SpaceMember, SpaceCredential, SpaceRequest, SpaceLink, User, Base
 )
 from ..engine.storage import StorageEngine
 
@@ -168,7 +168,7 @@ class SpaceService:
         finally:
             session.close()
 
-    def check_quota_for_write(self, space_id: str, additional_bytes: int) -> None:
+    def check_quota_for_write(self, space_id: str, additional_bytes: int, user_id: str = None) -> None:
         """
         检查 Space 配额是否足够接受本次写入。
         写入前调用。如果配额不足，抛出 QuotaExceeded。
@@ -182,8 +182,41 @@ class SpaceService:
         used = space.used_bytes
         max_bytes = space.max_bytes
 
+        # 计算预留配额（正在上传的文件）
+        from sqlalchemy import func
+        from file_manager.engine.models import FileUpload
+        session = self._db()
+        try:
+            reserved_bytes = (
+                session.query(func.sum(FileUpload.file_size))
+                .filter(
+                    FileUpload.space_id == space_id,
+                    FileUpload.status == "uploading"
+                )
+                .scalar()
+            ) or 0
+        finally:
+            session.close()
+
+        available = max_bytes - used - reserved_bytes
+
         # 检查是否有足够空间
-        if used + additional_bytes > max_bytes:
+        if additional_bytes > available:
+            # 集成生命周期约束检查
+            from file_manager.engine import get_lifecycle_engine
+            engine = get_lifecycle_engine()
+            context = {
+                "space_id": space_id,
+                "space_name": space.name,
+                "user_id": user_id,
+                "sufficient_quota": False,
+                "current_usage": used,
+                "max_bytes": max_bytes,
+                "additional_bytes": additional_bytes,
+            }
+            engine.raise_if_violated("check_quota", context)
+
+            # 如果约束检查通过（不太可能），抛出原异常
             raise QuotaExceeded(
                 space_name=space.name,
                 max_bytes=max_bytes,
@@ -204,6 +237,100 @@ class SpaceService:
             return  # 无需警告
 
         self._publish_quota_warning(space, usage_ratio, event_type)
+
+    def check_quota_for_write_with_lock(
+        self, space_id: str, additional_bytes: int, user_id: str = None
+    ) -> None:
+        """
+        检查 Space 配额是否足够接受本次写入（使用 SELECT FOR UPDATE 悲观锁）。
+
+        在事务中使用 SELECT ... FOR UPDATE 锁定 Space 记录，防止并发超卖。
+        同时考虑 FileUpload 表中正在上传的文件预留配额。
+
+        T5: REQ-M2-017 配额超卖防护核心实现
+
+        Args:
+            space_id: 空间 ID
+            additional_bytes: 本次写入需要的字节数
+            user_id: 用户 ID（用于生命周期约束检查）
+
+        Raises:
+            QuotaExceeded: 配额不足时抛出
+        """
+        session = self._db()
+        try:
+            # Step 1: 使用 SELECT FOR UPDATE 锁定 Space 记录（PostgreSQL/MySQL支持）
+            # SQLite 使用 SERIALIZABLE 隔离级别，无需 FOR UPDATE
+            query = session.query(Space).filter(Space.id == space_id)
+            if "sqlite" not in str(session.get_bind().url):
+                query = query.with_for_update(nowait=False)
+            space = query.first()
+
+            if not space:
+                raise SpaceNotFound(f"空间 {space_id} 不存在")
+
+            if space.max_bytes == 0:
+                return  # 无限制
+
+            # Step 2: 计算预留配额（正在上传的文件总大小）
+            from tools.file_manager.engine.models import FileUpload
+            from sqlalchemy import func
+            reserved_bytes = (
+                session.query(func.sum(FileUpload.file_size))
+                .filter(
+                    FileUpload.space_id == space_id,
+                    FileUpload.status == "uploading"
+                )
+                .scalar() or 0
+            )
+
+            # Step 3: 计算可用配额
+            used = space.used_bytes
+            max_bytes = space.max_bytes
+            available = max_bytes - used - reserved_bytes
+
+            # Step 4: 检查配额是否足够
+            if additional_bytes > available:
+                # 集成生命周期约束检查
+                from file_manager.engine import get_lifecycle_engine
+                engine = get_lifecycle_engine()
+                context = {
+                    "space_id": space_id,
+                    "space_name": space.name,
+                    "user_id": user_id,
+                    "sufficient_quota": False,
+                    "current_usage": used,
+                    "reserved_bytes": reserved_bytes,
+                    "max_bytes": max_bytes,
+                    "additional_bytes": additional_bytes,
+                    "quota_reserved": reserved_bytes,
+                }
+                engine.raise_if_violated("check_quota", context)
+
+                # 如果约束检查通过（不太可能），抛出原异常
+                raise QuotaExceeded(
+                    space_name=space.name,
+                    max_bytes=max_bytes,
+                    used_bytes=used + reserved_bytes,
+                    required=additional_bytes,
+                )
+
+            # Step 5: 检查是否触发警告阈值（基于实际使用量，不含预留）
+            usage_ratio = used / max_bytes if max_bytes > 0 else 0
+
+            if usage_ratio >= 1.0:
+                event_type = QUOTA_WARNING_100
+            elif usage_ratio >= 0.9:
+                event_type = QUOTA_WARNING_90
+            elif usage_ratio >= 0.8:
+                event_type = QUOTA_WARNING_80
+            else:
+                return  # 无需警告
+
+            self._publish_quota_warning(space, usage_ratio, event_type)
+
+        finally:
+            session.close()
 
     def _publish_quota_warning(
         self, space: Space, usage_ratio: float, event_type: str
@@ -494,6 +621,20 @@ class SpaceService:
                 raise SpaceNotFound()
             if space.owner_id != requesting_user_id:
                 raise NotSpaceOwner("只有空间所有者可以修改空间设置")
+
+            # 如果修改配额，检查 update_quota 约束
+            if max_bytes is not None and max_bytes != space.max_bytes:
+                from file_manager.engine import get_lifecycle_engine
+                engine = get_lifecycle_engine()
+                context = {
+                    "space_id": space_id,
+                    "user_id": requesting_user_id,
+                    "is_owner": space.owner_id == requesting_user_id,
+                    "old_quota": space.max_bytes,
+                    "new_quota": max_bytes,
+                }
+                engine.raise_if_violated("update_quota", context)
+
             if name is not None:
                 space.name = name
             if max_bytes is not None:
@@ -508,6 +649,21 @@ class SpaceService:
 
     def delete_space(self, space_id: str, requesting_user_id: str) -> None:
         """Delete a space and all its files. Only owner can do this."""
+        from file_manager.engine import get_lifecycle_engine
+
+        engine = get_lifecycle_engine()
+        member_count = engine.get_member_count_for_space(space_id, self._db)
+        pending_request_count = engine.get_pending_request_count(space_id, self._db)
+
+        # Check constraint: space must have no members and no pending requests
+        context = {
+            "space_id": space_id,
+            "member_count": member_count,
+            "pending_request_count": pending_request_count
+        }
+        engine.raise_if_violated("delete_space", context)
+
+        # If constraint passes, proceed with deletion
         session = self._db()
         try:
             space = session.query(Space).filter(Space.id == space_id).first()
@@ -552,13 +708,25 @@ class SpaceService:
         role: str = "member",
     ) -> Dict[str, Any]:
         """Add a user to a space. Only owner can do this."""
+        from file_manager.engine import get_lifecycle_engine
+
+        engine = get_lifecycle_engine()
+        is_owner = engine.check_owner(requesting_user_id, space_id, self._db)
+        was_recently_removed = engine.check_recently_removed_member(user_id, space_id, self._db)
+
+        # Check constraint: only owner can invite
+        context = {
+            "space_id": space_id,
+            "is_owner": is_owner,
+            "was_recently_removed": was_recently_removed
+        }
+        engine.raise_if_violated("invite_member", context)
+
         session = self._db()
         try:
             space = session.query(Space).filter(Space.id == space_id).first()
             if not space:
                 raise SpaceNotFound()
-            if space.owner_id != requesting_user_id:
-                raise NotSpaceOwner("只有空间所有者可以添加成员")
 
             # Check if already a member
             existing = session.query(SpaceMember).filter(
@@ -706,6 +874,10 @@ class SpaceService:
 
     def join_via_credential(self, token: str, user_id: str) -> Dict[str, Any]:
         """Use an invite token to join a space."""
+        from file_manager.engine import get_lifecycle_engine
+
+        engine = get_lifecycle_engine()
+
         session = self._db()
         try:
             cred = session.query(SpaceCredential).filter(
@@ -714,7 +886,9 @@ class SpaceService:
             if not cred:
                 raise CredentialNotFound("凭证不存在")
             if not cred.is_valid():
-                raise CredentialExpired("凭证已过期或已达使用次数上限")
+                # Use lifecycle engine for consistent error handling
+                context = {"is_valid": False}
+                engine.raise_if_violated("join_team", context)
 
             space = cred.space
             if not space.is_active:
@@ -777,8 +951,17 @@ class SpaceService:
                 SpaceMember.user_id == requester_id,
                 SpaceMember.status == "active"
             ).first()
-            if not membership:
-                raise SpaceRequestInvalid("只有空间成员才能申请私有子空间")
+
+            # 集成生命周期约束检查 (create_private_space)
+            from file_manager.engine import get_lifecycle_engine
+            engine = get_lifecycle_engine()
+            context = {
+                "space_id": space_id,
+                "user_id": requester_id,
+                "is_team_member": membership is not None,
+                "parent_space_name": parent.name,
+            }
+            engine.raise_if_violated("create_private_space", context)
 
             # Check if user already has a pending request
             existing = session.query(SpaceRequest).filter(
@@ -927,6 +1110,115 @@ class SpaceService:
             session.commit()
 
             return req.to_dict()
+        finally:
+            session.close()
+
+    # -------------------------------------------------------------------------
+    # Space Links (Cross-team Collaboration)
+    # -------------------------------------------------------------------------
+
+    def list_space_links(self, space_id: str) -> List[Dict[str, Any]]:
+        """List all cross-space links for a space (both incoming and outgoing)."""
+        session = self._db()
+        try:
+            links = session.query(SpaceLink).filter(
+                (SpaceLink.source_space_id == space_id) | (SpaceLink.target_space_id == space_id),
+                SpaceLink.status == "active"
+            ).all()
+            return [link.to_dict() for link in links]
+        finally:
+            session.close()
+
+    def create_space_link(
+        self,
+        source_space_id: str,
+        target_space_id: str,
+        created_by: str,
+        permission: str = "read",
+    ) -> Dict[str, Any]:
+        """Create a cross-space collaboration link. Source space owner only."""
+        from file_manager.engine import get_lifecycle_engine
+        engine = get_lifecycle_engine()
+
+        if source_space_id == target_space_id:
+            raise ValueError("不能链接到自身")
+
+        session = self._db()
+        try:
+            # Check ownership
+            is_owner = engine.check_owner(created_by, source_space_id, session)
+            if not is_owner:
+                raise NotSpaceOwner("只有源空间所有者可以创建链接")
+
+            # Check if link already exists
+            existing = session.query(SpaceLink).filter(
+                SpaceLink.source_space_id == source_space_id,
+                SpaceLink.target_space_id == target_space_id,
+                SpaceLink.status == "active"
+            ).first()
+            if existing:
+                raise ValueError("链接已存在")
+
+            link = SpaceLink(
+                source_space_id=source_space_id,
+                target_space_id=target_space_id,
+                created_by=created_by,
+                permission=permission,
+            )
+            session.add(link)
+            session.commit()
+            return link.to_dict()
+        finally:
+            session.close()
+
+    def revoke_space_link(self, link_id: str, requesting_user_id: str) -> None:
+        """Revoke a cross-space link."""
+        from file_manager.engine import get_lifecycle_engine
+        engine = get_lifecycle_engine()
+
+        session = self._db()
+        try:
+            link = session.query(SpaceLink).filter(SpaceLink.id == link_id).first()
+            if not link:
+                raise ValueError("链接不存在")
+
+            # Check ownership
+            is_owner = engine.check_owner(requesting_user_id, link.source_space_id, session)
+            if not is_owner:
+                raise NotSpaceOwner("只有源空间所有者可以撤销链接")
+
+            link.status = "revoked"
+            session.commit()
+        finally:
+            session.close()
+
+    def get_cross_team_spaces(self, user_id: str) -> List[Dict[str, Any]]:
+        """Get all spaces accessible through cross-team collaboration links."""
+        session = self._db()
+        try:
+            # Find spaces where user is a member
+            member_space_ids = [m.space_id for m in session.query(SpaceMember).filter(
+                SpaceMember.user_id == user_id,
+                SpaceMember.status == "active"
+            ).all()]
+
+            # Find cross-team links from those spaces
+            links = session.query(SpaceLink).filter(
+                SpaceLink.source_space_id.in_(member_space_ids),
+                SpaceLink.status == "active"
+            ).all()
+
+            cross_team_spaces = []
+            for link in links:
+                target_space = session.query(Space).filter(Space.id == link.target_space_id).first()
+                if target_space and target_space.status == "active":
+                    cross_team_spaces.append({
+                        "link": link.to_dict(),
+                        "space": target_space.to_dict(),
+                        "permission": link.permission,
+                    })
+
+            return cross_team_spaces
         finally:
             session.close()
 

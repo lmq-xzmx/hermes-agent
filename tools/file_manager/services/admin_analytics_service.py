@@ -432,3 +432,100 @@ class AdminAnalyticsService:
             }
         finally:
             session.close()
+
+    # -------------------------------------------------------------------------
+    # Alerts (Standalone)
+    # -------------------------------------------------------------------------
+
+    def get_alerts(self, ctx: PermissionContext) -> Dict[str, Any]:
+        """Get all quota alerts for admin dashboard."""
+        self._require_admin(ctx)
+
+        session = self.db_factory()
+        try:
+            now = datetime.utcnow()
+
+            # Get all spaces with quota that have warnings
+            spaces_with_quota = session.query(Space).filter(
+                Space.space_type == "team",
+                Space.status == "active",
+                Space.max_bytes > 0
+            ).all()
+
+            alerts = []
+            for space in spaces_with_quota:
+                usage_rate = space.used_bytes / space.max_bytes
+                if usage_rate > 0.8:
+                    alerts.append({
+                        "id": f"alert_{space.id}",
+                        "type": "quota_warning",
+                        "level": "critical" if usage_rate > 0.9 else "warning",
+                        "resource": "Space",
+                        "resource_id": space.id,
+                        "resource_name": space.name,
+                        "usage_rate": round(usage_rate, 4),
+                        "message": f"空间配额使用率超过{int(usage_rate * 100)}%",
+                        "created_at": now,
+                    })
+
+            # Sort by usage_rate descending (most critical first)
+            alerts.sort(key=lambda x: x["usage_rate"], reverse=True)
+
+            return {"alerts": alerts, "total": len(alerts)}
+        finally:
+            session.close()
+
+    # -------------------------------------------------------------------------
+    # Teams by Pool (for lifecycle constraint: delete_pool)
+    # -------------------------------------------------------------------------
+
+    def get_teams_by_pool(self, ctx: PermissionContext, pool_id: str) -> Dict[str, Any]:
+        """Get all teams using a specific storage pool. Used for STORAGE_POOL_IN_USE constraint."""
+        self._require_admin(ctx)
+
+        session = self.db_factory()
+        try:
+            pool = session.query(StoragePool).filter(StoragePool.id == pool_id).first()
+            if not pool:
+                return {"pool_id": pool_id, "pool_name": None, "teams": [], "total": 0}
+
+            # Get all team spaces (space_type == "team") using this pool
+            teams = session.query(Space).filter(
+                Space.storage_pool_id == pool_id,
+                Space.space_type == "team",
+                Space.status == "active"
+            ).all()
+
+            team_list = []
+            for team in teams:
+                # Get member count
+                member_count = session.query(SpaceMember).filter(
+                    SpaceMember.space_id == team.id
+                ).count()
+
+                # Get owner info
+                owner = None
+                if team.owner_id:
+                    owner_user = session.query(User).filter(User.id == team.owner_id).first()
+                    if owner_user:
+                        owner = {"user_id": owner_user.id, "username": owner_user.username}
+
+                team_list.append({
+                    "team_id": team.id,
+                    "team_name": team.name,
+                    "member_count": member_count,
+                    "storage_used": team.used_bytes,
+                    "storage_quota": team.max_bytes,
+                    "usage_rate": round(team.used_bytes / team.max_bytes, 4) if team.max_bytes > 0 else 0,
+                    "owner": owner,
+                    "created_at": team.created_at,
+                })
+
+            return {
+                "pool_id": pool_id,
+                "pool_name": pool.name,
+                "teams": team_list,
+                "total": len(team_list),
+            }
+        finally:
+            session.close()
