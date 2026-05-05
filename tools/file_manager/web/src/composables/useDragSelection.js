@@ -58,10 +58,16 @@ export function useDragSelection(containerRef, options = {}) {
 
   /**
    * 开始框选
+   * 注意：只在点击空白区域时开始框选，点击文件行时由外层 onRowClick 处理
    */
   function startSelection(event) {
     if (!enabled) return
     if (event.button !== 0) return // 只响应左键
+
+    // 如果点击的是文件行元素，不开始框选（让 onRowClick 处理）
+    if (event.target.closest('[data-path]')) {
+      return
+    }
 
     isSelecting.value = true
     dragStart.x = event.clientX

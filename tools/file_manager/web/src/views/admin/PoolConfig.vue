@@ -251,8 +251,8 @@ onMounted(() => {
 
 <style scoped>
 .pool-config {
-  padding: 20px;
-  background: var(--bg-primary, #0d1117);
+  padding: var(--spacing-lg);
+  background: var(--color-surface-tile-1);
   min-height: 100vh;
 }
 
@@ -260,76 +260,80 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-xl);
 }
 
 .config-header h1 {
-  font-size: 24px;
-  color: var(--text-primary, #e6edf3);
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--color-body-on-dark);
   margin: 0;
+  letter-spacing: -0.374px;
 }
 
 .config-content {
   display: grid;
-  gap: 24px;
+  gap: var(--spacing-lg);
 }
 
 .capacity-overview {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: var(--spacing-md);
 }
 
 .stat-card {
-  background: var(--bg-secondary, #161b22);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 8px;
-  padding: 16px;
+  background: var(--color-surface-tile-2);
+  border: 1px solid var(--color-border-on-dark);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
 }
 
 .stat-label {
   font-size: 12px;
-  color: var(--text-secondary, #8b949e);
-  margin-bottom: 8px;
+  color: var(--color-body-muted);
+  margin-bottom: var(--space-xs);
 }
 
 .stat-value {
+  font-family: var(--font-display);
   font-size: 24px;
   font-weight: 600;
-  color: var(--text-primary, #e6edf3);
+  color: var(--color-body-on-dark);
 }
 
 .capacity-bar-section {
-  background: var(--bg-secondary, #161b22);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 8px;
-  padding: 16px;
+  background: var(--color-surface-tile-2);
+  border: 1px solid var(--color-border-on-dark);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
 }
 
 .capacity-bar {
   height: 24px;
-  background: var(--bg-tertiary, #21262d);
-  border-radius: 12px;
+  background: var(--color-surface-tile-3);
+  border-radius: var(--radius-full);
   overflow: hidden;
   display: flex;
 }
 
 .bar-used {
-  background: #238636;
+  background: var(--color-success);
   transition: width 0.3s ease;
 }
 
 .bar-reserved {
-  background: #9e6a03;
+  background: var(--color-warning);
   transition: width 0.3s ease;
 }
 
 .bar-legend {
   display: flex;
-  gap: 24px;
-  margin-top: 12px;
+  gap: var(--spacing-lg);
+  margin-top: var(--space-sm);
   font-size: 12px;
-  color: var(--text-secondary, #8b949e);
+  color: var(--color-body-muted);
 }
 
 .legend-item {
@@ -344,27 +348,29 @@ onMounted(() => {
   border-radius: 50%;
 }
 
-.dot.used { background: #238636; }
-.dot.reserved { background: #9e6a03; }
-.dot.available { background: var(--bg-tertiary, #21262d); }
+.dot.used { background: var(--color-success); }
+.dot.reserved { background: var(--color-warning); }
+.dot.available { background: var(--color-surface-tile-3); }
 
 .config-form {
-  background: var(--bg-secondary, #161b22);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 8px;
-  padding: 24px;
+  background: var(--color-surface-tile-2);
+  border: 1px solid var(--color-border-on-dark);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
 }
 
 .config-form h2 {
-  font-size: 16px;
-  color: var(--text-primary, #e6edf3);
-  margin: 0 0 20px 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-body-on-dark);
+  margin: 0 0 var(--spacing-lg) 0;
 }
 
 .form-row {
   display: flex;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: var(--spacing-md);
+  margin-bottom: var(--space-md);
 }
 
 .form-group {
@@ -374,8 +380,8 @@ onMounted(() => {
 .form-group label {
   display: block;
   font-size: 14px;
-  color: var(--text-secondary, #8b949e);
-  margin-bottom: 8px;
+  color: var(--color-body-muted);
+  margin-bottom: var(--space-xs);
 }
 
 .input-with-unit {
@@ -385,35 +391,39 @@ onMounted(() => {
 
 .input-with-unit input {
   flex: 1;
-  padding: 8px 12px;
-  background: var(--bg-tertiary, #21262d);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 6px 0 0 6px;
-  color: var(--text-primary, #e6edf3);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-surface-tile-3);
+  border: 1px solid var(--color-border-on-dark);
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  color: var(--color-body-on-dark);
+  font-family: var(--font-family-text);
+  font-size: 17px;
 }
 
 .input-with-unit .unit {
-  padding: 8px 12px;
-  background: var(--bg-tertiary, #21262d);
-  border: 1px solid var(--border, #30363d);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-surface-tile-3);
+  border: 1px solid var(--color-border-on-dark);
   border-left: none;
-  border-radius: 0 6px 6px 0;
-  color: var(--text-secondary, #8b949e);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--color-body-muted);
 }
 
 select {
   width: 100%;
-  padding: 8px 12px;
-  background: var(--bg-tertiary, #21262d);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 6px;
-  color: var(--text-primary, #e6edf3);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-surface-tile-3);
+  border: 1px solid var(--color-border-on-dark);
+  border-radius: var(--radius-sm);
+  color: var(--color-body-on-dark);
+  font-family: var(--font-family-text);
+  font-size: 17px;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
   cursor: pointer;
 }
 
@@ -424,21 +434,23 @@ select {
 
 .form-actions {
   display: flex;
-  gap: 12px;
-  margin-top: 24px;
+  gap: var(--space-sm);
+  margin-top: var(--spacing-lg);
 }
 
 .health-gauge-section {
-  background: var(--bg-secondary, #161b22);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 8px;
-  padding: 24px;
+  background: var(--color-surface-tile-2);
+  border: 1px solid var(--color-border-on-dark);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
 }
 
 .health-gauge-section h2 {
-  font-size: 16px;
-  color: var(--text-primary, #e6edf3);
-  margin: 0 0 20px 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-body-on-dark);
+  margin: 0 0 var(--spacing-lg) 0;
 }
 
 .health-gauge {
@@ -457,20 +469,20 @@ select {
 }
 
 .gauge-bg {
-  stroke: var(--bg-tertiary, #21262d);
+  stroke: var(--color-surface-tile-3);
 }
 
 .gauge-fill {
-  stroke: #238636;
+  stroke: var(--color-success);
   transition: stroke-dashoffset 0.5s ease;
 }
 
 .gauge-circle.warning .gauge-fill {
-  stroke: #9e6a03;
+  stroke: var(--color-warning);
 }
 
 .gauge-circle.critical .gauge-fill {
-  stroke: #da3633;
+  stroke: var(--color-danger);
 }
 
 .gauge-text {
@@ -482,43 +494,57 @@ select {
 }
 
 .gauge-value {
+  font-family: var(--font-display);
   font-size: 32px;
   font-weight: 600;
-  color: var(--text-primary, #e6edf3);
+  color: var(--color-body-on-dark);
 }
 
 .gauge-label {
   font-size: 14px;
-  color: var(--text-secondary, #8b949e);
+  color: var(--color-body-muted);
 }
 
 .loading {
   text-align: center;
   padding: 40px;
-  color: var(--text-secondary, #8b949e);
+  color: var(--color-body-muted);
 }
 
 .btn {
-  padding: 8px 16px;
-  border-radius: 6px;
+  padding: 11px 22px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
   border: none;
-  font-size: 14px;
+  font-family: var(--font-family-text);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  transition: var(--transition-active);
 }
 
 .btn-primary {
-  background: #238636;
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.btn-primary:active {
+  transform: scale(0.95);
 }
 
 .btn-primary:disabled {
-  background: #21262d;
-  color: #484f58;
+  background: var(--color-surface-tile-2);
+  color: var(--color-body-muted);
 }
 
 .btn-secondary {
-  background: var(--bg-secondary, #161b22);
-  color: var(--text-primary, #e6edf3);
-  border: 1px solid var(--border, #30363d);
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+
+.btn-secondary:active {
+  transform: scale(0.95);
 }
 </style>

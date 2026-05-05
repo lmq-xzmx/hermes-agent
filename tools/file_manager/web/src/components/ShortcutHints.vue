@@ -226,14 +226,14 @@ export default {
   display: flex;
   justify-content: space-between;
   padding: var(--spacing-sm) var(--spacing-lg);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--color-border-on-dark);
   font-size: 12px;
   color: var(--color-body-muted);
 }
 
 .shortcut-hints-footer kbd {
   background: var(--color-surface-tile-1);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border-on-dark);
   border-radius: var(--radius-xs);
   padding: 1px 5px;
   font-size: 11px;
