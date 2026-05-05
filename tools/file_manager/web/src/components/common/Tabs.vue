@@ -46,7 +46,7 @@ function selectTab(value) {
 
 .tabs-list {
   display: flex;
-  gap: 4px;
+  gap: var(--spacing-xxs);
   border-bottom: 1px solid var(--color-hairline);
   padding-bottom: 0;
 }
@@ -54,12 +54,12 @@ function selectTab(value) {
 .tab-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-lg);
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: 15px;
   color: var(--color-ink-muted-48);
   cursor: pointer;
