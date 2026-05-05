@@ -69,6 +69,7 @@ defineExpose({ isOpen, toggle, close })
   padding: var(--spacing-xs);
   z-index: var(--z-dropdown);
   box-shadow: var(--shadow-lg);
+  font-family: var(--font-family-text);
 }
 
 .dropdown-menu-left {
