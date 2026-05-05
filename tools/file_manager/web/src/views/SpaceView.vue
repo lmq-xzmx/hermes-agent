@@ -640,18 +640,20 @@ function formatDate(str) {
 }
 
 .space-type-badge.team {
-  background: rgba(0, 102, 204, 0.1);
+  background: var(--color-primary-subtle);
   color: var(--color-primary);
 }
 
 .space-type-badge.private {
+  /* TODO: --color-warning-subtle 使用 0.15 alpha，原始值为 0.1 */
   background: rgba(255, 149, 0, 0.1);
-  color: var(--color-warning, #ff9500);
+  color: var(--color-warning);
 }
 
 .space-type-badge.root {
+  /* TODO: 紫色 (142, 82, 255) 无对应 token，保留原值 */
   background: rgba(142, 82, 255, 0.1);
-  color: #8a52ff;
+  color: var(--color-primary);
 }
 
 .space-card-meta {
@@ -817,6 +819,7 @@ function formatDate(str) {
 }
 
 .badge-inactive {
+  /* TODO: 灰色半透明无对应 token，保留原值 */
   background: rgba(120, 120, 128, 0.15);
   color: var(--color-ink-muted-48);
 }
@@ -894,7 +897,7 @@ function formatDate(str) {
 .activity-item {
   padding: var(--space-sm) var(--space-md);
   background: var(--color-canvas-parchment);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
 }
 
 .activity-action {
@@ -954,7 +957,7 @@ function formatDate(str) {
   padding: 12px 16px;
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   font: var(--text-body);
   color: var(--color-ink);
   box-sizing: border-box;
@@ -970,7 +973,7 @@ function formatDate(str) {
   padding: 8px 12px;
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   font: var(--text-body);
   color: var(--color-ink);
   box-sizing: border-box;
@@ -981,7 +984,7 @@ function formatDate(str) {
   padding: 12px 16px;
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   font: var(--text-body);
   color: var(--color-ink);
   resize: vertical;
@@ -1037,7 +1040,7 @@ function formatDate(str) {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1117,7 +1120,7 @@ function formatDate(str) {
   gap: var(--space-sm);
   padding: var(--space-sm);
   background: var(--color-canvas-parchment);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
 }
 
 .step-num {
@@ -1143,7 +1146,7 @@ function formatDate(str) {
 
 .step-confirm {
   font: var(--text-caption);
-  color: var(--color-warning, #ff9500);
+  color: var(--color-warning);
 }
 
 /* Notebook Content */
@@ -1151,7 +1154,7 @@ function formatDate(str) {
   margin-top: var(--space-md);
   padding: var(--space-md);
   background: var(--color-canvas-parchment);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   max-height: 300px;
   overflow: auto;
 }
