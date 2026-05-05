@@ -43,20 +43,20 @@ function close() {
 <style scoped>
 .toast {
   position: fixed;
-  bottom: 24px;
+  bottom: var(--spacing-lg);
   left: 50%;
   transform: translateX(-50%);
-  padding: 14px 20px;
+  padding: var(--spacing-md) var(--spacing-lg);
   background: var(--color-ink);
   color: var(--color-body-on-dark);
   border-radius: var(--radius-pill);
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: 15px;
   line-height: 1.4;
   z-index: var(--z-toast);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--spacing-sm);
   max-width: calc(100vw - 48px);
   box-shadow: var(--shadow-lg);
 }
@@ -91,8 +91,8 @@ function close() {
   border: none;
   color: inherit;
   cursor: pointer;
-  padding: 4px;
-  margin-left: 4px;
+  padding: var(--spacing-xs);
+  margin-left: var(--spacing-xs);
   opacity: 0.7;
   transition: opacity 0.15s ease;
   display: flex;
