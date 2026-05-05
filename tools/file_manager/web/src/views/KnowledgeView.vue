@@ -239,7 +239,6 @@ const serviceStatusClass = computed(() => ({
 
 .section-title {
   font: var(--text-display-lg);
-  font-weight: 600;
   color: var(--color-ink);
   margin: 0;
 }
@@ -263,7 +262,7 @@ const serviceStatusClass = computed(() => ({
 .card-utility {
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--rounded-lg);
+  border-radius: var(--radius-lg);
   padding: var(--space-lg);
 }
 
@@ -328,8 +327,7 @@ const serviceStatusClass = computed(() => ({
 }
 
 .status-value {
-  font: var(--text-body);
-  font-weight: 600;
+  font: var(--text-body-strong);
 }
 
 .status-value.running { color: var(--color-success); }
@@ -345,8 +343,7 @@ const serviceStatusClass = computed(() => ({
 
 .form-label {
   display: block;
-  font: var(--text-caption);
-  font-weight: 600;
+  font: var(--text-caption-strong);
   color: var(--color-ink);
   margin-bottom: var(--space-xxs);
 }
@@ -365,8 +362,8 @@ const serviceStatusClass = computed(() => ({
 }
 
 .apple-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
 }
 
 .apple-input.full-width {
@@ -398,8 +395,8 @@ const serviceStatusClass = computed(() => ({
 }
 
 .apple-select:focus {
-  outline: none;
   outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
   border-color: transparent;
 }
 
@@ -455,9 +452,8 @@ const serviceStatusClass = computed(() => ({
 }
 
 .search-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-hover);
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
 }
 
 .search-input::placeholder {

@@ -607,11 +607,7 @@ function formatDate(str) {
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
   cursor: pointer;
-  transition: border-color 0.2s, transform 0.1s ease, box-shadow 0.2s ease;
-}
-
-.space-card:hover {
-  border-color: var(--color-primary);
+  transition: border-color 0.2s, transform 0.1s ease;
 }
 
 .space-card:hover {
@@ -810,10 +806,9 @@ function formatDate(str) {
 /* Badge */
 .badge {
   display: inline-block;
-  padding: 4px 12px;
+  padding: var(--spacing-xxs) var(--spacing-sm);
   border-radius: var(--radius-pill);
-  font: var(--text-caption);
-  font-weight: 600;
+  font: var(--text-caption-strong);
 }
 
 .badge-active {

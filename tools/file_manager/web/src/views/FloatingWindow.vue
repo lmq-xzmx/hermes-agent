@@ -342,8 +342,8 @@ function formatSize(bytes) {
 
 .apple-select:focus,
 .apple-input:focus {
-  outline: none;
   outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
   border-color: transparent;
 }
 

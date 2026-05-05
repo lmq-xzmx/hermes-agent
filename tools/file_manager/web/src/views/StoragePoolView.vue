@@ -335,7 +335,7 @@ function formatSize(bytes) {
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--space-xl);
-  max-width: 1440px;
+  max-width: var(--content-max-width-universal);
   margin-left: auto;
   margin-right: auto;
 }
@@ -377,14 +377,14 @@ function formatSize(bytes) {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: var(--space-lg);
-  max-width: 1440px;
+  max-width: var(--content-max-width-universal);
   margin: 0 auto;
 }
 
 .pool-card {
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--rounded-lg);
+  border-radius: var(--radius-lg);
   padding: var(--space-lg);
 }
 
@@ -416,9 +416,8 @@ function formatSize(bytes) {
   display: inline-flex;
   align-items: center;
   padding: var(--spacing-xxs) var(--spacing-sm);
-  border-radius: var(--rounded-pill);
-  font: var(--text-caption);
-  font-weight: 600;
+  border-radius: var(--radius-pill);
+  font: var(--text-caption-strong);
 }
 
 .badge.active {
@@ -452,8 +451,7 @@ function formatSize(bytes) {
 }
 
 .stat-value {
-  font: var(--text-caption);
-  font-weight: 600;
+  font: var(--text-caption-strong);
   color: var(--color-ink);
 }
 
@@ -623,10 +621,10 @@ function formatSize(bytes) {
 .apple-input,
 .apple-select,
 .apple-textarea {
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-sm) 20px;
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   color: var(--color-ink);
   font: var(--text-body);
   transition: border-color 0.2s;
@@ -637,8 +635,9 @@ function formatSize(bytes) {
 .apple-input:focus,
 .apple-select:focus,
 .apple-textarea:focus {
-  outline: none;
-  border-color: var(--color-primary);
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+  border-color: transparent;
 }
 
 .apple-textarea {

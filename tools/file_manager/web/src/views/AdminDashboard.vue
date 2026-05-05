@@ -114,7 +114,7 @@ onUnmounted(() => {
 }
 
 .header-content {
-  max-width: 1440px;
+  max-width: var(--content-max-width-universal);
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
@@ -123,13 +123,12 @@ onUnmounted(() => {
 
 .dashboard-header h1 {
   font: var(--text-display-md);
-  font-weight: 600;
   margin: 0;
 }
 
 /* Main Content */
 .dashboard-content {
-  max-width: 1440px;
+  max-width: var(--content-max-width-universal);
   margin: 0 auto;
   padding: var(--space-xl);
 }

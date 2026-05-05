@@ -255,8 +255,8 @@ function formatDate(str) {
 }
 
 .apple-select:focus {
-  outline: none;
   outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
   border-color: transparent;
 }
 
