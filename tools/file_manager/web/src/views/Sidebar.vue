@@ -58,24 +58,32 @@ function onLogout() {
 </script>
 
 <style scoped>
-/* Apple Global Navigation Bar */
+/* Apple Global Navigation Bar - Strict DESIGN.md Compliance */
 .global-nav {
   width: var(--sidebar-width);
   min-width: var(--sidebar-width);
   background: var(--color-surface-black);
+  color: var(--color-on-dark);
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100vh; /* Sidebar 全屏高度 */
+  font-family: var(--font-family-text);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.0;
+  letter-spacing: -0.12px;
 }
 
-/* Brand - 44px Apple nav bar height */
+/* Brand - Apple global-nav height 44px */
 .nav-brand {
   height: 44px;
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  justify-content: center;
+  gap: var(--spacing-xs);
   padding: 0 var(--spacing-md);
   border-bottom: 1px solid var(--color-border-on-dark);
+  flex-shrink: 0;
 }
 
 .brand-icon {
@@ -83,14 +91,14 @@ function onLogout() {
 }
 
 .brand-text {
-  font-family: var(--font-family-display);
-  font-size: 14px;
-  font-weight: 600;
+  font-family: var(--font-family-text);
+  font-size: var(--text-nav-link);
+  font-weight: 400;
   color: var(--color-body-on-dark);
   letter-spacing: -0.12px;
 }
 
-/* Navigation Items */
+/* Navigation Items - 44px touch target per DESIGN.md */
 .nav-items {
   flex: 1;
   padding: var(--spacing-xs) 0;
@@ -102,9 +110,10 @@ function onLogout() {
 .nav-item {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  justify-content: center;
+  gap: var(--spacing-xs);
   padding: 0 var(--spacing-md);
-  height: 28px;
+  height: 44px;
   background: transparent;
   border: none;
   border-radius: var(--radius-md);
@@ -115,10 +124,9 @@ function onLogout() {
   font-weight: 400;
   line-height: 1.0;
   letter-spacing: -0.12px;
-  text-align: left;
-  width: 100%;
+  text-align: center;
   transition: background-color 0.15s ease, color 0.15s ease;
-  margin: var(--spacing-xxs) var(--spacing-sm);
+  margin: 2px var(--spacing-xs);
 }
 
 .nav-item:hover {
@@ -132,30 +140,34 @@ function onLogout() {
 }
 
 .nav-icon {
-  font-size: 14px;
-  width: 20px;
+  font-size: 18px;
+  width: 24px;
   text-align: center;
   flex-shrink: 0;
 }
 
 .nav-label {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 10px;
+  letter-spacing: -0.08px;
+  line-height: 1.2;
 }
 
-/* Footer */
+/* Footer - Apple nav-link style */
 .nav-footer {
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm);
   border-top: 1px solid var(--color-border-on-dark);
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .user-section {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-sm);
+  justify-content: center;
+  gap: var(--spacing-xxs);
 }
 
 .user-avatar {
@@ -165,30 +177,31 @@ function onLogout() {
 
 .user-name {
   font-family: var(--font-family-text);
-  font-size: 12px;
+  font-size: var(--text-nav-link);
   font-weight: 400;
   letter-spacing: -0.12px;
   color: var(--color-body-muted);
+  max-width: 80px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .btn-logout {
-  width: 100%;
   padding: var(--spacing-xxs) var(--spacing-sm);
   background: transparent;
   border: none;
   border-radius: var(--radius-md);
   color: var(--color-body-muted);
   font-family: var(--font-family-text);
-  font-size: 12px;
+  font-size: var(--text-nav-link);
   font-weight: 400;
   line-height: 1.0;
   letter-spacing: -0.12px;
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
   text-align: center;
+  margin-left: var(--spacing-xs);
 }
 
 .btn-logout:hover {
