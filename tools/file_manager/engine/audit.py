@@ -339,7 +339,7 @@ def audit_context(
 ):
     """
     Context manager for automatic audit logging
-    
+
     Usage:
         with audit_context(logger, AuditAction.FILE_READ, user, "/path/to/file"):
             # do something
@@ -367,3 +367,107 @@ def audit_context(
             ip_address=ip_address,
             extra=metadata,
         )
+
+
+from functools import wraps
+from typing import Callable, Optional, Dict, Any
+
+
+def AuditLog(
+    action: "AuditAction | str",
+    path_fn: Optional[Callable[..., str]] = None,
+    extra_fn: Optional[Callable[..., Dict[str, Any]]] = None,
+):
+    """
+    Decorator for automatic audit logging of service methods.
+
+    Usage:
+        @AuditLog(AuditAction.FILE_DELETE)
+        def delete_file(self, path: str, user_ctx):
+            ...
+
+        @AuditLog(AuditAction.FILE_READ, path_fn=lambda self, path, **kw: path)
+        def read_file(self, path: str, user_ctx):
+            ...
+
+    The decorated method's first argument must be a PermissionContext-like object
+    with user_id and username attributes, or pass a custom extractor.
+    """
+    # Resolve action string to enum if needed
+    if isinstance(action, str):
+        from .models import AuditAction as AA
+        try:
+            action = AA(action)
+        except ValueError:
+            action = AA.OTHER
+
+    def decorator(fn: Callable) -> Callable:
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            # Extract logger from self
+            logger = getattr(args[0], '_audit_logger', None) if args else None
+            if not logger:
+                return fn(*args, **kwargs)
+
+            # Extract user from first arg (self or user_ctx)
+            user = None
+            user_id = None
+            if args:
+                first = args[0]
+                # If first arg has user_id, it's a user context
+                if hasattr(first, 'user_id'):
+                    user_id = getattr(first, 'user_id', None)
+                    if user_id and hasattr(args[0].__class__, '__user_cls__'):
+                        # Try to get User object from db
+                        pass
+                # If first arg is self with a db_factory
+                elif hasattr(first, 'db_factory'):
+                    # Extract user from kwargs or args
+                    user_ctx = kwargs.get('user_ctx') or (args[1] if len(args) > 1 else None)
+                    if user_ctx and hasattr(user_ctx, 'user_id'):
+                        user_id = user_ctx.user_id
+
+            # Extract path
+            path = None
+            if path_fn:
+                try:
+                    path = path_fn(*args, **kwargs)
+                except Exception:
+                    pass
+
+            # Extract extra data
+            extra = None
+            if extra_fn:
+                try:
+                    extra = extra_fn(*args, **kwargs)
+                except Exception:
+                    pass
+
+            # Execute with error tracking
+            result = "error"
+            error_info = None
+            try:
+                return fn(*args, **kwargs)
+            except PermissionError as e:
+                result = "denied"
+                error_info = {"error": str(e)}
+                raise
+            except Exception as e:
+                result = "error"
+                error_info = {"error": str(e)}
+                raise
+            finally:
+                # Only log if we found a logger and user
+                if logger and user_id:
+                    try:
+                        logger.log(
+                            action=action,
+                            result=result,
+                            path=path,
+                            extra=error_info or extra,
+                        )
+                    except Exception:
+                        pass  # Don't let audit logging failures break the operation
+
+        return wrapper
+    return decorator

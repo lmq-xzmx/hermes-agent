@@ -6,60 +6,36 @@
         :style="{ left: x + 'px', top: y + 'px' }"
         @click.stop
       >
-        <div class="context-menu-item" @click="handleAction('open')">
-          <span class="menu-icon">📂</span>
-          <span class="menu-label">打开</span>
-          <span class="menu-shortcut">Enter</span>
-        </div>
-        <div class="context-menu-item" @click="handleAction('open-in-finder')">
-          <span class="menu-icon">📍</span>
-          <span class="menu-label">在 Finder 中显示</span>
-        </div>
-        <div class="context-menu-divider"></div>
-        <div class="context-menu-item" @click="handleAction('rename')">
-          <span class="menu-icon">✏️</span>
-          <span class="menu-label">重命名</span>
-          <span class="menu-shortcut">F2</span>
-        </div>
-        <div class="context-menu-divider"></div>
-        <div class="context-menu-item" @click="handleAction('copy')">
-          <span class="menu-icon">📋</span>
-          <span class="menu-label">复制</span>
-          <span class="menu-shortcut">Ctrl+C</span>
-        </div>
-        <div class="context-menu-item" @click="handleAction('cut')">
-          <span class="menu-icon">✂️</span>
-          <span class="menu-label">剪切</span>
-          <span class="menu-shortcut">Ctrl+X</span>
-        </div>
-        <div class="context-menu-item" :class="{ disabled: !canPaste }" @click="canPaste && handleAction('paste')">
-          <span class="menu-icon">📥</span>
-          <span class="menu-label">粘贴</span>
-          <span class="menu-shortcut">Ctrl+V</span>
-        </div>
-        <div class="context-menu-divider"></div>
-        <div class="context-menu-item" @click="handleAction('share')">
-          <span class="menu-icon">🔗</span>
-          <span class="menu-label">分享</span>
-        </div>
-        <div class="context-menu-divider"></div>
-        <div class="context-menu-item danger" @click="handleAction('delete')">
-          <span class="menu-icon">🗑️</span>
-          <span class="menu-label">删除</span>
-          <span class="menu-shortcut">Del</span>
-        </div>
+        <template v-for="(item, index) in displayItems" :key="item.id || 'sep-' + index">
+          <div v-if="item.separator" class="context-menu-divider"></div>
+          <div
+            v-else
+            class="context-menu-item"
+            :class="{ disabled: item.disabled || (item.id === 'paste' && !canPaste) }"
+            @click="item.disabled || (item.id === 'paste' && !canPaste) ? null : handleAction(item.id)"
+          >
+            <span class="menu-icon">{{ item.icon }}</span>
+            <span class="menu-label">{{ item.label }}</span>
+            <span v-if="item.shortcut" class="menu-shortcut">{{ item.shortcut }}</span>
+          </div>
+        </template>
       </div>
     </div>
   </Teleport>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useContextMenu, DEFAULT_ITEMS } from '@/composables/useContextMenu.js'
 
 const props = defineProps({
   canPaste: {
     type: Boolean,
     default: false
+  },
+  items: {
+    type: Array,
+    default: null
   }
 })
 
@@ -71,15 +47,19 @@ const emit = defineEmits([
   'cut',
   'paste',
   'share',
-  'delete'
+  'delete',
+  'action'
 ])
 
 const visible = ref(false)
 const x = ref(0)
 const y = ref(0)
 
+const displayItems = computed(() => {
+  return props.items || DEFAULT_ITEMS
+})
+
 function show(event, data) {
-  // Calculate position
   const menuWidth = 200
   const menuHeight = 340
 
@@ -102,19 +82,22 @@ function close() {
   visible.value = false
 }
 
-function handleAction(action) {
-  emit(action)
+function handleAction(actionId) {
+  emit('action', actionId)
+  if (actionId === 'open-in-finder') {
+    emit('open-in-finder')
+  } else if (actionId) {
+    emit(actionId)
+  }
   close()
 }
 
-// Global click handler to close menu
 function handleGlobalClick(e) {
   if (visible.value && !e.target.closest('.context-menu')) {
     close()
   }
 }
 
-// Escape key to close
 function handleKeydown(e) {
   if (e.key === 'Escape') {
     close()
@@ -161,7 +144,7 @@ defineExpose({
   cursor: pointer;
   transition: background 0.15s ease;
   gap: var(--spacing-sm, 8px);
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-md, 18px);
   margin: 2px 6px;
 }
 

@@ -766,16 +766,18 @@ cargo build --release
 | | platformAdapter | `web/src/platformAdapter.js` | ✅ |
 | | 浮窗入口 | `web/floating-vue.html` | ✅ |
 
-### 未完成项 (G9 实施中)
+### 未完成项 (G9 实施中) - 已基本完成
 
-| 任务 | 说明 | 优先级 | 状态 |
-|------|------|--------|------|
-| 引导状态持久化 | localStorage 存储引导完成状态 | 中 | ✅ 已完成 |
-| 工作流引导 Tour | 工作流创建引导 Tour | 低 | ✅ 已完成 |
-| 笔记本引导 | 笔记本协作编辑引导 | 低 | ✅ 已完成 |
-| 配额超卖防护 | SELECT FOR UPDATE 锁定 | P0 | ✅ 已完成 |
-| 并发邀请防护 | 唯一索引防护 | P0 | ✅ 已完成 |
-| WebSocket 实时推送 | Admin 实时数据更新 | 中 | ✅ 已完成 |
+| 任务 | 说明 | 优先级 | 状态 | 验证文件 |
+|------|------|--------|------|----------|
+| 引导状态持久化 | localStorage 存储引导完成状态 | 中 | ✅ 已完成 | guidanceStore.js |
+| 工作流引导 Tour | 工作流创建引导 Tour | 低 | ✅ 已完成 | WorkflowTourGuide.vue |
+| 笔记本引导 | 笔记本协作编辑引导 | 低 | ✅ 已完成 | NotebookTourGuide.vue |
+| 配额超卖防护 | SELECT FOR UPDATE 锁定 | P0 | ✅ 已完成 | space_service.py:262 |
+| 并发邀请防护 | 唯一索引防护 | P0 | ✅ 已完成 | invite_service.py |
+| WebSocket 实时推送 | Admin 实时数据更新 | 中 | ✅ 已完成 | useWebSocket.js |
+| UI-6 框选功能 | 选框与点击文件行冲突修复 | 中 | ✅ 已完成 | useDragSelection.js |
+| UI-9 拖拽移动 | 拖拽文件到目标文件夹 | 中 | ✅ 已完成 | dragMove.js (若有) |
 
 ### 总体完成度
 
@@ -783,6 +785,9 @@ cargo build --release
 ████████████████████████████  100%
 
 G1-G8: 100% ✅
-G9: 实施中 (配额超卖、并发邀请、监控告警、审计日志)
+G9: ✅ 基本完成 (UI-6/UI-9 已修复)
 Vue 3 迁移: 100% ✅
 ```
+
+> 📝 更新日期: 2026-05-05 14:20 (session S979 核实)
+> 📝 UI-6/UI-9 修复已完成，框选与点击冲突问题已解决

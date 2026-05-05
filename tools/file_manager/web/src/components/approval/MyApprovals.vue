@@ -151,18 +151,18 @@ onMounted(() => {
 
 .status-filter {
   padding: 6px 12px;
-  background: #374151;
-  color: #e5e7eb;
-  border: 1px solid #4b5563;
-  border-radius: 4px;
+  background: var(--color-surface-tile-2);
+  color: var(--color-body-on-dark);
+  border: 1px solid var(--color-border-on-dark);
+  border-radius: var(--radius-md, 18px);
 }
 
 .btn-refresh {
   padding: 6px 12px;
-  background: #374151;
-  color: white;
+  background: var(--color-surface-tile-2);
+  color: var(--color-body-on-dark);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-md, 18px);
   cursor: pointer;
 }
 
@@ -173,16 +173,16 @@ onMounted(() => {
 
 .error-message {
   padding: 12px;
-  background: #fee2e2;
-  color: #991b1b;
-  border-radius: 4px;
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
+  border-radius: var(--radius-md, 18px);
   margin-bottom: 16px;
 }
 
 .empty-state {
   padding: 32px;
   text-align: center;
-  color: #6b7280;
+  color: var(--color-ink-muted-48);
 }
 
 .request-list {
@@ -192,10 +192,10 @@ onMounted(() => {
 }
 
 .request-card {
-  border: 1px solid #374151;
-  border-radius: 8px;
+  border: 1px solid var(--color-border-on-dark);
+  border-radius: var(--radius-md, 18px);
   padding: 12px;
-  background: #1f2937;
+  background: var(--color-surface-tile-3);
 }
 
 .request-header {
@@ -207,53 +207,53 @@ onMounted(() => {
 
 .approval-type {
   font-weight: 600;
-  color: #f9fafb;
+  color: var(--color-body-on-dark);
 }
 
 .status-badge {
   padding: 2px 8px;
-  border-radius: 12px;
+  border-radius: var(--radius-pill);
   font-size: 12px;
-  color: white;
+  color: var(--color-body-on-dark);
 }
 
 .request-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--spacing-xxs);
 }
 
 .info-row {
   display: flex;
-  gap: 8px;
+  gap: var(--space-xs);
   font-size: 14px;
 }
 
 .info-row .label {
-  color: #9ca3af;
+  color: var(--color-body-muted);
   min-width: 70px;
 }
 
 .info-row .value {
-  color: #e5e7eb;
+  color: var(--color-body-on-dark);
 }
 
 .card-actions {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #374151;
+  border-top: 1px solid var(--color-border-on-dark);
 }
 
 .btn-cancel {
   padding: 6px 12px;
-  background: #6b7280;
-  color: white;
+  background: var(--color-surface-tile-2);
+  color: var(--color-body-on-dark);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-md, 18px);
   cursor: pointer;
 }
 
 .btn-cancel:hover {
-  background: #4b5563;
+  background: var(--color-surface-tile-1);
 }
 </style>

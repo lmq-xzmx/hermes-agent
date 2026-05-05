@@ -1,0 +1,30 @@
+{"ts":"2026-05-04T12:57:38.211Z","cmd":"goto","args":"http://localhost:5173/app.html","origin":"http://localhost:5173/app.html","durationMs":573,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T12:57:40.317Z","cmd":"snapshot","args":"-i","origin":"http://localhost:5173/app.html","durationMs":29,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:00:20.585Z","cmd":"status","args":"","origin":"about:blank","durationMs":4,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:01:47.637Z","cmd":"goto","args":"file:///Applications/Hermes%20File%20Manager.app/Contents/Resources/vue.html","origin":"about:blank","durationMs":14,"status":"error","hasCookies":false,"mode":"launched","error":"Path must be within: /private/tmp, /Users/xzmx/Downloads/my-project/hermes-agent"}
+{"ts":"2026-05-04T23:01:50.026Z","cmd":"console","args":"","origin":"about:blank","durationMs":6,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:03:15.769Z","cmd":"goto","args":"file:///Users/xzmx/Downloads/my-project/hermes-agent/tools/file_manager/web/dist/vue.html","origin":"file:///Users/xzmx/Downloads/my-project/hermes-agent/tools/file_manager/web/dist/vue.html","durationMs":516,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:03:17.995Z","cmd":"console","args":"","origin":"file:///Users/xzmx/Downloads/my-project/hermes-agent/tools/file_manager/web/dist/vue.html","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:04:18.636Z","cmd":"status","args":"","origin":"file:///Users/xzmx/Downloads/my-project/hermes-agent/tools/file_manager/web/dist/vue.html","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:04:34.412Z","cmd":"screenshot","args":"/tmp/hermes-app.png","origin":"file:///Users/xzmx/Downloads/my-project/hermes-agent/tools/file_manager/web/dist/vue.html","durationMs":84,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:06:08.168Z","cmd":"status","args":"","origin":"about:blank","durationMs":3,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:07:00.620Z","cmd":"goto","args":"http://localhost:5173","origin":"http://localhost:5173/login","durationMs":478,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:07:02.757Z","cmd":"console","args":"","origin":"http://localhost:5173/login","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:07:19.099Z","cmd":"goto","args":"http://localhost:5173/login","origin":"http://localhost:5173/login","durationMs":391,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:07:21.308Z","cmd":"snapshot","args":"-i","origin":"http://localhost:5173/login","durationMs":39,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:07:35.852Z","cmd":"fill","args":"@e1 admin","origin":"http://localhost:5173/login","durationMs":49,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:07:35.973Z","cmd":"fill","args":"@e2 admin123","origin":"http://localhost:5173/login","durationMs":14,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:07:36.123Z","cmd":"click","args":"@e5","origin":"http://localhost:5173/login","durationMs":29,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:07:39.358Z","cmd":"snapshot","args":"-D","origin":"http://localhost:5173/login","durationMs":9,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:07:50.475Z","cmd":"console","args":"--errors","origin":"http://localhost:5173/files","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:08:00.057Z","cmd":"url","args":"","origin":"http://localhost:5173/files","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:08:45.834Z","cmd":"snapshot","args":"","origin":"http://localhost:5173/files","durationMs":18,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:48:22.012Z","cmd":"snapshot","args":"-i","origin":"about:blank","durationMs":655,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:49:02.855Z","cmd":"status","args":"","origin":"about:blank","durationMs":4,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:49:39.157Z","cmd":"goto","args":"http://localhost:5173/login","origin":"http://localhost:5173/login","durationMs":6048,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:49:42.277Z","cmd":"snapshot","args":"-i","origin":"http://localhost:5173/login","durationMs":507,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:53:46.687Z","cmd":"fill","args":"@e1 admin","origin":"http://localhost:5173/login","durationMs":1421,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:53:48.308Z","cmd":"fill","args":"@e2 admin123","origin":"http://localhost:5173/login","durationMs":407,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:53:50.900Z","cmd":"click","args":"@e5","origin":"http://localhost:5173/login","durationMs":1659,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-04T23:53:54.556Z","cmd":"url","args":"","origin":"http://localhost:5173/login","durationMs":3,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-05T00:22:10.072Z","cmd":"status","args":"","origin":"about:blank","durationMs":6,"status":"ok","hasCookies":false,"mode":"launched"}

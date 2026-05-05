@@ -18,7 +18,7 @@
           <div class="pool-status" :class="pool.status">
             {{ pool.status === 'critical' ? '⚠ 告警' : pool.status === 'warning' ? '⚡ 注意' : '✓ 正常' }}
           </div>
-          <button class="btn-primary" @click="showPoolTeams(pool)">查看团队</button>
+          <button class="btn-apple-primary btn-sm" @click="showPoolTeams(pool)">查看团队</button>
         </div>
       </div>
     </div>
@@ -248,25 +248,8 @@ watch(() => props.pools, () => {
 }
 
 .pool-status.normal { background: var(--color-primary-subtle); color: var(--color-primary, #0066cc); }
-.pool-status.warning { background: var(--color-warning-subtle); color: var(--color-warning-strong, #9e6a03); }
-.pool-status.critical { background: var(--color-danger-subtle); color: var(--color-danger-strong, #f85149); }
-
-.btn-primary {
-  background: var(--color-primary, #0066cc);
-  color: var(--color-on-primary, #ffffff);
-  font: var(--text-body, 17px/1.47 -0.374px);
-  border-radius: var(--rounded-pill, 9999px);
-  padding: 6px 16px;
-  border: none;
-  cursor: pointer;
-  transition: transform 0.1s ease;
-  width: fit-content;
-  margin-top: var(--space-xs, 8px);
-}
-
-.btn-primary:active {
-  transform: scale(0.95);
-}
+.pool-status.warning { background: var(--color-warning-subtle); color: var(--color-warning-strong); }
+.pool-status.critical { background: var(--color-danger-subtle); color: var(--color-danger); }
 
 /* Modal Styles */
 .modal-overlay {
@@ -332,7 +315,7 @@ watch(() => props.pools, () => {
 }
 
 .modal-error {
-  color: #f85149;
+  color: var(--color-danger);
 }
 
 .modal-teams {
@@ -362,7 +345,7 @@ watch(() => props.pools, () => {
   width: 80px;
   height: 6px;
   background: var(--color-hairline, #e0e0e0);
-  border-radius: 3px;
+  border-radius: var(--radius-xs, 5px);
   display: inline-block;
   vertical-align: middle;
   margin-right: 8px;
@@ -371,6 +354,6 @@ watch(() => props.pools, () => {
 .usage-fill {
   height: 100%;
   background: var(--color-primary, #0066cc);
-  border-radius: 3px;
+  border-radius: var(--radius-xs, 5px);
 }
 </style>

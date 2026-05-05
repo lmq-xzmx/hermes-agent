@@ -56,8 +56,8 @@ watch(() => props.data, renderChart, { deep: true })
 
 <style scoped>
 .operation-trends {
-  background: var(--bg-secondary, #161b22);
-  border-radius: 8px;
+  background: var(--color-surface-tile-1, #272729);
+  border-radius: var(--radius-md, 18px);
   padding: 16px;
   margin-bottom: 16px;
 }
@@ -76,16 +76,16 @@ watch(() => props.data, renderChart, { deep: true })
 
 .days-selector button {
   padding: 4px 12px;
-  background: var(--bg-primary, #0d1117);
-  color: var(--text-secondary, #8b949e);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 4px;
+  background: var(--color-surface-tile-3, #252527);
+  color: var(--color-ink-muted-48, #7a7a7a);
+  border: 1px solid var(--color-hairline, #e0e0e0);
+  border-radius: var(--radius-md, 18px);
   cursor: pointer;
 }
 
 .days-selector button.active {
-  background: var(--accent, #58a6ff);
+  background: var(--color-primary, #0066cc);
   color: white;
-  border-color: var(--accent, #58a6ff);
+  border-color: var(--color-primary, #0066cc);
 }
 </style>

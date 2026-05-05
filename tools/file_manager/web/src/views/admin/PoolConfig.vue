@@ -4,7 +4,7 @@
     <header class="config-header">
       <h1>存储容量管理</h1>
       <div class="header-actions">
-        <button @click="refresh" class="btn btn-secondary">🔄 刷新</button>
+        <button @click="refresh" class="btn-apple-secondary">🔄 刷新</button>
       </div>
     </header>
 
@@ -109,10 +109,10 @@
         </div>
 
         <div class="form-actions">
-          <button @click="saveConfig" class="btn btn-primary" :disabled="saving">
+          <button @click="saveConfig" class="btn-apple-primary" :disabled="saving">
             {{ saving ? '保存中...' : '保存配置' }}
           </button>
-          <button @click="resetConfig" class="btn btn-secondary">重置</button>
+          <button @click="resetConfig" class="btn-apple-secondary">重置</button>
         </div>
       </div>
 
@@ -345,7 +345,7 @@ onMounted(() => {
 .dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
 }
 
 .dot.used { background: var(--color-success); }
@@ -394,7 +394,7 @@ onMounted(() => {
   padding: var(--space-xs) var(--space-sm);
   background: var(--color-surface-tile-3);
   border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  border-radius: var(--radius-md, 18px) 0 0 var(--radius-sm);
   color: var(--color-body-on-dark);
   font-family: var(--font-family-text);
   font-size: 17px;
@@ -414,7 +414,7 @@ select {
   padding: var(--space-xs) var(--space-sm);
   background: var(--color-surface-tile-3);
   border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   color: var(--color-body-on-dark);
   font-family: var(--font-family-text);
   font-size: 17px;
@@ -524,27 +524,4 @@ select {
   transition: var(--transition-active);
 }
 
-.btn-primary {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-.btn-primary:active {
-  transform: scale(0.95);
-}
-
-.btn-primary:disabled {
-  background: var(--color-surface-tile-2);
-  color: var(--color-body-muted);
-}
-
-.btn-secondary {
-  background: transparent;
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
-}
-
-.btn-secondary:active {
-  transform: scale(0.95);
-}
 </style>

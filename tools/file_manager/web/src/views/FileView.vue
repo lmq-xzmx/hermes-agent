@@ -65,10 +65,10 @@
           <h3>暂无工作空间</h3>
           <p class="guidance-desc">您还没有分配任何工作空间，请联系管理员或创建新空间</p>
           <div class="guidance-actions">
-            <button v-if="authStore.userRole === 'admin'" class="btn btn-primary" @click="goToSpaces">
+            <button v-if="authStore.userRole === 'admin'" class="btn-apple-primary" @click="goToSpaces">
               创建工作空间
             </button>
-            <button class="btn btn-secondary" @click="goToSpaces">
+            <button class="btn-apple-secondary" @click="goToSpaces">
               查看所有空间
             </button>
           </div>
@@ -85,13 +85,13 @@
             <button
               v-for="space in spaceStore.spaces.slice(0, 4)"
               :key="space.space_id"
-              class="btn btn-secondary space-quick-select"
+              class="btn-apple-secondary space-quick-select"
               @click="selectSpace(space)"
             >
               {{ space.name || space.space_id }}
             </button>
           </div>
-          <button class="btn btn-link" @click="goToSpaces">查看全部 {{ spaceStore.spaces.length }} 个空间</button>
+          <button class="btn-apple-secondary btn-sm" @click="goToSpaces">查看全部 {{ spaceStore.spaces.length }} 个空间</button>
         </div>
       </template>
 
@@ -205,14 +205,7 @@
     <FileContextMenu
       ref="contextMenuRef"
       :can-paste="canPaste"
-      @open="onContextOpen"
-      @open-in-finder="onContextOpenInFinder"
-      @rename="onContextRename"
-      @copy="onContextCopy"
-      @cut="onContextCut"
-      @paste="onContextPaste"
-      @share="onContextShare"
-      @delete="onContextDelete"
+      @action="onContextAction"
     />
 
     <!-- Preview Modal -->
@@ -471,6 +464,12 @@ const { lastKey } = useKeyboardShortcuts({
   onArrowDown: (e) => {
     e.preventDefault()
     navigateSelection(1)
+  },
+  onPreview: () => {
+    const file = getFirstSelectedFile()
+    if (file && !file.is_directory) {
+      openPreview(file)
+    }
   },
 })
 
@@ -775,6 +774,41 @@ async function renameFile(file) {
 }
 
 // Context menu handlers
+function onContextAction(actionId) {
+  const selectedFile = selectedFiles.value[0]
+  if (!selectedFile) return
+
+  switch (actionId) {
+    case 'open':
+      onContextOpen(selectedFile)
+      break
+    case 'open-in-finder':
+      onContextOpenInFinder(selectedFile)
+      break
+    case 'rename':
+      onContextRename(selectedFile)
+      break
+    case 'copy':
+      onContextCopy(selectedFile)
+      break
+    case 'cut':
+      onContextCut(selectedFile)
+      break
+    case 'paste':
+      onContextPaste(selectedFile)
+      break
+    case 'share':
+      onContextShare(selectedFile)
+      break
+    case 'delete':
+      onContextDelete(selectedFile)
+      break
+    case 'info':
+      showFileInfo(selectedFile)
+      break
+  }
+}
+
 function onContextOpen(file) {
   if (file.is_directory) {
     emit('navigate', { path: file.path })
@@ -959,59 +993,6 @@ function formatDate(str) {
   margin-right: auto;
 }
 
-.btn-apple-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background-color: var(--color-primary, #0066cc);
-  color: var(--color-on-primary, #ffffff);
-  border: none;
-  border-radius: var(--rounded-pill, 9999px);
-  padding: 10px 20px;
-  font: var(--text-body, 17px/1.47 -0.374px);
-  cursor: pointer;
-  transition: transform 0.1s ease;
-  white-space: nowrap;
-}
-
-.btn-apple-primary:active {
-  transform: scale(0.95);
-}
-
-.btn-apple-primary:focus {
-  outline: 2px solid var(--color-primary-focus, #0071e3);
-  outline-offset: 2px;
-}
-
-.btn-apple-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-apple-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background-color: transparent;
-  color: var(--color-primary, #0066cc);
-  border: 1px solid var(--color-primary, #0066cc);
-  border-radius: var(--rounded-pill, 9999px);
-  padding: 10px 20px;
-  font: var(--text-body, 17px/1.47 -0.374px);
-  cursor: pointer;
-  transition: transform 0.1s ease;
-  white-space: nowrap;
-}
-
-.btn-apple-secondary:active {
-  transform: scale(0.95);
-}
-
-.btn-apple-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .toolbar-spacer {
   flex: 1;
   min-width: var(--space-md, 17px);
@@ -1031,7 +1012,7 @@ function formatDate(str) {
   color: var(--color-ink-muted-48, #7a7a7a);
   cursor: pointer;
   padding: 4px 8px;
-  border-radius: var(--rounded-sm, 8px);
+  border-radius: var(--radius-md, 18px);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1061,7 +1042,7 @@ function formatDate(str) {
   justify-content: center;
   background: transparent;
   border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--rounded-sm, 8px);
+  border-radius: var(--radius-md, 18px);
   color: var(--color-ink-muted-48, #7a7a7a);
   cursor: pointer;
   transition: background-color 0.15s, color 0.15s;
@@ -1076,7 +1057,7 @@ function formatDate(str) {
   gap: 0;
   margin-left: var(--space-xs, 8px);
   background: var(--color-canvas-parchment, #f5f5f7);
-  border-radius: var(--rounded-sm, 8px);
+  border-radius: var(--radius-md, 18px);
   padding: 2px;
 }
 
@@ -1101,7 +1082,6 @@ function formatDate(str) {
 .view-toggle-btn.active {
   background-color: var(--color-canvas, #ffffff);
   color: var(--color-ink, #1d1d1f);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* File Grid */
@@ -1247,7 +1227,7 @@ function formatDate(str) {
 .apple-checkbox {
   width: 18px;
   height: 18px;
-  border-radius: 4px;
+  border-radius: var(--radius-md, 18px);
   border: 2px solid var(--color-hairline, #e0e0e0);
   background: var(--color-canvas, #ffffff);
   cursor: pointer;
@@ -1277,7 +1257,7 @@ function formatDate(str) {
 }
 
 .apple-checkbox:focus {
-  outline: 2px solid var(--color-primary-focus, #0071e3);
+  outline: 2px solid var(--color-primary, #0066cc);
   outline-offset: 2px;
 }
 
@@ -1389,7 +1369,7 @@ tr:hover .file-actions {
   color: var(--color-primary, #0066cc);
   cursor: pointer;
   padding: 6px 12px;
-  border-radius: var(--rounded-sm, 8px);
+  border-radius: var(--radius-md, 18px);
   font: var(--text-caption, 14px/1.43 -0.224px);
   transition: background-color 0.15s ease;
 }
@@ -1399,7 +1379,7 @@ tr:hover .file-actions {
 }
 
 .file-actions button.danger {
-  color: #f85149;
+  color: var(--color-danger);
 }
 
 .file-row.drag-over {
@@ -1414,7 +1394,7 @@ tr:hover .file-actions {
   background: rgba(0, 102, 204, 0.1);
   pointer-events: none;
   z-index: 9998;
-  border-radius: 2px;
+  border-radius: var(--radius-xs, 5px);
 }
 
 /* Multi-Selection Action Bar */
@@ -1432,8 +1412,7 @@ tr:hover .file-actions {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--rounded-lg, 18px);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  border-radius: var(--radius-md, 18px);
   z-index: 1000;
   min-width: 400px;
 }
@@ -1463,19 +1442,4 @@ tr:hover .file-actions {
   text-decoration: underline;
   padding: 4px 8px;
 }
-
-.btn-apple-danger {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background-color: #ff3b30;
-  color: var(--color-on-primary, #ffffff);
-  border: none;
-  border-radius: var(--rounded-pill, 9999px);
-  padding: 11px 22px;
-  font: var(--text-body, 17px/1.47 -0.374px);
-  cursor: pointer;
-  transition: transform 0.1s;
-}
-.btn-apple-danger:active { transform: scale(0.95); }
 </style>

@@ -598,6 +598,159 @@
 }
 
 /* ============================================
+ * Button Utilities - 按钮工具类
+ * Apple Design System 按钮样式
+ * 形状: 胶囊 (pill/rounded-pill)
+ * 触摸目标: 44px 最小高度
+ * ============================================ */
+
+/** Primary Button - 主要操作按钮 */
+.btn-apple-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--color-primary);
+  color: var(--color-body-on-dark);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 11px 22px;
+  font-family: var(--font-family-text);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.2s ease;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.btn-apple-primary:hover {
+  background-color: var(--color-primary-focus);
+}
+
+.btn-apple-primary:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.btn-apple-primary:focus {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+}
+
+.btn-apple-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/** Secondary Button - 次要操作按钮 */
+.btn-apple-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  padding: 11px 22px;
+  font-family: var(--font-family-text);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.btn-apple-secondary:hover {
+  background-color: var(--color-primary);
+  color: var(--color-body-on-dark);
+}
+
+.btn-apple-secondary:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.btn-apple-secondary:focus {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+}
+
+.btn-apple-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/** Danger Button - 危险操作按钮 */
+.btn-apple-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--color-danger);
+  color: var(--color-body-on-dark);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 11px 22px;
+  font-family: var(--font-family-text);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.2s ease;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.btn-apple-danger:hover {
+  background-color: #e6352b;
+}
+
+.btn-apple-danger:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.btn-apple-danger:focus {
+  outline: 2px solid var(--color-danger);
+  outline-offset: 2px;
+}
+
+.btn-apple-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/** Button Sizes */
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 14px;
+}
+
+.btn-lg {
+  padding: 14px 28px;
+  font-size: 18px;
+  font-weight: 300;
+}
+
+/** Icon-only Button (44x44 touch target) */
+.btn-icon-only {
+  padding: 11px;
+  width: 44px;
+  height: 44px;
+}
+
+.btn-icon-only.btn-sm {
+  padding: 6px;
+  width: 32px;
+  height: 32px;
+}
+
+/* ============================================
  * Light Mode Support
  * ============================================ */
 

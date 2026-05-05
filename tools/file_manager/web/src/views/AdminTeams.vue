@@ -3,8 +3,8 @@
     <header class="page-header">
       <h1>存储池 {{ poolName ? ` - ${poolName}` : '' }}</h1>
       <div class="header-actions">
-        <button @click="refresh" class="btn btn-secondary">🔄 刷新</button>
-        <button @click="goBack" class="btn btn-secondary">← 返回</button>
+        <button @click="refresh" class="btn-apple-secondary">🔄 刷新</button>
+        <button @click="goBack" class="btn-apple-secondary">← 返回</button>
       </div>
     </header>
 
@@ -126,21 +126,6 @@ onMounted(() => {
   gap: var(--space-sm, 12px);
 }
 
-.btn-secondary {
-  background: var(--color-canvas, #ffffff);
-  color: var(--color-ink, #1d1d1f);
-  font: var(--text-body, 17px/1.47 -0.374px);
-  border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--rounded-pill, 9999px);
-  padding: 8px 20px;
-  cursor: pointer;
-  transition: transform 0.1s ease;
-}
-
-.btn-secondary:active {
-  transform: scale(0.95);
-}
-
 .loading, .empty-state {
   text-align: center;
   padding: var(--space-xl, 32px);
@@ -213,12 +198,12 @@ onMounted(() => {
 }
 
 .usage-badge.warning {
-  background: rgba(210, 153, 34, 0.15);
-  color: #9e6a03;
+  background: var(--color-warning-subtle);
+  color: var(--color-warning-strong);
 }
 
 .usage-badge.critical {
-  background: rgba(248, 81, 73, 0.15);
-  color: #f85149;
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
 }
 </style>

@@ -3,7 +3,7 @@
   <div class="my-space">
     <header class="page-header">
       <h1>我的空间</h1>
-      <button @click="showApplyExpand = true" class="btn btn-primary">
+      <button @click="showApplyExpand = true" class="btn-apple-primary">
         申请扩容
       </button>
     </header>
@@ -93,7 +93,7 @@
               </div>
             </div>
 
-            <button @click="viewTeamDetail(team)" class="btn btn-secondary btn-small">
+            <button @click="viewTeamDetail(team)" class="btn-apple-secondary btn-sm">
               查看详情
             </button>
           </div>
@@ -172,8 +172,8 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button @click="showApplyExpand = false" class="btn btn-secondary">取消</button>
-          <button @click="submitExpandRequest" class="btn btn-primary" :disabled="submitting">
+          <button @click="showApplyExpand = false" class="btn-apple-secondary">取消</button>
+          <button @click="submitExpandRequest" class="btn-apple-primary" :disabled="submitting">
             {{ submitting ? '提交中...' : '提交申请' }}
           </button>
         </div>
@@ -389,7 +389,7 @@ onMounted(async () => {
 
 .quota-value {
   color: var(--color-body-on-dark);
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .usage-progress {
@@ -436,7 +436,7 @@ onMounted(async () => {
 .warning-banner {
   background: var(--color-danger-subtle);
   border: 1px solid var(--color-danger-hover);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   padding: var(--space-md);
   color: var(--color-danger);
   font-size: 14px;
@@ -516,7 +516,7 @@ onMounted(async () => {
 .history-table th {
   font-size: 12px;
   color: var(--color-body-muted);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .history-table td {
@@ -599,7 +599,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   transition: all 0.2s;
 }
 
@@ -629,9 +629,9 @@ onMounted(async () => {
 .current-quota {
   padding: var(--space-sm);
   background: var(--color-surface-tile-3);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   color: var(--color-body-on-dark);
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .quota-options {
@@ -644,7 +644,7 @@ onMounted(async () => {
   padding: 10px 16px;
   background: var(--color-surface-tile-3);
   border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   color: var(--color-body-on-dark);
   cursor: pointer;
   transition: all 0.2s;
@@ -665,7 +665,7 @@ onMounted(async () => {
   padding: var(--space-sm);
   background: var(--color-surface-tile-3);
   border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   color: var(--color-body-on-dark);
   resize: vertical;
   font-family: var(--font-family-text);
@@ -701,27 +701,4 @@ onMounted(async () => {
   transition: var(--transition-active);
 }
 
-.btn-primary {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-.btn-primary:active {
-  transform: scale(0.95);
-}
-
-.btn-primary:disabled {
-  background: var(--color-surface-tile-2);
-  color: var(--color-body-muted);
-}
-
-.btn-secondary {
-  background: transparent;
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
-}
-
-.btn-secondary:active {
-  transform: scale(0.95);
-}
 </style>

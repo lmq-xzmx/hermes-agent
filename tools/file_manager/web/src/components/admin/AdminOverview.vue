@@ -9,7 +9,7 @@
     <!-- Error State -->
     <div v-else-if="store.error" class="error-state">
       <span class="error-message">{{ store.error }}</span>
-      <button class="btn-primary" @click="retry">重试</button>
+      <button class="btn-apple-primary" @click="retry">重试</button>
     </div>
 
     <!-- Data Cards - Apple Store Utility Style -->
@@ -144,7 +144,7 @@ function retry() {
   height: 32px;
   border: 3px solid var(--color-hairline, #e0e0e0);
   border-top-color: var(--color-primary, #0066cc);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   animation: spin 1s linear infinite;
 }
 
@@ -245,11 +245,11 @@ function retry() {
 }
 
 .storage-bar-fill.warning {
-  background: #d29922;
+  background: var(--color-warning);
 }
 
 .storage-bar-fill.critical {
-  background: #f85149;
+  background: var(--color-danger);
 }
 
 /* Responsive */

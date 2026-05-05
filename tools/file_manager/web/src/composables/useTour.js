@@ -192,7 +192,7 @@ export const TourProgress = {
   props: {
     current: { type: Number, default: 0 },
     total: { type: Number, default: 0 },
-    activeColor: { type: String, default: '#238636' }
+    activeColor: { type: String, default: 'var(--color-success, #34c759)' }
   },
   computed: {
     dots() {

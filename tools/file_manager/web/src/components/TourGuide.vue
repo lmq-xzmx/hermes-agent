@@ -313,7 +313,7 @@ onUnmounted(() => {
 .tour-dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: var(--color-border-on-dark-stronger);
   transition: all 0.2s;
 }

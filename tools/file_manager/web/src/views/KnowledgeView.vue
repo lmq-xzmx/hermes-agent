@@ -4,15 +4,15 @@
     <div class="view-header">
       <h2 class="section-title">🧠 知识库</h2>
       <div class="header-actions">
-        <button class="btn-secondary-pill" @click="showSyncSettings">
+        <button class="btn-apple-secondary" @click="showSyncSettings">
           <span class="btn-icon">⚙️</span>
           同步设置
         </button>
-        <button class="btn-secondary-pill" @click="openLlmWiki">
+        <button class="btn-apple-secondary" @click="openLlmWiki">
           <span class="btn-icon">📚</span>
           打开知识库
         </button>
-        <button class="btn-primary" @click="checkLlmWikiStatus">
+        <button class="btn-apple-primary" @click="checkLlmWikiStatus">
           <span class="btn-icon">🔄</span>
           检查状态
         </button>
@@ -67,7 +67,7 @@
             </div>
           </div>
 
-          <button class="btn-primary" @click="syncToLlmWiki">
+          <button class="btn-apple-primary" @click="syncToLlmWiki">
             <span class="btn-icon">🔄</span>
             同步到知识库
           </button>
@@ -88,7 +88,7 @@
                 class="search-input full-width"
               >
             </div>
-            <button class="btn-secondary-pill" @click="searchKnowledge">搜索</button>
+            <button class="btn-apple-secondary" @click="searchKnowledge">搜索</button>
           </div>
 
           <div v-if="searchResults.length > 0" class="search-results">
@@ -302,21 +302,20 @@ const serviceStatusClass = computed(() => ({
 .status-dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   flex-shrink: 0;
 }
 
 .status-dot.running {
-  background: #34c759;
-  box-shadow: 0 0 4px #34c759;
+  background: var(--color-success, #34c759);
 }
 
 .status-dot.stopped {
-  background: #ff3b30;
+  background: var(--color-danger, #ff3b30);
 }
 
 .status-dot.checking {
-  background: #ff9500;
+  background: var(--color-warning, #ff9500);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -334,9 +333,9 @@ const serviceStatusClass = computed(() => ({
   font-weight: 600;
 }
 
-.status-value.running { color: #34c759; }
-.status-value.stopped { color: #ff3b30; }
-.status-value.checking { color: #ff9500; }
+.status-value.running { color: var(--color-success, #34c759); }
+.status-value.stopped { color: var(--color-danger, #ff3b30); }
+.status-value.checking { color: var(--color-warning, #ff9500); }
 .status-value.unknown { color: var(--color-ink-muted-48, #7a7a7a); }
 .status-value.mode { color: var(--color-ink, #1d1d1f); font-weight: 400; }
 
@@ -368,8 +367,7 @@ const serviceStatusClass = computed(() => ({
 
 .apple-input:focus {
   outline: none;
-  border-color: var(--color-primary-focus, #0071e3);
-  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15);
+  border-color: var(--color-primary, #0066cc);
 }
 
 .apple-input.full-width {
@@ -401,8 +399,7 @@ const serviceStatusClass = computed(() => ({
 
 .apple-select:focus {
   outline: none;
-  border-color: var(--color-primary-focus, #0071e3);
-  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15);
+  border-color: var(--color-primary, #0066cc);
 }
 
 .select-arrow {
@@ -415,65 +412,7 @@ const serviceStatusClass = computed(() => ({
   pointer-events: none;
 }
 
-/* Buttons - Apple Pill Style */
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs, 8px);
-  background: var(--color-primary, #0066cc);
-  color: var(--color-on-primary, #ffffff);
-  border: none;
-  border-radius: var(--radius-pill, 9999px);
-  font: var(--text-body, 17px/1.47 -0.374px);
-  padding: 11px 22px;
-  cursor: pointer;
-  transition: transform 0.1s ease, background-color 0.2s ease;
-  height: 44px;
-}
-
-.btn-primary:hover {
-  background: var(--color-primary-focus, #0071e3);
-}
-
-.btn-primary:active {
-  transform: scale(0.95);
-}
-
-.btn-primary:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.3);
-}
-
-.btn-secondary-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs, 8px);
-  background: transparent;
-  color: var(--color-primary, #0066cc);
-  border: 1px solid var(--color-primary, #0066cc);
-  border-radius: var(--radius-pill, 9999px);
-  font: var(--text-body, 17px/1.47 -0.374px);
-  padding: 10px 20px;
-  cursor: pointer;
-  transition: transform 0.1s ease, background-color 0.2s ease;
-  height: 40px;
-}
-
-.btn-secondary-pill:hover {
-  background: rgba(0, 102, 204, 0.08);
-}
-
-.btn-secondary-pill:active {
-  transform: scale(0.95);
-}
-
-.btn-secondary-pill:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15);
-}
-
+/* Button Icon */
 .btn-icon {
   font-size: 14px;
   line-height: 1;
@@ -516,7 +455,7 @@ const serviceStatusClass = computed(() => ({
 
 .search-input:focus {
   outline: none;
-  border-color: var(--color-primary-focus, #0071e3);
+  border-color: var(--color-primary, #0066cc);
   box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15);
 }
 
@@ -551,7 +490,7 @@ const serviceStatusClass = computed(() => ({
   align-items: center;
   justify-content: center;
   background: var(--color-surface-pearl, #fafafc);
-  border-radius: var(--rounded-sm, 8px);
+  border-radius: var(--radius-md, 18px);
 }
 
 .result-content {

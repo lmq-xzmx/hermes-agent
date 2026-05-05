@@ -4,9 +4,9 @@
     <header class="config-header">
       <h1>角色权限配置</h1>
       <div class="header-actions">
-        <button @click="exportTemplate" class="btn btn-secondary">📤 导出模板</button>
-        <button @click="showImport = true" class="btn btn-secondary">📥 导入模板</button>
-        <button @click="showCreateRole = true" class="btn btn-primary">+ 创建角色</button>
+        <button @click="exportTemplate" class="btn-apple-secondary">📤 导出模板</button>
+        <button @click="showImport = true" class="btn-apple-secondary">📥 导入模板</button>
+        <button @click="showCreateRole = true" class="btn-apple-primary">+ 创建角色</button>
       </div>
     </header>
 
@@ -59,10 +59,10 @@
         </table>
 
         <div class="matrix-actions">
-          <button @click="savePermissions" class="btn btn-primary" :disabled="saving">
+          <button @click="savePermissions" class="btn-apple-primary" :disabled="saving">
             {{ saving ? '保存中...' : '保存' }}
           </button>
-          <button @click="resetPermissions" class="btn btn-secondary">重置</button>
+          <button @click="resetPermissions" class="btn-apple-secondary">重置</button>
         </div>
       </div>
 
@@ -122,8 +122,8 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button @click="showCreateRole = false" class="btn btn-secondary">取消</button>
-          <button @click="createRole" class="btn btn-primary">创建</button>
+          <button @click="showCreateRole = false" class="btn-apple-secondary">取消</button>
+          <button @click="createRole" class="btn-apple-primary">创建</button>
         </div>
       </div>
     </div>
@@ -150,8 +150,8 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button @click="showImport = false" class="btn btn-secondary">取消</button>
-          <button @click="importRoleTemplate" class="btn btn-primary" :disabled="!importTemplate">导入</button>
+          <button @click="showImport = false" class="btn-apple-secondary">取消</button>
+          <button @click="importRoleTemplate" class="btn-apple-primary" :disabled="!importTemplate">导入</button>
         </div>
       </div>
     </div>
@@ -371,7 +371,7 @@ onMounted(async () => {
   padding: 10px 20px;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   color: var(--color-body-muted);
   cursor: pointer;
   font-size: 14px;
@@ -422,12 +422,12 @@ onMounted(async () => {
 .matrix-table th {
   font-size: 12px;
   color: var(--color-body-muted);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .resource-name {
   text-align: left !important;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-body-on-dark);
 }
 
@@ -570,7 +570,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   transition: all 0.2s;
 }
 
@@ -603,7 +603,7 @@ onMounted(async () => {
   padding: var(--space-xs) var(--space-sm);
   background: var(--color-surface-tile-3);
   border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   color: var(--color-body-on-dark);
   font-family: var(--font-family-text);
   font-size: 17px;
@@ -623,7 +623,7 @@ onMounted(async () => {
 .template-preview {
   background: var(--color-surface-tile-3);
   padding: var(--space-sm);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
 }
 
 .template-preview h4 {
@@ -641,7 +641,7 @@ onMounted(async () => {
 .perm-tag {
   background: var(--color-surface-tile-1);
   padding: 4px 8px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   font-size: 12px;
   color: var(--color-body-muted);
 }
@@ -673,27 +673,4 @@ onMounted(async () => {
   transition: var(--transition-active);
 }
 
-.btn-primary {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-.btn-primary:active {
-  transform: scale(0.95);
-}
-
-.btn-primary:disabled {
-  background: var(--color-surface-tile-2);
-  color: var(--color-body-muted);
-}
-
-.btn-secondary {
-  background: transparent;
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
-}
-
-.btn-secondary:active {
-  transform: scale(0.95);
-}
 </style>

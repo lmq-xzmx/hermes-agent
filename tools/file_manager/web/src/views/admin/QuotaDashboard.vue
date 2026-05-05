@@ -4,10 +4,10 @@
     <header class="dashboard-header">
       <h1>配额管理</h1>
       <div class="header-actions">
-        <button @click="showBatchAdjust = true" class="btn btn-primary">
+        <button @click="showBatchAdjust = true" class="btn-apple-primary">
           + 批量调整
         </button>
-        <button @click="refresh" class="btn btn-secondary">🔄 刷新</button>
+        <button @click="refresh" class="btn-apple-secondary">🔄 刷新</button>
       </div>
     </header>
 
@@ -127,8 +127,8 @@
                 <span>有效期: {{ formatDate(transfer.expires_at) }}</span>
               </div>
               <div class="transfer-actions">
-                <button @click="approveTransfer(transfer.id)" class="btn btn-success">审批</button>
-                <button @click="rejectTransfer(transfer.id)" class="btn btn-danger">拒绝</button>
+                <button @click="approveTransfer(transfer.id)" class="btn-apple-primary">审批</button>
+                <button @click="rejectTransfer(transfer.id)" class="btn-apple-danger">拒绝</button>
               </div>
             </div>
           </div>
@@ -169,8 +169,8 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button @click="showBatchAdjust = false" class="btn btn-secondary">取消</button>
-          <button @click="executeBatchAdjust" class="btn btn-primary">确认调整</button>
+          <button @click="showBatchAdjust = false" class="btn-apple-secondary">取消</button>
+          <button @click="executeBatchAdjust" class="btn-apple-primary">确认调整</button>
         </div>
       </div>
     </div>
@@ -198,8 +198,8 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button @click="showEditQuota = false" class="btn btn-secondary">取消</button>
-          <button @click="saveQuotaEdit" class="btn btn-primary">保存</button>
+          <button @click="showEditQuota = false" class="btn-apple-secondary">取消</button>
+          <button @click="saveQuotaEdit" class="btn-apple-primary">保存</button>
         </div>
       </div>
     </div>
@@ -468,11 +468,11 @@ onMounted(() => {
 }
 
 .usage-fill.warning {
-  background: #d29922;
+  background: var(--color-warning);
 }
 
 .usage-fill.critical {
-  background: #f85149;
+  background: var(--color-danger);
 }
 
 .usage-text {
@@ -493,13 +493,13 @@ onMounted(() => {
 }
 
 .status-warning {
-  background: rgba(210, 153, 34, 0.15);
-  color: #9e6a03;
+  background: var(--color-warning-subtle);
+  color: var(--color-warning-strong);
 }
 
 .status-critical {
-  background: rgba(248, 81, 73, 0.15);
-  color: #f85149;
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
 }
 
 .btn-icon {
@@ -629,7 +629,7 @@ onMounted(() => {
   padding: 10px 14px;
   background: var(--color-canvas, #ffffff);
   border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--rounded-sm, 8px);
+  border-radius: var(--radius-md, 18px);
   color: var(--color-ink, #1d1d1f);
   font: var(--text-body, 17px/1.47 -0.374px);
 }
@@ -640,7 +640,7 @@ onMounted(() => {
 
 .input-with-unit input {
   flex: 1;
-  border-radius: var(--rounded-sm, 8px) 0 0 var(--rounded-sm, 8px);
+  border-radius: var(--radius-md, 18px) 0 0 var(--rounded-sm, 8px);
 }
 
 .input-with-unit .unit {
@@ -672,7 +672,7 @@ onMounted(() => {
 .quota-display {
   padding: 10px 14px;
   background: var(--color-canvas-parchment, #f5f5f7);
-  border-radius: var(--rounded-sm, 8px);
+  border-radius: var(--radius-md, 18px);
   color: var(--color-ink, #1d1d1f);
   font: var(--text-body, 17px/1.47 -0.374px);
 }
@@ -701,28 +701,4 @@ onMounted(() => {
   transition: transform 0.1s ease;
 }
 
-.btn:active {
-  transform: scale(0.95);
-}
-
-.btn-primary {
-  background: var(--color-primary, #0066cc);
-  color: var(--color-on-primary, #ffffff);
-}
-
-.btn-secondary {
-  background: var(--color-canvas, #ffffff);
-  color: var(--color-ink, #1d1d1f);
-  border: 1px solid var(--color-hairline, #e0e0e0);
-}
-
-.btn-success {
-  background: var(--color-primary, #0066cc);
-  color: var(--color-on-primary, #ffffff);
-}
-
-.btn-danger {
-  background: #f85149;
-  color: var(--color-on-primary, #ffffff);
-}
 </style>

@@ -164,7 +164,7 @@ onUnmounted(() => {
   height: 32px;
   border: 3px solid var(--color-hairline, #e0e0e0);
   border-top-color: var(--color-primary, #0066cc);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   animation: spin 1s linear infinite;
 }
 
@@ -178,7 +178,7 @@ onUnmounted(() => {
   color: var(--color-body-on-dark, #ffffff);
   font: var(--text-body, 17px/1.47 -0.374px);
   border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--rounded-sm, 8px);
+  border-radius: var(--radius-md, 18px);
   padding: 8px 12px;
   cursor: pointer;
 }

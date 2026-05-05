@@ -341,7 +341,7 @@ defineExpose({
 
 .debug-logs::-webkit-scrollbar-thumb {
   background: var(--color-surface-tile-3);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 
 .debug-log {

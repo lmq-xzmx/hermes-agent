@@ -592,58 +592,6 @@ function formatDate(str) {
   margin-top: var(--space-xl);
 }
 
-/* Apple Buttons */
-.btn-apple-primary {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  font: var(--text-body);
-  border-radius: var(--rounded-pill);
-  padding: 11px 22px;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: transform 0.1s;
-}
-.btn-apple-primary:active { transform: scale(0.95); }
-.btn-apple-primary:focus { outline: 2px solid var(--color-primary-focus); outline-offset: 2px; }
-
-.btn-apple-secondary {
-  background: transparent;
-  color: var(--color-primary);
-  font: var(--text-body);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--rounded-pill);
-  padding: 11px 22px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: transform 0.1s;
-}
-.btn-apple-secondary:active { transform: scale(0.95); }
-
-.btn-apple-danger {
-  background: #dc3545;
-  color: var(--color-on-primary);
-  font: var(--text-body);
-  border-radius: var(--rounded-pill);
-  padding: 11px 22px;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: transform 0.1s;
-}
-.btn-apple-danger:active { transform: scale(0.95); }
-
-.btn-sm {
-  padding: 7px 14px;
-  font-size: 14px;
-}
-
 /* Space Grid */
 .space-grid {
   display: grid;
@@ -698,7 +646,7 @@ function formatDate(str) {
 
 .space-type-badge.private {
   background: rgba(255, 149, 0, 0.1);
-  color: #ff9500;
+  color: var(--color-warning, #ff9500);
 }
 
 .space-type-badge.root {
@@ -734,9 +682,9 @@ function formatDate(str) {
   transition: width 0.3s;
 }
 
-.quota-fill.ok { background: #34c759; }
-.quota-fill.warn { background: #ff9500; }
-.quota-fill.danger { background: #ff3b30; }
+.quota-fill.ok { background: var(--color-success); }
+.quota-fill.warn { background: var(--color-warning); }
+.quota-fill.danger { background: var(--color-danger); }
 
 .quota-stat {
   display: flex;
@@ -864,8 +812,8 @@ function formatDate(str) {
 }
 
 .badge-active {
-  background: rgba(52, 199, 89, 0.15);
-  color: #34c759;
+  background: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .badge-inactive {
@@ -946,7 +894,7 @@ function formatDate(str) {
 .activity-item {
   padding: var(--space-sm) var(--space-md);
   background: var(--color-canvas-parchment);
-  border-radius: var(--rounded-sm);
+  border-radius: var(--radius-md, 18px);
 }
 
 .activity-action {
@@ -1006,7 +954,7 @@ function formatDate(str) {
   padding: 12px 16px;
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--rounded-sm);
+  border-radius: var(--radius-md, 18px);
   font: var(--text-body);
   color: var(--color-ink);
   box-sizing: border-box;
@@ -1022,7 +970,7 @@ function formatDate(str) {
   padding: 8px 12px;
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--rounded-sm);
+  border-radius: var(--radius-md, 18px);
   font: var(--text-body);
   color: var(--color-ink);
   box-sizing: border-box;
@@ -1033,7 +981,7 @@ function formatDate(str) {
   padding: 12px 16px;
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--rounded-sm);
+  border-radius: var(--radius-md, 18px);
   font: var(--text-body);
   color: var(--color-ink);
   resize: vertical;
@@ -1169,7 +1117,7 @@ function formatDate(str) {
   gap: var(--space-sm);
   padding: var(--space-sm);
   background: var(--color-canvas-parchment);
-  border-radius: var(--rounded-sm);
+  border-radius: var(--radius-md, 18px);
 }
 
 .step-num {
@@ -1177,7 +1125,7 @@ function formatDate(str) {
   height: 24px;
   background: var(--color-primary);
   color: var(--color-on-primary);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1195,7 +1143,7 @@ function formatDate(str) {
 
 .step-confirm {
   font: var(--text-caption);
-  color: #ff9500;
+  color: var(--color-warning, #ff9500);
 }
 
 /* Notebook Content */
@@ -1203,7 +1151,7 @@ function formatDate(str) {
   margin-top: var(--space-md);
   padding: var(--space-md);
   background: var(--color-canvas-parchment);
-  border-radius: var(--rounded-sm);
+  border-radius: var(--radius-md, 18px);
   max-height: 300px;
   overflow: auto;
 }

@@ -2,6 +2,14 @@
  * Admin Dashboard ECharts 统一主题配置
  *
  * 用于所有 Admin 可视化图表的暗色主题适配
+ *
+ * 注意：ECharts 主题需要 hex 颜色值，不适用于 CSS 变量
+ * 颜色语义映射：
+ *   #58a6ff (蓝) → 主色调，用于 primary
+ *   #3fb950 (绿) → 成功状态
+ *   #d29922 (橙) → 警告状态
+ *   #f85149 (红) → 危险/错误状态
+ *   #a371f7 (紫) → 信息/特殊状态
  */
 
 export const adminChartTheme = {

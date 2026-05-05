@@ -245,7 +245,7 @@ function formatSize(bytes) {
 .status-dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   margin-right: var(--space-sm);
 }
 
@@ -330,7 +330,7 @@ function formatSize(bytes) {
   padding: 10px 14px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   color: var(--color-body-on-dark);
   font-family: var(--font-body);
   font-size: 13px;

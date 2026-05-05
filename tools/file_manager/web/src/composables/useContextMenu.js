@@ -8,7 +8,7 @@
 import { ref, reactive, computed } from 'vue'
 
 // 默认菜单项
-const DEFAULT_ITEMS = [
+export const DEFAULT_ITEMS = [
   { id: 'open', icon: '📂', label: '打开', shortcut: 'Enter' },
   { id: 'rename', icon: '✏️', label: '重命名', shortcut: 'F2' },
   { separator: true },

@@ -16,12 +16,12 @@
           </select>
           <span class="select-arrow">›</span>
         </div>
-        <button class="btn-secondary-pill" @click="loadTrash">
+        <button class="btn-apple-secondary" @click="loadTrash">
           <span class="btn-icon">🔄</span>
           刷新
         </button>
         <button
-          class="btn-danger-pill"
+          class="btn-apple-danger"
           @click="emptyTrash"
           :disabled="trashItems.length === 0"
         >
@@ -77,10 +77,10 @@
               </td>
               <td class="cell-actions">
                 <div class="action-buttons">
-                  <button class="btn-primary-sm" @click="restoreItem(item)">
+                  <button class="btn-apple-primary btn-sm" @click="restoreItem(item)">
                     恢复
                   </button>
-                  <button class="btn-danger-sm" @click="deleteItem(item)">
+                  <button class="btn-apple-danger btn-sm" @click="deleteItem(item)">
                     删除
                   </button>
                 </div>
@@ -273,72 +273,6 @@ function formatDate(str) {
 }
 
 /* Buttons */
-.btn-primary-sm,
-.btn-secondary-pill,
-.btn-danger-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 400;
-  cursor: pointer;
-  transition: transform 0.1s ease, background-color 0.2s ease;
-  border: none;
-  height: 36px;
-  padding: 0 14px;
-}
-
-.btn-primary-sm {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  border-radius: var(--radius-pill);
-}
-
-.btn-primary-sm:hover {
-  background: var(--color-primary-focus);
-}
-
-.btn-primary-sm:active {
-  transform: scale(0.97);
-}
-
-.btn-secondary-pill {
-  background: transparent;
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-pill);
-}
-
-.btn-secondary-pill:hover {
-  background: rgba(0, 102, 204, 0.08);
-}
-
-.btn-secondary-pill:active {
-  transform: scale(0.97);
-}
-
-.btn-danger-pill {
-  background: transparent;
-  color: var(--color-danger);
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius-pill);
-}
-
-.btn-danger-pill:hover:not(:disabled) {
-  background: rgba(255, 59, 48, 0.08);
-}
-
-.btn-danger-pill:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.btn-danger-pill:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .btn-icon {
   font-size: 14px;
   line-height: 1;
@@ -370,7 +304,7 @@ function formatDate(str) {
   height: 24px;
   border: 2px solid var(--color-hairline);
   border-top-color: var(--color-primary);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   animation: spin 0.8s linear infinite;
 }
 
@@ -485,7 +419,7 @@ function formatDate(str) {
   border-radius: var(--radius-pill);
   font-family: var(--font-body);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .type-badge.folder {
@@ -538,34 +472,4 @@ function formatDate(str) {
   opacity: 1;
 }
 
-.btn-primary-sm {
-  font-size: 13px;
-  padding: 0 12px;
-  height: 32px;
-}
-
-.btn-danger-sm {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 400;
-  background: transparent;
-  color: var(--color-danger);
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius-pill);
-  padding: 0 12px;
-  height: 32px;
-  cursor: pointer;
-  transition: transform 0.1s ease, background-color 0.2s ease;
-}
-
-.btn-danger-sm:hover {
-  background: rgba(255, 59, 48, 0.08);
-}
-
-.btn-danger-sm:active {
-  transform: scale(0.97);
-}
 </style>

@@ -321,58 +321,6 @@ function formatDate(str) {
   margin-top: var(--space-xl);
 }
 
-/* Apple Buttons */
-.btn-apple-primary {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  font: var(--text-body);
-  border-radius: var(--rounded-pill);
-  padding: 11px 22px;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: transform 0.1s;
-}
-.btn-apple-primary:active { transform: scale(0.95); }
-.btn-apple-primary:focus { outline: 2px solid var(--color-primary-focus); outline-offset: 2px; }
-
-.btn-apple-secondary {
-  background: transparent;
-  color: var(--color-primary);
-  font: var(--text-body);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--rounded-pill);
-  padding: 11px 22px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: transform 0.1s;
-}
-.btn-apple-secondary:active { transform: scale(0.95); }
-
-.btn-apple-danger {
-  background: #dc3545;
-  color: var(--color-on-primary);
-  font: var(--text-body);
-  border-radius: var(--rounded-pill);
-  padding: 11px 22px;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: transform 0.1s;
-}
-.btn-apple-danger:active { transform: scale(0.95); }
-
-.btn-sm {
-  padding: 7px 14px;
-  font-size: 14px;
-}
-
 /* Team List */
 .team-list {
   display: flex;
@@ -450,9 +398,9 @@ function formatDate(str) {
   transition: width 0.3s;
 }
 
-.quota-fill.ok { background: #34c759; }
-.quota-fill.warn { background: #ff9500; }
-.quota-fill.danger { background: #ff3b30; }
+.quota-fill.ok { background: var(--color-success); }
+.quota-fill.warn { background: var(--color-warning); }
+.quota-fill.danger { background: var(--color-danger); }
 
 .team-owner {
   font: var(--text-caption);
@@ -477,8 +425,8 @@ function formatDate(str) {
 }
 
 .badge-active {
-  background: rgba(52, 199, 89, 0.15);
-  color: #34c759;
+  background: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .badge-inactive {
@@ -504,7 +452,7 @@ function formatDate(str) {
   height: 44px;
 }
 .search-input:focus {
-  outline: 2px solid var(--color-primary-focus);
+  outline: 2px solid var(--color-primary, #0066cc);
   outline-offset: 2px;
 }
 
@@ -604,7 +552,7 @@ function formatDate(str) {
   gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   background: var(--color-canvas-parchment);
-  border-radius: var(--rounded-sm);
+  border-radius: var(--radius-md, 18px);
 }
 
 .credential-token {

@@ -107,7 +107,7 @@ function onLogout() {
   height: 28px;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   cursor: pointer;
   color: var(--color-body-muted);
   font-family: var(--font-body);
@@ -179,7 +179,7 @@ function onLogout() {
   padding: 6px 12px;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   color: var(--color-body-muted);
   font-family: var(--font-body);
   font-size: 12px;

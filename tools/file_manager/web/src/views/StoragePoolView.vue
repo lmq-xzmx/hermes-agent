@@ -425,7 +425,7 @@ function formatSize(bytes) {
 
 .badge.active {
   background: rgba(52, 199, 89, 0.15);
-  color: #34c759;
+  color: var(--color-success, #34c759);
 }
 
 .badge.inactive {
@@ -481,8 +481,8 @@ function formatSize(bytes) {
 }
 
 .progress-fill.ok { background: var(--color-primary, #0066cc); }
-.progress-fill.warn { background: #d29922; }
-.progress-fill.danger { background: #f85149; }
+.progress-fill.warn { background: var(--color-warning); }
+.progress-fill.danger { background: var(--color-danger); }
 
 .progress-text {
   font: var(--text-caption, 14px/1.43 -0.224px);
@@ -628,7 +628,7 @@ function formatSize(bytes) {
   padding: 12px 16px;
   background: var(--color-canvas, #ffffff);
   border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--rounded-sm, 8px);
+  border-radius: var(--radius-md, 18px);
   color: var(--color-ink, #1d1d1f);
   font: var(--text-body, 17px/1.47 -0.374px);
   transition: border-color 0.2s;
@@ -640,7 +640,7 @@ function formatSize(bytes) {
 .apple-select:focus,
 .apple-textarea:focus {
   outline: none;
-  border-color: var(--color-primary-focus, #0071e3);
+  border-color: var(--color-primary, #0066cc);
 }
 
 .apple-textarea {

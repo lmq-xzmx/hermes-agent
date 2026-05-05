@@ -110,30 +110,32 @@ async function handleSubmit() {
 
 <style scoped>
 .approval-request-form {
-  padding: 16px;
-  background: #1f2937;
-  border-radius: 8px;
+  padding: var(--spacing-md);
+  background: var(--color-surface-tile-3);
+  border-radius: var(--radius-lg);
 }
 
 h3 {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  color: #f9fafb;
+  margin: 0 0 var(--spacing-md) 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-body-on-dark);
 }
 
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-xxs);
   font-size: 14px;
-  color: #d1d5db;
+  color: var(--color-body-muted);
 }
 
 .optional {
-  color: #9ca3af;
+  color: var(--color-body-muted);
   font-weight: normal;
 }
 
@@ -141,20 +143,21 @@ h3 {
 .text-input,
 .textarea {
   width: 100%;
-  padding: 8px 12px;
-  background: #111827;
-  border: 1px solid #374151;
-  border-radius: 4px;
-  color: #e5e7eb;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-surface-tile-1);
+  border: 1px solid var(--color-border-on-dark);
+  border-radius: var(--radius-md, 18px);
+  color: var(--color-body-on-dark);
   font-size: 14px;
   box-sizing: border-box;
+  font-family: var(--font-family-text);
 }
 
 .type-select:focus,
 .text-input:focus,
 .textarea:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: var(--color-primary);
 }
 
 .textarea {
@@ -162,23 +165,28 @@ h3 {
 }
 
 .form-actions {
-  margin-top: 20px;
+  margin-top: var(--spacing-lg);
 }
 
 .btn-submit {
   width: 100%;
-  padding: 10px 16px;
-  background: #3b82f6;
-  color: white;
+  padding: var(--space-xs) var(--spacing-md);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-pill);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
+  transition: var(--transition-active);
 }
 
 .btn-submit:hover:not(:disabled) {
-  background: #2563eb;
+  background: var(--color-primary-focus);
+}
+
+.btn-submit:active:not(:disabled) {
+  transform: scale(0.95);
 }
 
 .btn-submit:disabled {
@@ -187,20 +195,20 @@ h3 {
 }
 
 .error-message {
-  margin-top: 12px;
-  padding: 10px;
-  background: #fee2e2;
-  color: #991b1b;
-  border-radius: 4px;
+  margin-top: var(--space-sm);
+  padding: var(--space-xs);
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
+  border-radius: var(--radius-md, 18px);
   font-size: 14px;
 }
 
 .success-message {
-  margin-top: 12px;
-  padding: 10px;
-  background: #d1fae5;
-  color: #065f46;
-  border-radius: 4px;
+  margin-top: var(--space-sm);
+  padding: var(--space-xs);
+  background: var(--color-success-subtle);
+  color: var(--color-success);
+  border-radius: var(--radius-md, 18px);
   font-size: 14px;
 }
 </style>

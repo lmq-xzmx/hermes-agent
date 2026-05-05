@@ -16,7 +16,7 @@
             <span>{{ formatTime(alert.created_at) }}</span>
           </div>
         </div>
-        <button class="btn-primary" @click="handleAlert(alert)">处理</button>
+        <button class="btn-apple-primary btn-sm" @click="handleAlert(alert)">处理</button>
       </div>
       <div v-if="alerts.length === 0" class="no-alerts">
         暂无告警
@@ -87,9 +87,9 @@ function handleAlert(alert) {
   transform: scale(0.98);
 }
 
-.alert-item.critical { border-left-color: #f85149; }
-.alert-item.warning { border-left-color: #d29922; }
-.alert-item.normal { border-left-color: #3fb950; }
+.alert-item.critical { border-left-color: var(--color-danger); }
+.alert-item.warning { border-left-color: var(--color-warning); }
+.alert-item.normal { border-left-color: var(--color-success); }
 
 .alert-icon {
   font-size: 18px;
@@ -112,22 +112,6 @@ function handleAlert(alert) {
   gap: var(--space-lg, 24px);
   font: var(--text-caption, 14px/1.43 -0.224px);
   color: var(--color-body-muted, #cccccc);
-}
-
-.btn-primary {
-  background: var(--color-primary, #0066cc);
-  color: var(--color-on-primary, #ffffff);
-  font: var(--text-body, 17px/1.47 -0.374px);
-  border-radius: var(--rounded-pill, 9999px);
-  padding: 8px 20px;
-  border: none;
-  cursor: pointer;
-  transition: transform 0.1s ease;
-  flex-shrink: 0;
-}
-
-.btn-primary:active {
-  transform: scale(0.95);
 }
 
 .no-alerts {

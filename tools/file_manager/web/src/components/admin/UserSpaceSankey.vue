@@ -116,8 +116,8 @@ watch([filteredNodes, filteredLinks, isLargeDataset], renderChart)
 
 <style scoped>
 .user-space-sankey {
-  background: var(--bg-secondary, #161b22);
-  border-radius: 8px;
+  background: var(--color-surface-tile-1, #272729);
+  border-radius: var(--radius-md, 18px);
   padding: 16px;
   margin-bottom: 16px;
 }
@@ -137,25 +137,25 @@ watch([filteredNodes, filteredLinks, isLargeDataset], renderChart)
 
 .filter select {
   padding: 4px 8px;
-  background: var(--bg-primary, #0d1117);
-  color: var(--text-primary, #e6edf3);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 4px;
+  background: var(--color-surface-tile-3, #252527);
+  color: var(--color-body-on-dark, #ffffff);
+  border: 1px solid var(--color-hairline, #e0e0e0);
+  border-radius: var(--radius-md, 18px);
 }
 
 .virtual-badge {
   font-size: 11px;
   padding: 2px 6px;
-  background: #d29922;
-  color: #000;
-  border-radius: 4px;
-  font-weight: 500;
+  background: var(--color-warning);
+  color: var(--color-ink, #1d1d1f);
+  border-radius: var(--radius-md, 18px);
+  font-weight: 600;
 }
 
 .virtual-notice {
   margin-top: 8px;
   font-size: 12px;
-  color: var(--text-secondary, #8b949e);
+  color: var(--color-ink-muted-48, #7a7a7a);
   text-align: center;
 }
 </style>

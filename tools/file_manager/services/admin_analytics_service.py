@@ -577,6 +577,7 @@ class AdminAnalyticsService:
             # Sort by usage_rate descending (most critical first)
             alerts.sort(key=lambda x: x["usage_rate"], reverse=True)
 
+            cache_key = self._get_cache_key("get_alerts")
             result = {"alerts": alerts, "total": len(alerts)}
             self._set_cached(cache_key, result)
             return result

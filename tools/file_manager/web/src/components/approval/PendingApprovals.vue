@@ -152,28 +152,33 @@ onMounted(() => {
 
 <style scoped>
 .pending-approvals {
-  padding: 16px;
+  padding: var(--spacing-md);
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
 }
 
 .header h3 {
   margin: 0;
-  font-size: 18px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-body-on-dark);
 }
 
 .btn-refresh {
-  padding: 6px 12px;
-  background: #374151;
-  color: white;
+  padding: var(--space-xs) var(--spacing-sm);
+  background: var(--color-surface-tile-2);
+  color: var(--color-body-on-dark);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-md, 18px);
   cursor: pointer;
+  font-family: var(--font-family-text);
+  font-size: 14px;
 }
 
 .btn-refresh:disabled {
@@ -182,128 +187,141 @@ onMounted(() => {
 }
 
 .error-message {
-  padding: 12px;
-  background: #fee2e2;
-  color: #991b1b;
-  border-radius: 4px;
-  margin-bottom: 16px;
+  padding: var(--space-sm);
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
+  border-radius: var(--radius-md, 18px);
+  margin-bottom: var(--spacing-md);
 }
 
 .empty-state {
-  padding: 32px;
+  padding: var(--spacing-xxl);
   text-align: center;
-  color: #6b7280;
+  color: var(--color-ink-muted-48);
 }
 
 .request-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .request-card {
-  border: 1px solid #374151;
-  border-radius: 8px;
-  padding: 12px;
-  background: #1f2937;
+  border: 1px solid var(--color-border-on-dark);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm);
+  background: var(--color-surface-tile-3);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .request-card:hover {
-  border-color: #4b5563;
+  border-color: var(--color-border-on-dark-soft);
 }
 
 .request-card.selected {
-  border-color: #3b82f6;
+  border-color: var(--color-primary);
 }
 
 .request-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-xs);
 }
 
 .approval-type {
   font-weight: 600;
-  color: #f9fafb;
+  color: var(--color-body-on-dark);
 }
 
 .status-badge {
-  padding: 2px 8px;
-  border-radius: 12px;
+  padding: 2px var(--space-xs);
+  border-radius: var(--radius-pill);
   font-size: 12px;
-  color: white;
+  color: var(--color-body-on-dark);
 }
 
 .request-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--spacing-xxs);
 }
 
 .info-row {
   display: flex;
-  gap: 8px;
+  gap: var(--space-xs);
   font-size: 14px;
 }
 
 .info-row .label {
-  color: #9ca3af;
+  color: var(--color-body-muted);
   min-width: 70px;
 }
 
 .info-row .value {
-  color: #e5e7eb;
+  color: var(--color-body-on-dark);
 }
 
 .action-panel {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #374151;
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border-on-dark);
 }
 
 .comment-input textarea {
   width: 100%;
-  padding: 8px;
-  background: #111827;
-  border: 1px solid #374151;
-  border-radius: 4px;
-  color: #e5e7eb;
+  padding: var(--space-xs);
+  background: var(--color-surface-tile-1);
+  border: 1px solid var(--color-border-on-dark);
+  border-radius: var(--radius-md, 18px);
+  color: var(--color-body-on-dark);
   resize: vertical;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-xs);
+  font-family: var(--font-family-text);
+  font-size: 17px;
 }
 
 .action-buttons {
   display: flex;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .btn-approve, .btn-reject {
   flex: 1;
-  padding: 8px 16px;
+  padding: var(--space-xs) var(--spacing-md);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
-  font-weight: 500;
+  font-family: var(--font-family-text);
+  font-size: 14px;
+  font-weight: 600;
+  transition: var(--transition-active);
 }
 
 .btn-approve {
-  background: #10b981;
-  color: white;
+  background: var(--color-success);
+  color: var(--color-body-on-dark);
 }
 
 .btn-approve:hover {
-  background: #059669;
+  background: #2da86c;
+}
+
+.btn-approve:active {
+  transform: scale(0.95);
 }
 
 .btn-reject {
-  background: #ef4444;
-  color: white;
+  background: var(--color-danger);
+  color: var(--color-body-on-dark);
 }
 
 .btn-reject:hover {
   background: #dc2626;
+}
+
+.btn-reject:active {
+  transform: scale(0.95);
 }
 </style>

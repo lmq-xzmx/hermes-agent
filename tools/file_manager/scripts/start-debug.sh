@@ -61,13 +61,13 @@ fi
 echo ""
 log_info "[3/6] 检查前端构建产物..."
 cd "$WEB_DIR"
-if [ ! -d "dist" ] || [ ! -f "dist/app.html" ]; then
+if [ ! -d "dist" ] || [ ! -f "dist/vue.html" ]; then
     log_warn "前端构建产物不存在，重新构建..."
     npm run build
-    cp floating.html dist/
+    cp floating-vue.html dist/
 else
-    SIZE=$(stat -f%z "$WEB_DIR/dist/app.html" 2>/dev/null || stat -c%s "$WEB_DIR/dist/app.html" 2>/dev/null)
-    log_info "前端构建产物已存在: app.html (${SIZE} bytes)"
+    SIZE=$(stat -f%z "$WEB_DIR/dist/vue.html" 2>/dev/null || stat -c%s "$WEB_DIR/dist/vue.html" 2>/dev/null)
+    log_info "前端构建产物已存在: vue.html (${SIZE} bytes)"
 fi
 
 # ============================================================================
@@ -100,9 +100,9 @@ rm -rf "$DEBUG_RESOURCES/_up_" 2>/dev/null || true
 mkdir -p "$DEBUG_RESOURCES/_up_/web/dist"
 cp -r "$WEB_DIR/dist/"* "$DEBUG_RESOURCES/_up_/web/dist/"
 
-if [ -f "$DEBUG_RESOURCES/_up_/web/dist/app.html" ]; then
-    BUNDLE_SIZE=$(stat -f%z "$DEBUG_RESOURCES/_up_/web/dist/app.html" 2>/dev/null || stat -c%s "$DEBUG_RESOURCES/_up_/web/dist/app.html" 2>/dev/null)
-    log_info "Bundle 文件复制成功: _up_/web/dist/app.html (${BUNDLE_SIZE} bytes)"
+if [ -f "$DEBUG_RESOURCES/_up_/web/dist/vue.html" ]; then
+    BUNDLE_SIZE=$(stat -f%z "$DEBUG_RESOURCES/_up_/web/dist/vue.html" 2>/dev/null || stat -c%s "$DEBUG_RESOURCES/_up_/web/dist/vue.html" 2>/dev/null)
+    log_info "Bundle 文件复制成功: _up_/web/dist/vue.html (${BUNDLE_SIZE} bytes)"
 else
     log_error "Bundle 文件复制失败"
     exit 1

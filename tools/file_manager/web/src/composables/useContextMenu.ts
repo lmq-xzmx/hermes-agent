@@ -216,4 +216,5 @@ export function useContextMenu() {
   }
 }
 
+export { useContextMenu, DEFAULT_ITEMS }
 export default useContextMenu

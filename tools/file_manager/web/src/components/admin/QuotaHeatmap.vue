@@ -52,8 +52,8 @@ const visibleSpaces = computed(() => {
 
 <style scoped>
 .quota-heatmap {
-  background: var(--bg-secondary, #161b22);
-  border-radius: 8px;
+  background: var(--color-surface-tile-2, #2a2a2c);
+  border-radius: var(--radius-md, 18px);
   padding: 16px;
   margin-bottom: 16px;
 }
@@ -73,12 +73,12 @@ const visibleSpaces = computed(() => {
 .legend-item .dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
 }
 
-.legend-item.normal .dot { background: #3fb950; }
-.legend-item.warning .dot { background: #d29922; }
-.legend-item.critical .dot { background: #f85149; }
+.legend-item.normal .dot { background: var(--color-success); }
+.legend-item.warning .dot { background: var(--color-warning); }
+.legend-item.critical .dot { background: var(--color-danger); }
 
 .heatmap-table {
   width: 100%;
@@ -89,18 +89,18 @@ const visibleSpaces = computed(() => {
 .heatmap-table td {
   padding: 8px;
   text-align: left;
-  border-bottom: 1px solid var(--border, #30363d);
+  border-bottom: 1px solid var(--color-hairline, #e0e0e0);
 }
 
 .team-name {
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .usage-cell { padding: 4px 8px !important; }
 
 .usage-bar {
   height: 20px;
-  border-radius: 4px;
+  border-radius: var(--radius-md, 18px);
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -114,6 +114,6 @@ const visibleSpaces = computed(() => {
 
 .usage-text {
   font-size: 11px;
-  color: var(--text-secondary, #8b949e);
+  color: var(--color-ink-muted-48, #7a7a7a);
 }
 </style>

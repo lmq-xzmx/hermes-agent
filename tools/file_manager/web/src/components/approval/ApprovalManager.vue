@@ -114,36 +114,37 @@ onMounted(() => {
 <style scoped>
 .approval-manager {
   min-height: 100%;
-  background: #111827;
-  color: #f9fafb;
+  background: var(--color-surface-tile-1);
+  color: var(--color-body-on-dark);
 }
 
 .tabs {
   display: flex;
-  border-bottom: 1px solid #374151;
-  background: #1f2937;
+  border-bottom: 1px solid var(--color-border-on-dark);
+  background: var(--color-surface-tile-3);
 }
 
 .tabs button {
   flex: 1;
-  padding: 12px 16px;
+  padding: var(--space-sm) var(--spacing-md);
   background: transparent;
   border: none;
-  color: #9ca3af;
+  color: var(--color-body-muted);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
+  font-family: var(--font-family-text);
 }
 
 .tabs button:hover {
-  color: #e5e7eb;
-  background: #374151;
+  color: var(--color-body-on-dark);
+  background: var(--color-surface-tile-2);
 }
 
 .tabs button.active {
-  color: #3b82f6;
-  border-bottom: 2px solid #3b82f6;
+  color: var(--color-primary);
+  border-bottom: 2px solid var(--color-primary);
 }
 
 .badge {
@@ -153,10 +154,10 @@ onMounted(() => {
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
-  margin-left: 6px;
-  background: #ef4444;
-  color: white;
-  border-radius: 9px;
+  margin-left: var(--space-xxs);
+  background: var(--color-danger);
+  color: var(--color-body-on-dark);
+  border-radius: var(--radius-md, 18px);
   font-size: 11px;
   font-weight: 600;
 }
@@ -167,28 +168,28 @@ onMounted(() => {
 
 .toast {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  padding: 12px 20px;
-  border-radius: 8px;
+  bottom: var(--spacing-lg);
+  right: var(--spacing-lg);
+  padding: var(--space-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
   font-size: 14px;
   z-index: 1000;
   animation: slideIn 0.3s ease;
 }
 
 .toast.success {
-  background: #10b981;
-  color: white;
+  background: var(--color-success);
+  color: var(--color-body-on-dark);
 }
 
 .toast.error {
-  background: #ef4444;
-  color: white;
+  background: var(--color-danger);
+  color: var(--color-body-on-dark);
 }
 
 .toast.info {
-  background: #3b82f6;
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-body-on-dark);
 }
 
 @keyframes slideIn {

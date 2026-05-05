@@ -54,7 +54,7 @@
         </div>
 
         <div class="step-actions">
-          <button @click="nextStep" class="btn btn-primary" :disabled="!request.space_type">
+          <button @click="nextStep" class="btn-apple-primary" :disabled="!request.space_type">
             下一步
           </button>
         </div>
@@ -124,8 +124,8 @@
         </div>
 
         <div class="step-actions">
-          <button @click="prevStep" class="btn btn-secondary">上一步</button>
-          <button @click="nextStep" class="btn btn-primary">下一步</button>
+          <button @click="prevStep" class="btn-apple-secondary">上一步</button>
+          <button @click="nextStep" class="btn-apple-primary">下一步</button>
         </div>
       </div>
 
@@ -153,8 +153,8 @@
         </div>
 
         <div class="step-actions">
-          <button @click="prevStep" class="btn btn-secondary">上一步</button>
-          <button @click="submitRequest" class="btn btn-primary" :disabled="submitting">
+          <button @click="prevStep" class="btn-apple-secondary">上一步</button>
+          <button @click="submitRequest" class="btn-apple-primary" :disabled="submitting">
             {{ submitting ? '提交中...' : '提交申请' }}
           </button>
         </div>
@@ -166,7 +166,7 @@
         <h2>申请提交成功</h2>
         <p>您的空间申请已提交，请等待管理员审批。</p>
         <p class="success-note">预计审批时间: 1-3 个工作日</p>
-        <button @click="goToMySpace" class="btn btn-primary">返回我的空间</button>
+        <button @click="goToMySpace" class="btn-apple-primary">返回我的空间</button>
       </div>
     </div>
   </LifecycleProvider>
@@ -319,9 +319,9 @@ onMounted(() => {
 .step-number {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
-  background: var(--bg-tertiary, #21262d);
-  color: var(--text-secondary, #8b949e);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-tile-3, #252527);
+  color: var(--color-ink-muted-48, #7a7a7a);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -330,18 +330,18 @@ onMounted(() => {
 }
 
 .step.active .step-number {
-  background: #238636;
+  background: var(--color-success);
   color: white;
 }
 
 .step.completed .step-number {
-  background: #238636;
+  background: var(--color-success);
   color: white;
 }
 
 .step-label {
   font-size: 14px;
-  color: var(--text-secondary, #8b949e);
+  color: var(--color-ink-muted-48, #7a7a7a);
 }
 
 .step.active .step-label {
@@ -351,14 +351,14 @@ onMounted(() => {
 .step-line {
   width: 100px;
   height: 2px;
-  background: var(--border, #30363d);
+  background: var(--color-hairline, #e0e0e0);
   margin: 0 16px;
 }
 
 .step-content {
-  background: var(--bg-secondary, #161b22);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 8px;
+  background: var(--color-surface-tile-1, #272729);
+  border: 1px solid var(--color-hairline, #e0e0e0);
+  border-radius: var(--radius-md, 18px);
   padding: 32px;
 }
 
@@ -377,21 +377,21 @@ onMounted(() => {
 
 .type-card {
   position: relative;
-  background: var(--bg-tertiary, #21262d);
-  border: 2px solid var(--border, #30363d);
-  border-radius: 8px;
+  background: var(--color-surface-tile-3, #252527);
+  border: 2px solid var(--color-hairline, #e0e0e0);
+  border-radius: var(--radius-md, 18px);
   padding: 24px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .type-card:hover {
-  border-color: #8b949e;
+  border-color: var(--color-ink-muted-48);
 }
 
 .type-card.selected {
-  border-color: #238636;
-  background: rgba(35, 134, 54, 0.1);
+  border-color: var(--color-success);
+  background: var(--color-success-subtle);
 }
 
 .type-card input {
@@ -413,7 +413,7 @@ onMounted(() => {
 
 .type-desc {
   font-size: 14px;
-  color: var(--text-secondary, #8b949e);
+  color: var(--color-ink-muted-48, #7a7a7a);
   margin-bottom: 12px;
 }
 
@@ -424,11 +424,11 @@ onMounted(() => {
 }
 
 .feature {
-  background: var(--bg-secondary, #161b22);
+  background: var(--color-surface-tile-1, #272729);
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-md, 18px);
   font-size: 12px;
-  color: var(--text-secondary, #8b949e);
+  color: var(--color-ink-muted-48, #7a7a7a);
 }
 
 .form-section {
@@ -442,12 +442,12 @@ onMounted(() => {
 .form-group label {
   display: block;
   font-size: 14px;
-  color: var(--text-secondary, #8b949e);
+  color: var(--color-ink-muted-48, #7a7a7a);
   margin-bottom: 8px;
 }
 
 .required {
-  color: #da3633;
+  color: var(--color-danger);
 }
 
 .form-group input[type="text"],
@@ -456,7 +456,7 @@ onMounted(() => {
   padding: 12px 16px;
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   color: var(--color-ink);
   font-family: var(--font-family-text);
   font-size: 17px;
@@ -513,7 +513,7 @@ onMounted(() => {
   padding: 10px;
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   color: var(--color-ink);
   font-family: var(--font-family-text);
   font-size: 17px;
@@ -535,7 +535,7 @@ onMounted(() => {
   padding: 8px 16px;
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   color: var(--color-ink-muted-48);
   font-family: var(--font-family-text);
   font-size: 14px;
@@ -608,7 +608,7 @@ onMounted(() => {
 .success-icon {
   width: 64px;
   height: 64px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: var(--color-success);
   color: white;
   font-size: 32px;
@@ -648,37 +648,4 @@ onMounted(() => {
   transition: var(--transition-active);
 }
 
-.btn-primary {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-.btn-primary:active {
-  transform: scale(0.95);
-}
-
-.btn-primary:focus {
-  outline: 2px solid var(--color-primary-focus);
-  outline-offset: 2px;
-}
-
-.btn-primary:disabled {
-  background: var(--color-surface-tile-2);
-  color: var(--color-body-muted);
-}
-
-.btn-secondary {
-  background: transparent;
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
-}
-
-.btn-secondary:hover {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-.btn-secondary:active {
-  transform: scale(0.95);
-}
 </style>
