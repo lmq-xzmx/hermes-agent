@@ -172,14 +172,18 @@ onUnmounted(() => {
   to { transform: rotate(360deg); }
 }
 
-/* Select */
+/* Select - Apple Design System */
 .select-apple {
-  background: var(--color-surface-tile-1, #272729);
-  color: var(--color-body-on-dark, #ffffff);
-  font: var(--text-body, 17px/1.47 -0.374px);
-  border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--radius-md, 18px);
-  padding: 8px 12px;
+  background: var(--color-surface-tile-1);
+  color: var(--color-body-on-dark);
+  font-family: var(--font-family-text);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xs) var(--spacing-sm);
   cursor: pointer;
 }
 
