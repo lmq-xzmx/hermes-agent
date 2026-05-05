@@ -60,8 +60,8 @@ function onLogout() {
 <style scoped>
 /* Apple Global Navigation Bar */
 .global-nav {
-  width: var(--sidebar-width, 200px);
-  min-width: var(--sidebar-width, 200px);
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
   background: var(--color-surface-black);
   display: flex;
   flex-direction: column;
@@ -73,8 +73,8 @@ function onLogout() {
   height: 44px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 var(--space-md);
+  gap: var(--spacing-sm);
+  padding: 0 var(--spacing-md);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -83,7 +83,7 @@ function onLogout() {
 }
 
 .brand-text {
-  font-family: var(--font-display);
+  font-family: var(--font-family-display);
   font-size: 14px;
   font-weight: 600;
   color: var(--color-body-on-dark);
@@ -93,7 +93,7 @@ function onLogout() {
 /* Navigation Items */
 .nav-items {
   flex: 1;
-  padding: var(--space-xs) 0;
+  padding: var(--spacing-xs) 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -102,15 +102,15 @@ function onLogout() {
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 var(--space-md);
+  gap: var(--spacing-sm);
+  padding: 0 var(--spacing-md);
   height: 28px;
   background: transparent;
   border: none;
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   cursor: pointer;
   color: var(--color-body-muted);
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: 12px;
   font-weight: 400;
   line-height: 1.0;
@@ -118,7 +118,7 @@ function onLogout() {
   text-align: left;
   width: 100%;
   transition: background-color 0.15s ease, color 0.15s ease;
-  margin: 1px 8px;
+  margin: var(--spacing-2xs) var(--spacing-sm);
 }
 
 .nav-item:hover {
@@ -147,15 +147,15 @@ function onLogout() {
 
 /* Footer */
 .nav-footer {
-  padding: var(--space-md);
+  padding: var(--spacing-md);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .user-section {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-sm);
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
 }
 
 .user-avatar {
@@ -164,7 +164,7 @@ function onLogout() {
 }
 
 .user-name {
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: 12px;
   font-weight: 400;
   letter-spacing: -0.12px;
@@ -176,12 +176,12 @@ function onLogout() {
 
 .btn-logout {
   width: 100%;
-  padding: 6px 12px;
+  padding: var(--spacing-2xs) var(--spacing-sm);
   background: transparent;
   border: none;
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   color: var(--color-body-muted);
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: 12px;
   font-weight: 400;
   line-height: 1.0;
