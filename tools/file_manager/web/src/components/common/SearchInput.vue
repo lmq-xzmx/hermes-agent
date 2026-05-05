@@ -54,7 +54,7 @@ defineEmits(['update:modelValue', 'search', 'clear'])
 .apple-search-input {
   width: 100%;
   height: 44px;
-  padding: 12px 40px 12px 40px;
+  padding: var(--spacing-sm) var(--spacing-lg) var(--spacing-sm) var(--spacing-lg);
   background-color: var(--color-canvas);
   color: var(--color-ink);
   border: 1px solid var(--color-hairline);
@@ -79,7 +79,7 @@ defineEmits(['update:modelValue', 'search', 'clear'])
 
 .search-icon {
   position: absolute;
-  left: 14px;
+  left: var(--spacing-sm);
   color: var(--color-ink-muted-48);
   display: flex;
   align-items: center;
@@ -88,7 +88,7 @@ defineEmits(['update:modelValue', 'search', 'clear'])
 
 .clear-btn {
   position: absolute;
-  right: 8px;
+  right: var(--spacing-xs);
   width: 28px;
   height: 28px;
   display: flex;
@@ -96,7 +96,7 @@ defineEmits(['update:modelValue', 'search', 'clear'])
   justify-content: center;
   background: var(--color-surface-pearl);
   border: none;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   color: var(--color-ink-muted-48);
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
