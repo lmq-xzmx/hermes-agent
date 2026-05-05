@@ -85,4 +85,9 @@ tools/file_manager/src-tauri/gen/
 # Web build output
 tools/file_manager/web/dist/
 tools/file_manager/web/node_modules/
-.gstack/
+
+# Test coverage
+.coverage
+.coverage.*
+*.coverage
+htmlcov/
