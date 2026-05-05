@@ -1,33 +1,46 @@
 <template>
   <LifecycleProvider>
   <div class="admin-dashboard">
-    <header class="dashboard-header">
-      <h1>管理控制台</h1>
-      <div class="header-actions">
-        <button @click="refresh" class="btn btn-secondary">🔄 刷新</button>
-        <select v-model="refreshInterval" @change="setupAutoRefresh">
-          <option :value="0">手动刷新</option>
-          <option :value="30000">30秒</option>
-          <option :value="60000">1分钟</option>
-          <option :value="300000">5分钟</option>
-        </select>
+    <!-- Dark Tile Header -->
+    <header class="dashboard-header tile-dark">
+      <div class="header-content">
+        <h1>管理控制台</h1>
+        <div class="header-actions">
+          <button @click="refresh" class="btn-dark-utility">🔄 刷新</button>
+          <select v-model="refreshInterval" @change="setupAutoRefresh" class="select-apple">
+            <option :value="0">手动刷新</option>
+            <option :value="30000">30秒</option>
+            <option :value="60000">1分钟</option>
+            <option :value="300000">5分钟</option>
+          </select>
+        </div>
       </div>
     </header>
 
-    <div v-if="loading" class="loading">加载中...</div>
+    <!-- Main Content -->
+    <div v-if="loading" class="loading-state">
+      <div class="loading-spinner"></div>
+      <span>加载中...</span>
+    </div>
 
-    <div v-else class="dashboard-grid">
-      <AdminOverview class="overview-section" />
+    <div v-else class="dashboard-content">
+      <!-- Overview Cards - Light Tile -->
+      <div class="overview-section">
+        <AdminOverview />
+      </div>
 
-      <StoragePoolChart :pools="storagePools" class="chart-section" />
+      <!-- Charts Grid -->
+      <div class="charts-grid">
+        <StoragePoolChart :pools="storagePools" class="card-utility" />
+        <UserSpaceSankey :data="userSpaces" class="card-utility" />
+        <QuotaHeatmap :data="quotaHeatmap" class="card-utility" />
+        <OperationTrends :data="operationTrends" class="card-utility" />
+      </div>
 
-      <UserSpaceSankey :data="userSpaces" class="chart-section" />
-
-      <QuotaHeatmap :data="quotaHeatmap" class="chart-section" />
-
-      <OperationTrends :data="operationTrends" class="chart-section" />
-
-      <AlertList :alerts="alerts" class="chart-section" />
+      <!-- Alert List - Dark Tile -->
+      <div class="alerts-section tile-dark">
+        <AlertList :alerts="alerts" />
+      </div>
     </div>
   </div>
   </LifecycleProvider>
@@ -86,55 +99,110 @@ onUnmounted(() => {
 
 <style scoped>
 .admin-dashboard {
-  padding: 20px;
-  background: var(--bg-primary, #0d1117);
   min-height: 100vh;
+  background: var(--color-canvas-parchment, #f5f5f7);
 }
 
+/* Dark Header */
 .dashboard-header {
+  background: var(--color-surface-black, #000000);
+  color: var(--color-body-on-dark, #ffffff);
+  padding: var(--space-section, 80px);
+  padding-bottom: 48px;
+}
+
+.header-content {
+  max-width: 1440px;
+  margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
 }
 
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 16px;
+.dashboard-header h1 {
+  font: var(--text-display-md, 34px/1.47 -0.374px);
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Main Content */
+.dashboard-content {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--space-xl, 32px);
 }
 
 .overview-section {
-  grid-column: span 12;
+  margin-bottom: var(--space-lg, 24px);
 }
 
-.chart-section {
-  grid-column: span 6;
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-lg, 24px);
+  margin-bottom: var(--space-lg, 24px);
 }
 
-.loading {
-  text-align: center;
-  padding: 40px;
-  color: var(--text-secondary, #8b949e);
+.alerts-section {
+  border-radius: var(--rounded-lg, 18px);
+  overflow: hidden;
 }
 
-.btn {
-  padding: 8px 16px;
-  border-radius: 6px;
+/* Loading State */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px;
+  color: var(--color-ink-muted-48, #7a7a7a);
+  gap: var(--space-md, 17px);
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-hairline, #e0e0e0);
+  border-top-color: var(--color-primary, #0066cc);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Select */
+.select-apple {
+  background: var(--color-surface-tile-1, #272729);
+  color: var(--color-body-on-dark, #ffffff);
+  font: var(--text-body, 17px/1.47 -0.374px);
+  border: 1px solid var(--color-hairline, #e0e0e0);
+  border-radius: var(--rounded-sm, 8px);
+  padding: 8px 12px;
   cursor: pointer;
 }
 
-.btn-secondary {
-  background: var(--bg-secondary, #161b22);
-  color: var(--text-primary, #e6edf3);
-  border: 1px solid var(--border, #30363d);
+/* Responsive */
+@media (max-width: 1068px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-select {
-  padding: 8px 12px;
-  background: var(--bg-secondary, #161b22);
-  color: var(--text-primary, #e6edf3);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 6px;
+@media (max-width: 734px) {
+  .dashboard-header {
+    padding: var(--space-lg, 24px);
+  }
+
+  .header-content {
+    flex-direction: column;
+    gap: var(--space-md, 17px);
+    align-items: flex-start;
+  }
+
+  .dashboard-content {
+    padding: var(--space-md, 17px);
+  }
 }
 </style>

@@ -5,13 +5,12 @@ use std::process::Command;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Emitter, Manager, RunEvent, WindowEvent,
+    AppHandle, Emitter, Manager, WindowEvent,
 };
 use tracing::info;
 use tracing_subscriber::{fmt, EnvFilter};
 
 const PYTHON_API_URL: &str = "http://localhost:8080";
-const LLM_WIKI_SERVE_PORT: u16 = 19827;
 
 fn get_storage_root() -> String {
     env::var("HERMES_STORAGE_ROOT")
@@ -22,61 +21,11 @@ fn get_storage_root() -> String {
         })
 }
 
-fn get_llm_wiki_bundle() -> Option<std::path::PathBuf> {
-    let candidates = vec![
-        std::path::PathBuf::from("/Applications/LLM Wiki FM.app"),
-        std::path::PathBuf::from("./llm_wiki_FM/target/release/bundle/macos/LLM Wiki FM.app"),
-        std::env::current_dir().ok()?.join("llm_wiki_FM/target/release/bundle/macos/LLM Wiki FM.app"),
-    ];
-    for candidate in candidates {
-        if candidate.exists() {
-            return Some(candidate);
-        }
-    }
-    None
-}
-
-fn spawn_llm_wiki_gui() -> Result<(), String> {
-    if let Some(bundle) = get_llm_wiki_bundle() {
-        Command::new("open").arg("-a").arg(&bundle).spawn().map_err(|e| format!("Failed to open LLM Wiki: {}", e))?;
-        Ok(())
-    } else {
-        Err("LLM Wiki bundle not found".to_string())
-    }
-}
-
-#[tauri::command]
-async fn get_python_api_status() -> Result<String, String> {
-    let url = format!("{}/health", PYTHON_API_URL);
-    match reqwest::get(&url).await {
-        Ok(resp) => {
-            if resp.status().is_success() {
-                Ok("running".to_string())
-            } else {
-                Err(format!("API returned status: {}", resp.status()))
-            }
-        }
-        Err(e) => Err(format!("Failed to connect to API: {}", e)),
-    }
-}
-
 #[tauri::command]
 async fn get_system_status() -> Result<serde_json::Value, String> {
     use serde_json::json;
-    let python_status = reqwest::get(format!("{}/health", PYTHON_API_URL)).await.map(|resp| resp.status().is_success()).unwrap_or(false);
-    let llm_wiki_status = reqwest::get(format!("http://localhost:{}/health", LLM_WIKI_SERVE_PORT)).await.map(|resp| resp.status().is_success()).unwrap_or(false);
-    Ok(json!({"python_api": python_status, "llm_wiki": llm_wiki_status, "storage": {"backend": "filesystem", "root": get_storage_root()}}))
-}
-
-#[tauri::command]
-async fn open_llm_wiki() -> Result<(), String> {
-    let is_running = reqwest::get(format!("http://localhost:{}/health", LLM_WIKI_SERVE_PORT)).await.is_ok();
-    if is_running {
-        Command::new("pkill").arg("-f").arg("llm-wiki-fm").spawn().map_err(|e| e.to_string())?;
-        Ok(())
-    } else {
-        Err("LLM Wiki not running".to_string())
-    }
+    let python_status = reqwest::get(format!("{}/health", PYTHON_API_URL)).await.map(|r| r.status().is_success()).unwrap_or(false);
+    Ok(json!({"python_api": python_status, "storage": {"backend": "filesystem", "root": get_storage_root()}}))
 }
 
 #[tauri::command]
@@ -85,97 +34,106 @@ fn ping() -> String {
 }
 
 #[tauri::command]
-async fn get_llm_wiki_status() -> Result<bool, String> {
-    reqwest::get(format!("http://localhost:{}/health", LLM_WIKI_SERVE_PORT)).await.map(|resp| resp.status().is_success()).map_err(|e| e.to_string())
-}
+fn get_build_info() -> serde_json::Value {
+    // 尝试读取 VERSION.json 获取完整版本信息
+    // 优先使用 vue.html 入口的路径结构
+    let version_info: Option<serde_json::Value> = std::fs::read_to_string("_up_/web/dist/vue.html")
+        .or_else(|_| std::fs::read_to_string("_up_/web/dist/VERSION.json"))
+        .or_else(|_| std::fs::read_to_string("/Applications/Hermes File Manager.app/Contents/Resources/_up_/web/dist/vue.html"))
+        .or_else(|_| std::fs::read_to_string("/Applications/Hermes File Manager.app/Contents/Resources/_up_/web/dist/VERSION.json"))
+        .ok()
+        .and_then(|content| serde_json::from_str(&content).ok())
+        .or_else(|| {
+            // 尝试直接解析 VERSION.json
+            std::fs::read_to_string("_up_/web/dist/VERSION.json")
+                .or_else(|_| std::fs::read_to_string("/Applications/Hermes File Manager.app/Contents/Resources/_up_/web/dist/VERSION.json"))
+                .ok()
+                .and_then(|c| serde_json::from_str(&c).ok())
+        });
 
-#[tauri::command]
-async fn launch_hermes() -> Result<(), String> {
-    spawn_llm_wiki_gui()
+    let (cargo_version, content_hash, version_string) = if let Some(info) = version_info {
+        (
+            info.get("cargo_version").and_then(|v| v.as_str()).unwrap_or(env!("CARGO_PKG_VERSION")).to_string(),
+            info.get("content_hash").and_then(|v| v.as_str()).unwrap_or("unknown").to_string(),
+            info.get("version_string").and_then(|v| v.as_str()).unwrap_or(env!("CARGO_PKG_VERSION")).to_string(),
+        )
+    } else {
+        (
+            env!("CARGO_PKG_VERSION").to_string(),
+            "not_available".to_string(),
+            env!("CARGO_PKG_VERSION").to_string(),
+        )
+    };
+
+    serde_json::json!({
+        "build_type": if cfg!(debug_assertions) { "Debug" } else { "Release" },
+        "cargo_version": cargo_version,
+        "content_hash": content_hash,
+        "version_string": version_string,
+    })
 }
 
 #[tauri::command]
 async fn open_path_in_finder(path: String) -> Result<(), String> {
-    info!("Opening in finder: {}", path);
     let storage_root = get_storage_root();
-    let full_path = if path.starts_with('/') {
-        format!("{}/{}", storage_root, path.trim_start_matches('/'))
-    } else {
-        format!("{}/{}", storage_root, path)
-    };
-    info!("Full path: {}", full_path);
+    let full_path = if path.starts_with('/') { format!("{}/{}", storage_root, path.trim_start_matches('/')) } else { format!("{}/{}", storage_root, path) };
     #[cfg(target_os = "macos")]
-    {
-        Command::new("open").arg(&full_path).spawn().map_err(|e| format!("Failed to open in finder: {}", e))?;
-    }
+    { Command::new("open").arg(&full_path).spawn().map_err(|e| e.to_string())?; }
     #[cfg(target_os = "windows")]
-    {
-        Command::new("explorer").arg(&full_path).spawn().map_err(|e| format!("Failed to open in explorer: {}", e))?;
-    }
+    { Command::new("explorer").arg(&full_path).spawn().map_err(|e| e.to_string())?; }
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    {
-        return Err("Open in finder is only supported on macOS and Windows".to_string());
+    { return Err("Unsupported platform".to_string()); }
+    Ok(())
+}
+
+#[tauri::command]
+async fn toggle_window(app: AppHandle, label: String) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window(&label) {
+        if window.is_visible().unwrap_or(false) {
+            window.hide().map_err(|e| e.to_string())?;
+        } else {
+            window.show().map_err(|e| e.to_string())?;
+            window.set_focus().map_err(|e| e.to_string())?;
+        }
     }
     Ok(())
 }
 
 #[tauri::command]
-async fn show_floating_window(app: AppHandle) -> Result<(), String> {
+async fn switch_window(app: AppHandle) -> Result<(), String> {
+    if app.get_webview_window("main").map(|w| w.is_visible().unwrap_or(false)).unwrap_or(false) {
+        app.get_webview_window("floating").map(|w| { let _ = w.show(); let _ = w.set_focus(); });
+        app.get_webview_window("main").map(|w| { let _ = w.hide(); });
+    } else {
+        app.get_webview_window("main").map(|w| { let _ = w.show(); let _ = w.set_focus(); });
+        app.get_webview_window("floating").map(|w| { let _ = w.hide(); });
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn toggle_floating_window(app: AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("floating") {
-        window.show().map_err(|e| e.to_string())?;
-        window.set_focus().map_err(|e| e.to_string())?;
+        if window.is_visible().unwrap_or(false) { window.hide().map_err(|e| e.to_string())?; }
+        else { window.show().map_err(|e| e.to_string())?; window.set_focus().map_err(|e| e.to_string())?; }
     }
     Ok(())
 }
 
 #[tauri::command]
-async fn hide_floating_window(app: AppHandle) -> Result<(), String> {
-    if let Some(window) = app.get_webview_window("floating") {
-        window.hide().map_err(|e| e.to_string())?;
-    }
-    Ok(())
+async fn emit_event(app: AppHandle, name: String, payload: String) -> Result<(), String> {
+    app.emit(&name, payload).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-async fn show_main_window(app: AppHandle) -> Result<(), String> {
-    if let Some(window) = app.get_webview_window("main") {
-        window.show().map_err(|e| e.to_string())?;
-        window.set_focus().map_err(|e| e.to_string())?;
-    }
-    Ok(())
-}
-
-#[tauri::command]
-async fn quick_upload(app: AppHandle) -> Result<(), String> {
-    app.emit("quick-upload", ()).map_err(|e| e.to_string())?;
-    if let Some(window) = app.get_webview_window("main") {
-        window.show().map_err(|e| e.to_string())?;
-        window.set_focus().map_err(|e| e.to_string())?;
-    }
-    Ok(())
-}
-
-#[tauri::command]
-async fn show_space_usage(app: AppHandle) -> Result<(), String> {
-    app.emit("show-space-usage", ()).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-#[tauri::command]
-async fn focus_search(app: AppHandle) -> Result<(), String> {
-    app.emit("focus-search", ()).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-#[tauri::command]
-async fn open_recent_file(app: AppHandle, filename: String) -> Result<(), String> {
-    app.emit("open-recent-file", filename).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-#[tauri::command]
-async fn open_settings(app: AppHandle) -> Result<(), String> {
-    app.emit("open-settings", ()).map_err(|e| e.to_string())?;
+async fn open_llm_wiki() -> Result<(), String> {
+    let url = "http://localhost:19827";
+    #[cfg(target_os = "macos")]
+    { Command::new("open").arg(url).spawn().map_err(|e| e.to_string())?; }
+    #[cfg(target_os = "windows")]
+    { Command::new("cmd").args(["/c", "start", url]).spawn().map_err(|e| e.to_string())?; }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    { return Err("Unsupported platform".to_string()); }
     Ok(())
 }
 
@@ -191,17 +149,15 @@ fn main() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .setup(|app| {
             info!("Setting up Tauri application...");
-            if let Some(window) = app.get_webview_window("floating") {
-                info!("Floating window exists, label: {:?}", window.label());
-            } else {
-                info!("Floating window not found, it will be created from tauri.conf.json");
-            }
+
+            // 窗口由 tauri.conf.json 定义，无需代码创建
+
             let show_item = MenuItem::with_id(app, "show", "显示/隐藏主窗口", true, None::<&str>)?;
             let floating_item = MenuItem::with_id(app, "floating", "显示/隐藏浮窗", true, None::<&str>)?;
-            let open_llm_wiki_item = MenuItem::with_id(app, "open_llm_wiki", "打开/关闭知识库", true, None::<&str>)?;
-            let quit_hermes_item = MenuItem::with_id(app, "quit_hermes", "退出 Hermes File Manager", true, None::<&str>)?;
-            let quit_both_item = MenuItem::with_id(app, "quit_both", "退出全部", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show_item, &floating_item, &open_llm_wiki_item, &quit_hermes_item, &quit_both_item])?;
+            let wiki_item = MenuItem::with_id(app, "wiki", "打开知识库", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+            let quit_all_item = MenuItem::with_id(app, "quit_all", "全部退出", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&show_item, &floating_item, &wiki_item, &quit_item, &quit_all_item])?;
             let tray_icon = app.default_window_icon().cloned().expect("窗口图标未配置，请在 tauri.conf.json 中添加 icon");
             let _tray = TrayIconBuilder::new()
                 .icon(tray_icon)
@@ -209,86 +165,40 @@ fn main() {
                 .tooltip("Hermes File Manager")
                 .on_menu_event(|app, event| {
                     match event.id.as_ref() {
-                        "show" => {
-                            if let Some(window) = app.get_webview_window("main") {
-                                if window.is_visible().unwrap_or(false) {
-                                    let _ = window.hide();
-                                } else {
-                                    let _ = window.show();
-                                    let _ = window.set_focus();
-                                }
-                            }
-                        }
-                        "floating" => {
-                            info!("Floating menu clicked, getting floating window");
-                            if let Some(window) = app.get_webview_window("floating") {
-                                info!("Found floating window, label: {:?}", window.label());
-                                if window.is_visible().unwrap_or(false) {
-                                    info!("Hiding floating window");
-                                    let _ = window.hide();
-                                } else {
-                                    info!("Showing floating window");
-                                    let _ = window.show();
-                                    let _ = window.set_focus();
-                                }
-                            } else {
-                                info!("Floating window NOT found!");
-                            }
-                        }
-                        "open_llm_wiki" => {
-                            let rt = tokio::runtime::Runtime::new().unwrap();
-                            let is_running = rt.block_on(async {
-                                reqwest::get(format!("http://localhost:{}/health", LLM_WIKI_SERVE_PORT)).await.is_ok()
-                            });
-                            if is_running {
-                                let _ = Command::new("pkill").arg("-f").arg("llm-wiki-fm").spawn();
-                                info!("LLM Wiki GUI closed");
-                            } else {
-                                let _ = spawn_llm_wiki_gui();
-                            }
-                        }
-                        "quit_hermes" => {
-                            info!("Quit Hermes requested");
-                            std::process::exit(0);
-                        }
-                        "quit_both" => {
-                            let _ = Command::new("pkill").arg("-f").arg("llm-wiki-fm").spawn();
-                            info!("Quitting both Hermes and LLM Wiki");
-                            std::process::exit(0);
-                        }
+                        "quit" => std::process::exit(0),
+                        "quit_all" => { let _ = app.get_webview_window("main").map(|w| w.close()); let _ = app.get_webview_window("floating").map(|w| w.close()); std::process::exit(0); }
+                        "wiki" => { let _ = Command::new("open").arg("http://localhost:19827").spawn(); }
+                        "show" => if let Some(w) = app.get_webview_window("main") { if w.is_visible().unwrap_or(false) { let _ = w.hide(); } else { let _ = w.show(); let _ = w.set_focus(); } }
+                        "floating" => if let Some(w) = app.get_webview_window("floating") { if w.is_visible().unwrap_or(false) { let _ = w.hide(); } else { let _ = w.show(); let _ = w.set_focus(); } }
                         _ => {}
                     }
                 })
                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
                         let app = tray.app_handle();
-                        if let Some(window) = app.get_webview_window("floating") {
-                            if window.is_visible().unwrap_or(false) {
-                                let _ = window.hide();
-                            } else {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
-                        }
+                        if let Some(w) = app.get_webview_window("floating") { let _ = w.is_visible().unwrap_or(false) || { let _ = w.show(); let _ = w.set_focus(); true }; if w.is_visible().unwrap_or(false) { let _ = w.hide(); } }
                     }
                 })
                 .build(app)?;
             info!("System tray initialized");
-            if let Some(main_window) = app.get_webview_window("main") {
-                let window_handle = main_window.clone();
-                main_window.on_window_event(move |event| {
-                    if let WindowEvent::CloseRequested { api, .. } = event {
-                        api.prevent_close();
-                        let _ = window_handle.hide();
-                    }
-                });
+            if let Some(w) = app.get_webview_window("main") {
+                let title = format!("Hermes File Manager{}", if cfg!(debug_assertions) { " [DEBUG]" } else { "" });
+                let _ = w.set_title(&title);
+                let h = w.clone();
+                w.on_window_event(move |event| { if let WindowEvent::CloseRequested { api, .. } = event { api.prevent_close(); let _ = h.hide(); } });
+            }
+            // floating window close-to-hide
+            if let Some(w) = app.get_webview_window("floating") {
+                let h = w.clone();
+                w.on_window_event(move |event| { if let WindowEvent::CloseRequested { api, .. } = event { api.prevent_close(); let _ = h.hide(); } });
             }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            get_python_api_status, get_system_status, open_llm_wiki, ping, get_llm_wiki_status, launch_hermes,
-            open_path_in_finder, show_floating_window, hide_floating_window, show_main_window,
-            quick_upload, show_space_usage, focus_search, open_recent_file, open_settings,
+            get_system_status, ping,
+            open_path_in_finder, toggle_window, switch_window,
+            toggle_floating_window,
+            emit_event, get_build_info, open_llm_wiki,
         ])
         .build(tauri::generate_context!())
         .expect("Failed to build Tauri application");

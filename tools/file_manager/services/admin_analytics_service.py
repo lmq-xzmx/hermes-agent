@@ -4,10 +4,16 @@ AdminAnalyticsService - Pure business logic for admin analytics operations.
 No FastAPI, no HTTPException. Uses PermissionContext for user identity.
 Provides data for Admin Dashboard: storage pools, user-space relationships,
 quota heatmaps, operation trends, and active users.
+
+Caching Strategy (TTL: 5 minutes):
+- Admin data changes infrequently, so a simple in-memory cache with TTL is effective
+- Cache is invalidated on WebSocket data refresh broadcasts
+- Cache key format: method_name:arg1:arg2 for methods with arguments
 """
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional, Callable
@@ -16,6 +22,11 @@ from .permission_context import PermissionContext
 from .event_bus import EventBus, EventType, Event, get_event_bus
 from ..engine.models import User, Space, StoragePool, SpaceMember, AuditLog
 from ..engine.audit import AuditLogger
+
+
+# Cache configuration
+_CACHE_TTL_SECONDS = 300  # 5 minutes
+_CACHE_LOCK = threading.RLock()
 
 
 class AdminAccessDenied(Exception):
@@ -33,9 +44,14 @@ class AdminAnalyticsService:
       - Quota heatmap (warning/critical spaces)
       - Operation trends over time
       - Active users statistics
+
+    Caching: All data-fetching methods are cached with 5-minute TTL.
+    Cache is automatically invalidated when WebSocket broadcaster refreshes data.
     """
 
-    def __init__(
+    # Class-level cache shared across all instances
+    _cache: Dict[str, Any] = {}
+    _cache_timestamps: Dict[str, datetime] = {}
         self,
         db_factory: Callable,
         event_bus: Optional[EventBus] = None,
@@ -48,13 +64,64 @@ class AdminAnalyticsService:
         if ctx.role_name != "admin":
             raise AdminAccessDenied(f"User '{ctx.username}' is not an admin")
 
+    def _get_cache_key(self, method_name: str, *args) -> str:
+        """Generate a cache key for the given method and arguments."""
+        if args:
+            return f"{method_name}:{':'.join(str(arg) for arg in args)}"
+        return method_name
+
+    def _is_cache_valid(self, key: str) -> bool:
+        """Check if cache entry exists and is not expired."""
+        if key not in self._cache_timestamps:
+            return False
+        age = (datetime.utcnow() - self._cache_timestamps[key]).total_seconds()
+        return age < _CACHE_TTL_SECONDS
+
+    def _get_cached(self, key: str) -> Optional[Any]:
+        """Get cached data if valid, thread-safe."""
+        with _CACHE_LOCK:
+            if self._is_cache_valid(key):
+                return self._cache.get(key)
+            return None
+
+    def _set_cached(self, key: str, data: Any) -> None:
+        """Store data in cache with current timestamp, thread-safe."""
+        with _CACHE_LOCK:
+            self._cache[key] = data
+            self._cache_timestamps[key] = datetime.utcnow()
+
+    def invalidate_cache(self, method_name: Optional[str] = None) -> None:
+        """
+        Invalidate cache entries.
+
+        Args:
+            method_name: If provided, only invalidate entries for this method.
+                        If None, invalidate all entries.
+        """
+        with _CACHE_LOCK:
+            if method_name:
+                # Invalidate specific method entries
+                keys_to_remove = [k for k in self._cache if k.startswith(f"{method_name}:") or k == method_name]
+                for key in keys_to_remove:
+                    self._cache.pop(key, None)
+                    self._cache_timestamps.pop(key, None)
+            else:
+                # Invalidate all entries
+                self._cache.clear()
+                self._cache_timestamps.clear()
+
     # -------------------------------------------------------------------------
     # Storage Pools Analytics
     # -------------------------------------------------------------------------
 
     def get_storage_pools(self, ctx: PermissionContext) -> Dict[str, Any]:
-        """Get all storage pools with usage statistics."""
+        """Get all storage pools with usage statistics. Cached with 5-min TTL."""
         self._require_admin(ctx)
+
+        cache_key = self._get_cache_key("get_storage_pools")
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
 
         session = self.db_factory()
         try:
@@ -99,7 +166,7 @@ class AdminAnalyticsService:
                 total_bytes += pool.total_bytes
                 total_used += used_bytes
 
-            return {
+            result = {
                 "pools": pool_list,
                 "summary": {
                     "total_pools": len(pools),
@@ -108,6 +175,8 @@ class AdminAnalyticsService:
                     "usage_rate": round(total_used / total_bytes, 4) if total_bytes > 0 else 0,
                 }
             }
+            self._set_cached(cache_key, result)
+            return result
         finally:
             session.close()
 
@@ -116,8 +185,13 @@ class AdminAnalyticsService:
     # -------------------------------------------------------------------------
 
     def get_user_space_relationships(self, ctx: PermissionContext) -> Dict[str, Any]:
-        """Get user-space relationships for Sankey diagram."""
+        """Get user-space relationships for Sankey diagram. Cached with 5-min TTL."""
         self._require_admin(ctx)
+
+        cache_key = self._get_cache_key("get_user_space_relationships")
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
 
         session = self.db_factory()
         try:
@@ -166,7 +240,7 @@ class AdminAnalyticsService:
                         "role": member.role,
                     })
 
-            return {
+            result = {
                 "nodes": nodes,
                 "links": links,
                 "stats": {
@@ -175,6 +249,8 @@ class AdminAnalyticsService:
                     "total_spaces": len(spaces),
                 }
             }
+            self._set_cached(cache_key, result)
+            return result
         finally:
             session.close()
 
@@ -183,8 +259,13 @@ class AdminAnalyticsService:
     # -------------------------------------------------------------------------
 
     def get_quota_heatmap(self, ctx: PermissionContext) -> Dict[str, Any]:
-        """Get quota usage heatmap for all team spaces."""
+        """Get quota usage heatmap for all team spaces. Cached with 5-min TTL."""
         self._require_admin(ctx)
+
+        cache_key = self._get_cache_key("get_quota_heatmap")
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
 
         session = self.db_factory()
         try:
@@ -208,7 +289,7 @@ class AdminAnalyticsService:
                         "status": status,
                     })
 
-            return {
+            result = {
                 "heatmap": heatmap,
                 "legend": {
                     "normal": {"min": 0, "max": 0.6, "color": "#3fb950"},
@@ -216,6 +297,8 @@ class AdminAnalyticsService:
                     "critical": {"min": 0.8, "max": 1.0, "color": "#f85149"}
                 }
             }
+            self._set_cached(cache_key, result)
+            return result
         finally:
             session.close()
 
@@ -224,8 +307,13 @@ class AdminAnalyticsService:
     # -------------------------------------------------------------------------
 
     def get_operation_trends(self, ctx: PermissionContext, days: int = 30) -> Dict[str, Any]:
-        """Get operation trends over the specified number of days."""
+        """Get operation trends over the specified number of days. Cached with 5-min TTL."""
         self._require_admin(ctx)
+
+        cache_key = self._get_cache_key("get_operation_trends", days)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
 
         session = self.db_factory()
         try:

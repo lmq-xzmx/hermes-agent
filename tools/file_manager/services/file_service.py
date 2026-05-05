@@ -145,7 +145,7 @@ class FileService:
 
         from .space_service import SpaceService, QuotaExceeded
         svc = SpaceService(db_factory=self._db_factory)
-        svc.check_quota_for_write(space_id=user_ctx.active_space_id, additional_bytes=file_size)
+        svc.check_quota_for_write_with_lock(space_id=user_ctx.active_space_id, additional_bytes=file_size)
 
     def _check_file_lock(self, space_id: Optional[str], user_path: str, user_id: str) -> None:
         """Check if file is locked by another user. Raises FileLocked."""

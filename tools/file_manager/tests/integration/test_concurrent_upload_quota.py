@@ -104,7 +104,8 @@ class TestConcurrentUploadQuota:
         """
         测试：多个并发预留配额时，计算正确
 
-        场景：空间已使用50MB，有3个各20MB的pending upload，尝试上传1MB应被拒绝
+        场景：空间已使用50MB，有3个各20MB的pending upload
+        由于 max=100MB, used=50MB, 只能创建2个20MB上传（共预留40MB），第三个20MB上传应被拒绝
         """
         user_id = test_user.id  # 先获取，避免后续detach问题
 
@@ -122,8 +123,9 @@ class TestConcurrentUploadQuota:
         db_session.commit()
         space_id = space.id
 
-        # 创建3个并发上传，每个20MB（预留共60MB）
-        for i in range(3):
+        # 创建2个并发上传，每个20MB（预留共40MB）
+        # 可用 = 100 - 50 - 40 = 10MB，所以第三个上传会失败
+        for i in range(2):
             upload_service.create_upload(
                 space_id=space_id,
                 user_id=user_id,
@@ -131,12 +133,14 @@ class TestConcurrentUploadQuota:
                 file_size=20 * 1024 * 1024
             )
 
-        # 剩余配额 = 100 - 50 - 60 = -10MB < 0，尝试上传1MB应被拒绝
-        with pytest.raises((QuotaExceeded, LifecycleViolation)):
-            space_service.check_quota_for_write_with_lock(
+        # 剩余配额 = 100 - 50 - 40 = 10MB < 20MB，第三个上传应被拒绝
+        from file_manager.engine.file_upload_service import QuotaExceededError as UploadQuotaExceeded
+        with pytest.raises((QuotaExceeded, LifecycleViolation, UploadQuotaExceeded)):
+            upload_service.create_upload(
                 space_id=space_id,
-                additional_bytes=1 * 1024 * 1024,
-                user_id=user_id
+                user_id=user_id,
+                file_name="pending_2.bin",
+                file_size=20 * 1024 * 1024
             )
 
     def test_quota_available_allows_upload(

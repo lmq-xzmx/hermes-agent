@@ -1,0 +1,52 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = ""
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA rewrite 规则
+[[redirects]]
+  from = "/api/*"
+  to = "https://api.yourdomain.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/ws/*"
+  to = "https://api.yourdomain.com/ws/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# 安全 headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# 多环境配置
+[context.production.environment]
+  VITE_API_BASE = "https://api.yourdomain.com/api/v1"
+  VITE_WS_BASE = "wss://api.yourdomain.com"
+
+[context.deploy-preview.environment]
+  VITE_API_BASE = "https://api-staging.yourdomain.com/api/v1"
+  VITE_WS_BASE = "wss://api-staging.yourdomain.com"
+
+[context.branch-deploy.environment]
+  VITE_API_BASE = "https://api-staging.yourdomain.com/api/v1"
+  VITE_WS_BASE = "wss://api-staging.yourdomain.com"

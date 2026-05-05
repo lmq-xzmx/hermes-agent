@@ -4,8 +4,8 @@
       <h3>存储池使用率</h3>
       <span class="total">{{ formatBytes(totalBytes) }} 总计</span>
     </div>
-    <div class="pools-container">
-      <div v-for="pool in pools" :key="pool.id" class="pool-card">
+    <div class="pools-grid">
+      <div v-for="pool in pools" :key="pool.id" class="pool-card card-utility">
         <div class="pool-ring">
           <canvas :id="'ring-' + pool.id" width="120" height="120"></canvas>
         </div>
@@ -18,13 +18,13 @@
           <div class="pool-status" :class="pool.status">
             {{ pool.status === 'critical' ? '⚠ 告警' : pool.status === 'warning' ? '⚡ 注意' : '✓ 正常' }}
           </div>
-          <button class="detail-btn" @click="showPoolTeams(pool)">查看团队</button>
+          <button class="btn-primary" @click="showPoolTeams(pool)">查看团队</button>
         </div>
       </div>
     </div>
 
-    <!-- Teams Modal -->
-    <div v-if="showModal" class="teams-modal" @click.self="closeModal">
+    <!-- Teams Modal - Apple Style -->
+    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal-content">
         <div class="modal-header">
           <h3>{{ currentPool?.name }} - 使用中的团队</h3>
@@ -179,32 +179,38 @@ watch(() => props.pools, () => {
 
 <style scoped>
 .storage-pool-chart {
-  background: var(--bg-secondary, #161b22);
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
+  padding: var(--space-lg, 24px);
 }
 
 .chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-lg, 24px);
 }
 
-.pools-container {
+.chart-header h3 {
+  font: var(--text-body-strong, 17px/1.24 -0.374px 600);
+  font-weight: 600;
+  color: var(--color-ink, #1d1d1f);
+  margin: 0;
+}
+
+.total {
+  font: var(--text-caption, 14px/1.43 -0.224px);
+  color: var(--color-ink-muted-48, #7a7a7a);
+}
+
+.pools-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-md, 17px);
 }
 
 .pool-card {
   display: flex;
-  gap: 16px;
-  padding: 12px;
-  background: var(--bg-primary, #0d1117);
-  border-radius: 8px;
-  border: 1px solid var(--border, #30363d);
+  gap: var(--space-md, 17px);
+  padding: var(--space-md, 17px);
 }
 
 .pool-ring {
@@ -214,43 +220,62 @@ watch(() => props.pools, () => {
 .pool-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs, 4px);
 }
 
 .pool-info h4 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
+  font: var(--text-body-strong, 17px/1.24 -0.374px 600);
+  font-weight: 600;
+  color: var(--color-ink, #1d1d1f);
+  margin: 0;
+}
+
+.pool-stats {
+  display: flex;
+  gap: var(--space-sm, 12px);
+  font: var(--text-caption, 14px/1.43 -0.224px);
+  color: var(--color-ink-muted-48, #7a7a7a);
 }
 
 .pool-status {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 4px;
+  font: var(--text-caption, 14px/1.43 -0.224px);
+  padding: 2px 10px;
+  border-radius: var(--rounded-pill, 9999px);
   display: inline-block;
-  margin: 4px 0;
+  width: fit-content;
 }
 
-.pool-status.normal { background: rgba(63, 185, 80, 0.2); color: #3fb950; }
-.pool-status.warning { background: rgba(210, 153, 34, 0.2); color: #d29922; }
-.pool-status.critical { background: rgba(248, 81, 73, 0.2); color: #f85149; }
+.pool-status.normal { background: var(--color-primary-subtle); color: var(--color-primary, #0066cc); }
+.pool-status.warning { background: var(--color-warning-subtle); color: var(--color-warning-strong, #9e6a03); }
+.pool-status.critical { background: var(--color-danger-subtle); color: var(--color-danger-strong, #f85149); }
 
-.detail-btn {
-  margin-top: 8px;
-  padding: 4px 12px;
-  background: var(--accent, #58a6ff);
-  color: white;
+.btn-primary {
+  background: var(--color-primary, #0066cc);
+  color: var(--color-on-primary, #ffffff);
+  font: var(--text-body, 17px/1.47 -0.374px);
+  border-radius: var(--rounded-pill, 9999px);
+  padding: 6px 16px;
   border: none;
-  border-radius: 4px;
   cursor: pointer;
+  transition: transform 0.1s ease;
+  width: fit-content;
+  margin-top: var(--space-xs, 8px);
+}
+
+.btn-primary:active {
+  transform: scale(0.95);
 }
 
 /* Modal Styles */
-.teams-modal {
+.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -258,9 +283,8 @@ watch(() => props.pools, () => {
 }
 
 .modal-content {
-  background: var(--bg-secondary, #161b22);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 8px;
+  background: var(--color-canvas, #ffffff);
+  border-radius: var(--rounded-lg, 18px);
   width: 90%;
   max-width: 700px;
   max-height: 80vh;
@@ -273,19 +297,21 @@ watch(() => props.pools, () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border, #30363d);
+  padding: var(--space-lg, 24px);
+  border-bottom: 1px solid var(--color-hairline, #e0e0e0);
 }
 
 .modal-header h3 {
+  font: var(--text-body-strong, 17px/1.24 -0.374px 600);
+  font-weight: 600;
+  color: var(--color-ink, #1d1d1f);
   margin: 0;
-  font-size: 16px;
 }
 
 .modal-close {
   background: none;
   border: none;
-  color: var(--text-secondary, #8b949e);
+  color: var(--color-ink-muted-48, #7a7a7a);
   font-size: 24px;
   cursor: pointer;
   padding: 0;
@@ -293,15 +319,16 @@ watch(() => props.pools, () => {
 }
 
 .modal-close:hover {
-  color: var(--text-primary, #e6edf3);
+  color: var(--color-ink, #1d1d1f);
 }
 
 .modal-loading,
 .modal-error,
 .modal-empty {
-  padding: 40px;
+  padding: var(--space-xl, 32px);
   text-align: center;
-  color: var(--text-secondary, #8b949e);
+  font: var(--text-body, 17px/1.47 -0.374px);
+  color: var(--color-ink-muted-48, #7a7a7a);
 }
 
 .modal-error {
@@ -310,7 +337,7 @@ watch(() => props.pools, () => {
 
 .modal-teams {
   overflow-y: auto;
-  padding: 16px 20px;
+  padding: var(--space-md, 17px);
 }
 
 .teams-table {
@@ -320,21 +347,21 @@ watch(() => props.pools, () => {
 
 .teams-table th,
 .teams-table td {
-  padding: 10px 12px;
+  padding: var(--space-sm, 12px) var(--space-md, 17px);
   text-align: left;
-  border-bottom: 1px solid var(--border, #30363d);
+  border-bottom: 1px solid var(--color-hairline, #e0e0e0);
 }
 
 .teams-table th {
-  font-size: 12px;
-  color: var(--text-secondary, #8b949e);
+  font: var(--text-caption, 14px/1.43 -0.224px);
   font-weight: 600;
+  color: var(--color-ink-muted-48, #7a7a7a);
 }
 
 .usage-bar {
   width: 80px;
   height: 6px;
-  background: var(--bg-tertiary, #21262d);
+  background: var(--color-hairline, #e0e0e0);
   border-radius: 3px;
   display: inline-block;
   vertical-align: middle;
@@ -343,7 +370,7 @@ watch(() => props.pools, () => {
 
 .usage-fill {
   height: 100%;
-  background: var(--accent, #58a6ff);
+  background: var(--color-primary, #0066cc);
   border-radius: 3px;
 }
 </style>

@@ -115,13 +115,9 @@ export function sendWsMessage(message) {
 // 私有函数
 
 function getWsBase() {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const host = window.location.host
-  // 开发环境使用 localhost:8080，生产环境使用当前 host
-  if (host.includes('localhost') || host.includes('127.0.0.1')) {
-    return 'ws://localhost:8080'
-  }
-  return `${protocol}//${host}`
+  // TASK-006: 使用构建时注入的 WebSocket 基础 URL
+  // __WS_BASE__ 由 vite.config.js 在构建时定义
+  return __WS_BASE__
 }
 
 let pingTimer = null

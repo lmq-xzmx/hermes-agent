@@ -108,9 +108,9 @@ const visibleSpaces = computed(() => {
   min-width: 40px;
 }
 
-.usage-cell.normal .usage-bar { background: rgba(63, 185, 80, 0.3); }
-.usage-cell.warning .usage-bar { background: rgba(210, 153, 34, 0.3); }
-.usage-cell.critical .usage-bar { background: rgba(248, 81, 73, 0.3); }
+.usage-cell.normal .usage-bar { background: var(--color-success-bar); }
+.usage-cell.warning .usage-bar { background: var(--color-warning-bar); }
+.usage-cell.critical .usage-bar { background: var(--color-danger-bar); }
 
 .usage-text {
   font-size: 11px;

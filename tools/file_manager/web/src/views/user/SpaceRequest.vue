@@ -453,35 +453,47 @@ onMounted(() => {
 .form-group input[type="text"],
 .form-group textarea {
   width: 100%;
-  padding: 12px;
-  background: var(--bg-tertiary, #21262d);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 6px;
-  color: var(--text-primary, #e6edf3);
-  font-size: 14px;
+  padding: 12px 16px;
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  font-family: var(--font-family-text);
+  font-size: 17px;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  transition: border-color 0.2s ease;
+}
+
+.form-group input[type="text"]:focus,
+.form-group textarea:focus {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 0;
 }
 
 .form-group input.error,
 .form-group textarea.error {
-  border-color: #da3633;
+  border-color: var(--color-danger);
 }
 
 .error-text {
   display: block;
+  font-family: var(--font-family-text);
   font-size: 12px;
-  color: #da3633;
+  color: var(--color-danger);
   margin-top: 4px;
 }
 
 .quota-selector {
-  background: var(--bg-tertiary, #21262d);
-  border-radius: 8px;
-  padding: 16px;
+  background: var(--color-canvas-parchment);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
 }
 
 .quota-range {
+  font-family: var(--font-family-text);
   font-size: 12px;
-  color: var(--text-secondary, #8b949e);
+  color: var(--color-ink-muted-48);
   margin-bottom: 12px;
 }
 
@@ -498,45 +510,48 @@ onMounted(() => {
 
 .quota-value input {
   width: 100px;
-  padding: 8px;
-  background: var(--bg-secondary, #161b22);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 4px;
-  color: var(--text-primary, #e6edf3);
+  padding: 10px;
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  font-family: var(--font-family-text);
+  font-size: 17px;
   text-align: center;
 }
 
 .quota-value span {
-  color: var(--text-secondary, #8b949e);
+  color: var(--color-ink-muted-48);
 }
 
 .quota-presets {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-sm);
   margin-top: 12px;
 }
 
 .preset-btn {
-  padding: 6px 12px;
-  background: var(--bg-secondary, #161b22);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 4px;
-  color: var(--text-secondary, #8b949e);
-  font-size: 12px;
+  padding: 8px 16px;
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-sm);
+  color: var(--color-ink-muted-48);
+  font-family: var(--font-family-text);
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .preset-btn:hover {
-  border-color: #238636;
-  color: var(--text-primary, #e6edf3);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .preset-btn.selected {
-  background: #238636;
-  border-color: #238636;
-  color: white;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
 }
 
 .step-actions {
@@ -547,15 +562,15 @@ onMounted(() => {
 }
 
 .review-section {
-  background: var(--bg-tertiary, #21262d);
-  border-radius: 8px;
-  padding: 24px;
-  margin-bottom: 24px;
+  background: var(--color-canvas-parchment);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
 }
 
 .review-item {
   padding: 12px 0;
-  border-bottom: 1px solid var(--border, #30363d);
+  border-bottom: 1px solid var(--color-divider-soft);
 }
 
 .review-item:last-child {
@@ -563,17 +578,20 @@ onMounted(() => {
 }
 
 .review-label {
+  font-family: var(--font-family-text);
   font-size: 12px;
-  color: var(--text-secondary, #8b949e);
+  color: var(--color-ink-muted-48);
   margin-bottom: 4px;
 }
 
 .review-value {
+  font-family: var(--font-family-text);
   font-size: 16px;
-  color: var(--text-primary, #e6edf3);
+  color: var(--color-ink);
 }
 
 .review-value.reason {
+  font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -582,16 +600,16 @@ onMounted(() => {
 .success-section {
   text-align: center;
   padding: 48px;
-  background: var(--bg-secondary, #161b22);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 8px;
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
 }
 
 .success-icon {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: #238636;
+  background: var(--color-success);
   color: white;
   font-size: 32px;
   display: flex;
@@ -601,13 +619,14 @@ onMounted(() => {
 }
 
 .success-section h2 {
+  font-family: var(--font-display);
   font-size: 20px;
-  color: var(--text-primary, #e6edf3);
+  color: var(--color-ink);
   margin: 0 0 12px 0;
 }
 
 .success-section p {
-  color: var(--text-secondary, #8b949e);
+  color: var(--color-ink-muted-48);
   margin: 0 0 8px 0;
 }
 
@@ -617,26 +636,49 @@ onMounted(() => {
 }
 
 .btn {
-  padding: 10px 20px;
-  border-radius: 6px;
+  padding: 11px 22px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
   border: none;
-  font-size: 14px;
+  font-family: var(--font-family-text);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  transition: var(--transition-active);
 }
 
 .btn-primary {
-  background: #238636;
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.btn-primary:active {
+  transform: scale(0.95);
+}
+
+.btn-primary:focus {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
 }
 
 .btn-primary:disabled {
-  background: #21262d;
-  color: #484f58;
+  background: var(--color-surface-tile-2);
+  color: var(--color-body-muted);
 }
 
 .btn-secondary {
-  background: var(--bg-secondary, #161b22);
-  color: var(--text-primary, #e6edf3);
-  border: 1px solid var(--border, #30363d);
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+
+.btn-secondary:hover {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.btn-secondary:active {
+  transform: scale(0.95);
 }
 </style>

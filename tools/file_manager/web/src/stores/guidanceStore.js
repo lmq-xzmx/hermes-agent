@@ -171,6 +171,117 @@ export const useGuidanceStore = defineStore('guidance', () => {
   // 已触发的事件（防止重复触发）
   const triggeredEvents = ref(new Set())
 
+  // T4: 引导数据统计分析
+  const guidanceStats = ref({
+    triggered: {},      // { eventName: count } - 触发次数
+    completed: {},      // { eventName: count } - 完成次数
+    dismissed: {},      // { eventName: count } - 跳过次数
+    actionCounts: {},   // { actionName: count } - 各操作点击次数
+    sessionStart: Date.now(),
+    lastSync: null
+  })
+
+  // 统计数据持久化
+  const STATS_STORAGE_KEY = 'hermes_guidance_stats'
+
+  // 加载统计数据
+  function loadStats() {
+    try {
+      const stored = localStorage.getItem(STATS_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        // 合并历史数据和当前 session
+        return {
+          triggered: { ...parsed.triggered },
+          completed: { ...parsed.completed },
+          dismissed: { ...parsed.dismissed },
+          actionCounts: { ...parsed.actionCounts },
+          sessionStart: Date.now(),
+          lastSync: parsed.lastSync
+        }
+      }
+    } catch {}
+    return guidanceStats.value
+  }
+
+  // 保存统计数据
+  function saveStats() {
+    try {
+      localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(guidanceStats.value))
+    } catch {}
+  }
+
+  // 记录引导触发
+  function recordTrigger(eventName) {
+    guidanceStats.value.triggered[eventName] = (guidanceStats.value.triggered[eventName] || 0) + 1
+    saveStats()
+  }
+
+  // 记录引导完成
+  function recordComplete(eventName) {
+    guidanceStats.value.completed[eventName] = (guidanceStats.value.completed[eventName] || 0) + 1
+    saveStats()
+  }
+
+  // 记录引导跳过
+  function recordDismiss(eventName) {
+    guidanceStats.value.dismissed[eventName] = (guidanceStats.value.dismissed[eventName] || 0) + 1
+    saveStats()
+  }
+
+  // 记录操作点击
+  function recordAction(actionName) {
+    guidanceStats.value.actionCounts[actionName] = (guidanceStats.value.actionCounts[actionName] || 0) + 1
+    saveStats()
+  }
+
+  // 异步发送到后端
+  async function syncStatsToBackend() {
+    if (guidanceStats.value.lastSync && Date.now() - guidanceStats.value.lastSync < 60000) {
+      // 1分钟内不重复同步
+      return
+    }
+
+    try {
+      const token = localStorage.getItem('hfm_token')
+      if (!token) return
+
+      const statsPayload = {
+        triggered: guidanceStats.value.triggered,
+        completed: guidanceStats.value.completed,
+        dismissed: guidanceStats.value.dismissed,
+        actionCounts: guidanceStats.value.actionCounts,
+        sessionDurationMs: Date.now() - guidanceStats.value.sessionStart
+      }
+
+      const res = await fetch(`${import.meta.env.VITE_API_BASE || '/api/v1'}/analytics/guidance`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(statsPayload)
+      })
+
+      if (res.ok) {
+        guidanceStats.value.lastSync = Date.now()
+        saveStats()
+      }
+    } catch (e) {
+      console.error('[GuidanceStats] Failed to sync:', e)
+    }
+  }
+
+  // 初始化统计数据
+  guidanceStats.value = loadStats()
+
+  // 页面 unload 时同步统计
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', () => {
+      syncStatsToBackend()
+    })
+  }
+
   // 加载已忽略的引导
   function loadDismissed() {
     try {
@@ -212,6 +323,9 @@ export const useGuidanceStore = defineStore('guidance', () => {
   function trigger(eventName, eventContext = {}) {
     if (!enabled.value) return false
 
+    // 标准化事件名称（支持大小写不敏感）
+    const normalizedEvent = eventName?.toLowerCase()
+
     // 更新上下文
     updateContext(eventContext)
 
@@ -221,8 +335,22 @@ export const useGuidanceStore = defineStore('guidance', () => {
       return false
     }
 
-    // 获取事件配置
-    const config = GUIDANCE_DEFINITIONS[eventName]
+    // 获取事件配置（大小写不敏感）
+    let config = GUIDANCE_DEFINITIONS[eventName]
+
+    // 如果没找到，尝试通过 GUIDANCE_EVENTS 映射
+    if (!config) {
+      // 查找匹配的 GUIDANCE_EVENTS 键
+      const matchedKey = Object.entries(GUIDANCE_EVENTS).find(([k, v]) =>
+        k.toLowerCase() === normalizedEvent || v.toLowerCase() === normalizedEvent
+      )?.[1]
+
+      if (matchedKey) {
+        config = GUIDANCE_DEFINITIONS[matchedKey]
+        eventName = matchedKey
+      }
+    }
+
     if (!config) {
       debug.value && console.log(`[Guidance] Unknown event: ${eventName}`)
       return false
@@ -236,6 +364,9 @@ export const useGuidanceStore = defineStore('guidance', () => {
 
     // 标记为已触发
     registerTriggered(eventName)
+
+    // T4: 记录引导触发统计
+    recordTrigger(eventName)
 
     // 设置当前事件名称
     currentEventName.value = eventName
@@ -262,6 +393,8 @@ export const useGuidanceStore = defineStore('guidance', () => {
     if (eventName) {
       dismissedEvents.value.add(eventName)
       saveDismissed()
+      // T4: 记录引导跳过统计
+      recordDismiss(eventName)
     }
     currentEventName.value = ''
     modalVisible.value = false
@@ -296,6 +429,8 @@ export const useGuidanceStore = defineStore('guidance', () => {
 
     const handler = actions[action]
     if (handler) {
+      // T4: 记录操作点击统计
+      recordAction(action)
       handler()
       modalVisible.value = false
     }
@@ -383,6 +518,7 @@ export const useGuidanceStore = defineStore('guidance', () => {
     currentEventName,
     currentTour,
     tourStepIndex,
+    guidanceStats,
     // 方法
     updateContext,
     trigger,
@@ -393,6 +529,12 @@ export const useGuidanceStore = defineStore('guidance', () => {
     prevStep,
     endTour,
     resetGuidance,
+    syncStatsToBackend,
+    // T4: 统计方法
+    recordTrigger,
+    recordComplete,
+    recordDismiss,
+    recordAction,
     // 常量
     GUIDANCE_EVENTS,
     GUIDANCE_DEFINITIONS,
@@ -401,26 +543,39 @@ export const useGuidanceStore = defineStore('guidance', () => {
   }
 })
 
+// 延迟创建 store 实例（Pinia 安装后才会调用）
+let guidanceStoreInstance = null
+const getGuidanceStore = () => {
+  if (!guidanceStoreInstance) {
+    guidanceStoreInstance = useGuidanceStore()
+  }
+  return guidanceStoreInstance
+}
+
 // 暴露到 window，供 Vanilla JS 引导系统调用
 if (typeof window !== 'undefined') {
   // 创建代理对象，平滑 triggerGuidance 调用
   window.__vueGuidance = {
-    trigger: (event, context) => guidanceStore.trigger(event, context),
-    dismiss: (event) => guidanceStore.dismiss(event),
-    executeAction: (action) => guidanceStore.executeAction(action),
-    startTour: (tourId, steps) => guidanceStore.startTour(tourId, steps),
-    resetGuidance: () => guidanceStore.resetGuidance(),
+    trigger: (event, context) => getGuidanceStore().trigger(event, context),
+    dismiss: (event) => getGuidanceStore().dismiss(event),
+    executeAction: (action) => getGuidanceStore().executeAction(action),
+    startTour: (tourId, steps) => getGuidanceStore().startTour(tourId, steps),
+    resetGuidance: () => getGuidanceStore().resetGuidance(),
     // 直接访问 store 方法
-    store: guidanceStore
+    get store() { return getGuidanceStore() }
   }
+
+  // 兼容旧版 Vanilla JS 引导系统
+  window.guidance = window.__vueGuidance
+  window.triggerGuidance = (event, context) => getGuidanceStore().trigger(event, context)
 
   // 监听 Vanilla JS 系统触发的引导事件
   window.addEventListener('guidance:trigger', (e) => {
     const { event, context } = e.detail || {}
     if (event) {
-      guidanceStore.trigger(event, context)
+      getGuidanceStore().trigger(event, context)
     }
   })
 
-  console.log('[VueGuidance] Initialized and exposed to window.__vueGuidance')
+  console.log('[VueGuidance] Initialized and exposed to window.__vueGuidance and window.guidance')
 }

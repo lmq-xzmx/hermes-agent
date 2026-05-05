@@ -4,17 +4,19 @@
   "version": "1.0.0",
   "identifier": "com.hermes.file-manager",
   "build": {
-    "devUrl": "http://localhost:8080",
     "frontendDist": "../web/dist"
   },
   "app": {
-    "withGlobalTauri": true,
+    "withGlobalTauri": false,
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' http://localhost:8080 https://localhost:*; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'",
       "assetProtocol": {
         "enable": true,
-        "scope": ["**"]
-      }
+        "scope": [
+          "$RESOURCE/**",
+          "**/*"
+        ]
+      },
+      "csp": "default-src 'self' 'unsafe-inline' blob: data:; connect-src 'self' http://localhost:* https://localhost:* ws://localhost:* wss://localhost:* http://127.0.0.1:* https://127.0.0.1:* https://api.yourdomain.com; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' blob: data: asset: https://localhost:*; img-src 'self' data: blob: asset: https://localhost:*; font-src 'self' data: blob: asset: https://localhost:*; frame-src 'self' blob: asset:; worker-src 'self' blob:;"
     },
     "windows": [
       {
@@ -26,9 +28,8 @@
         "resizable": true,
         "fullscreen": false,
         "center": true,
-        "url": "app.html",
-        "label": "main",
-        "devtools": true
+        "url": "vue.html",
+        "label": "main"
       },
       {
         "title": "快捷浮窗",
@@ -39,7 +40,7 @@
         "resizable": true,
         "fullscreen": false,
         "center": true,
-        "url": "floating.html",
+        "url": "floating-vue.html",
         "label": "floating",
         "visible": false,
         "alwaysOnTop": true,
@@ -50,7 +51,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["app"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -58,9 +59,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "../web/*"
-    ],
+    "resources": {
+      "../web/dist": ""
+    },
     "copyright": "Copyright 2024 Hermes Agent",
     "category": "Productivity"
   },
