@@ -143,7 +143,7 @@
               <option value="500GB">500 GB</option>
               <option value="1TB">1 TB</option>
             </select>
-            <input v-if="!poolForm.sizePreset" v-model="poolForm.size" type="text" placeholder="例如: 100GB" class="apple-input full-width" style="margin-top: 8px">
+            <input v-if="!poolForm.sizePreset" v-model="poolForm.size" type="text" placeholder="例如: 100GB" class="apple-input full-width" style="margin-top: var(--spacing-xs)">
           </div>
 
           <div class="form-field">
@@ -411,26 +411,26 @@ function formatSize(bytes) {
   font: var(--text-caption, 14px/1.43 -0.224px);
   color: var(--color-ink-muted-48, #7a7a7a);
   display: block;
-  margin-top: 4px;
+  margin-top: var(--spacing-xxs);
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
+  padding: var(--spacing-xxs) var(--spacing-sm);
   border-radius: var(--rounded-pill, 9999px);
   font: var(--text-caption, 14px/1.43 -0.224px);
   font-weight: 600;
 }
 
 .badge.active {
-  background: rgba(52, 199, 89, 0.15);
-  color: var(--color-success, #34c759);
+  background: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .badge.inactive {
-  background: rgba(122, 122, 122, 0.15);
-  color: var(--color-ink-muted-48, #7a7a7a);
+  background: var(--color-surface-chip-translucent-bg);
+  color: var(--color-ink-muted-48);
 }
 
 .pool-stats {
@@ -440,7 +440,7 @@ function formatSize(bytes) {
 .stat-row {
   display: flex;
   justify-content: space-between;
-  padding: 8px 0;
+  padding: var(--spacing-xs) 0;
   border-bottom: 1px solid var(--color-divider-soft, #f0f0f0);
 }
 
@@ -468,7 +468,7 @@ function formatSize(bytes) {
 
 .progress-bar {
   flex: 1;
-  height: 8px;
+  height: var(--spacing-xs);
   background: var(--color-hairline, #e0e0e0);
   border-radius: var(--rounded-pill, 9999px);
   overflow: hidden;
@@ -480,13 +480,13 @@ function formatSize(bytes) {
   transition: width 0.3s ease;
 }
 
-.progress-fill.ok { background: var(--color-primary, #0066cc); }
+.progress-fill.ok { background: var(--color-primary); }
 .progress-fill.warn { background: var(--color-warning); }
 .progress-fill.danger { background: var(--color-danger); }
 
 .progress-text {
   font: var(--text-caption, 14px/1.43 -0.224px);
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
   min-width: 50px;
   text-align: right;
 }
@@ -537,7 +537,7 @@ function formatSize(bytes) {
   justify-content: space-between;
   align-items: center;
   padding: var(--space-sm, 12px) 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--color-border-on-dark);
 }
 
 .detail-label {
@@ -553,7 +553,7 @@ function formatSize(bytes) {
 
 .details-footer {
   padding-top: var(--space-lg, 24px);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--color-border-on-dark);
   margin-top: var(--space-lg, 24px);
 }
 
@@ -564,7 +564,7 @@ function formatSize(bytes) {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -598,7 +598,7 @@ function formatSize(bytes) {
   border: none;
   font-size: 20px;
   cursor: pointer;
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
   padding: 4px;
 }
 
@@ -625,10 +625,10 @@ function formatSize(bytes) {
 .apple-input,
 .apple-select,
 .apple-textarea {
-  padding: 12px 16px;
+  padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-canvas, #ffffff);
   border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   color: var(--color-ink, #1d1d1f);
   font: var(--text-body, 17px/1.47 -0.374px);
   transition: border-color 0.2s;
