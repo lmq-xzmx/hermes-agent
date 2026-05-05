@@ -241,7 +241,7 @@ defineExpose({
 }
 
 .debug-title {
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -270,6 +270,10 @@ defineExpose({
   background: var(--color-surface-tile-3);
 }
 
+.debug-btn:active {
+  transform: scale(0.95);
+}
+
 .debug-content {
   flex: 1;
   overflow-y: auto;
@@ -286,7 +290,7 @@ defineExpose({
 }
 
 .debug-section-header {
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -302,7 +306,7 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   padding: var(--space-xxs) 0;
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: 13px;
 }
 
@@ -325,7 +329,7 @@ defineExpose({
 .debug-logs {
   max-height: 200px;
   overflow-y: auto;
-  font-family: 'SF Mono', 'Monaco', monospace;
+  font-family: 'SF Mono', 'Monaco', 'Menlo', 'Courier New', monospace;
   font-size: 12px;
   scrollbar-width: thin;
   scrollbar-color: var(--color-surface-tile-3) transparent;
@@ -368,7 +372,7 @@ defineExpose({
 
 .debug-empty {
   color: var(--color-body-muted);
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: 12px;
   text-align: center;
   padding: var(--space-md);
@@ -381,7 +385,7 @@ defineExpose({
 }
 
 .debug-version {
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: 11px;
   color: var(--color-body-muted);
   letter-spacing: -0.08px;
