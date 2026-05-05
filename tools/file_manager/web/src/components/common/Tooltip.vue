@@ -49,7 +49,7 @@ const delay = 200
   padding: 8px 12px;
   background: var(--color-ink);
   color: var(--color-body-on-dark);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   font-family: var(--font-body);
   font-size: 13px;
   line-height: 1.4;

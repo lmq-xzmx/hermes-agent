@@ -7,6 +7,7 @@
 // Buttons
 export { default as ButtonPrimary } from './ButtonPrimary.vue'
 export { default as ButtonSecondary } from './ButtonSecondary.vue'
+export { default as ButtonDanger } from './ButtonDanger.vue'
 export { default as ButtonDarkUtility } from './ButtonDarkUtility.vue'
 export { default as ButtonPearl } from './ButtonPearl.vue'
 export { default as ButtonIcon } from './ButtonIcon.vue'
@@ -42,7 +43,6 @@ export { default as Breadcrumb } from './Breadcrumb.vue'
 
 // Guidance
 export { default as GuidanceModal } from './GuidanceModal.vue'
-export { default as GuidanceOverlay } from './GuidanceOverlay.vue'
 
 // Status
 export { default as WsStatus } from './WsStatus.vue'

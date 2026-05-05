@@ -60,9 +60,9 @@ function onImageError() {
 .avatar-lg { width: 56px; height: 56px; font-size: 18px; }
 .avatar-xl { width: 80px; height: 80px; font-size: 24px; }
 
-.avatar-circle { border-radius: 50%; }
-.avatar-square { border-radius: 0; }
-.avatar-rounded { border-radius: var(--radius-sm); }
+.avatar-circle { border-radius: var(--radius-full); }
+.avatar-square { border-radius: var(--radius-none, 0); }
+.avatar-rounded { border-radius: var(--radius-md, 18px); }
 
 .avatar-image {
   width: 100%;

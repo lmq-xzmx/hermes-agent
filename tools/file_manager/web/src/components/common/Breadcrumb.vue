@@ -74,7 +74,7 @@ defineProps({
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   transition: all 0.15s ease;
 }
 

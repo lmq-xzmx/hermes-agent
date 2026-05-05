@@ -66,7 +66,7 @@ const statusText = computed(() => {
 .status-dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   flex-shrink: 0;
 }
 
@@ -107,7 +107,7 @@ const statusText = computed(() => {
   transform: translateX(-50%);
   background: var(--color-surface-tile-2);
   border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 18px);
   padding: var(--space-sm);
   min-width: 140px;
   z-index: 100;
