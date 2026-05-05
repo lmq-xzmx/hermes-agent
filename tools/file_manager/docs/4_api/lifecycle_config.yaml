@@ -1,0 +1,281 @@
+# Lifecycle Constraint Configuration
+# NOTE: This file is for reference only.
+# The authoritative config is now at: config/lifecycle_config.yaml
+# It is loaded by lifecycle_engine.py and served via /api/v1/lifecycle/config
+
+# =============================================================================
+# Lifecycle Configuration (v1.1)
+# =============================================================================
+# 更新日期: 2026-05-05
+# 更新说明: 与 lifecycle_engine.py 实际实现同步，修正 guidance 格式
+
+# Enable/disable lifecycle constraint checking
+lifecycle:
+  enabled: true
+  debug: false
+  # Cache TTL for constraint checks (seconds)
+  cache_ttl: 300
+
+# Lifecycle constraint rules
+# 每个 operation 对应一个或多个约束规则
+rules:
+
+  # ========== Pool Operations ==========
+
+  # Delete storage pool constraints
+  delete_pool:
+    - code: POOL_MIGRATING
+      description: Pool cannot be deleted while migrating
+      error_template: "存储池正在迁移中，暂时无法删除"
+      guidance:
+        action: "wait_migration"
+        url: null
+
+    - code: POOL_HAS_ACTIVE_OPS
+      description: Pool cannot be deleted if teams have active operations
+      error_template: "存储池有 {teams_with_active_ops} 个团队正在执行操作，请稍后再试"
+      guidance:
+        action: "retry_later"
+        url: null
+
+    - code: STORAGE_POOL_IN_USE
+      description: Pool must have no teams
+      check: team_count_zero
+      error_template: "该存储池仍有 {team_count} 个团队使用"
+      guidance:
+        action: "view_teams"
+        url: "/admin/teams"
+
+  # ========== Space Operations ==========
+
+  # Delete space constraints
+  delete_space:
+    - code: SPACE_HAS_PENDING_SHARES
+      description: Space cannot be deleted with pending share requests
+      check: pending_share_requests_zero
+      error_template: "该空间有 {pending_share_requests} 个待处理的分享请求"
+      guidance:
+        action: "view_shares"
+        url: "/spaces/{space_id}/shares"
+
+    - code: SPACE_TRANSFER_PENDING
+      description: Space cannot be deleted while transfer is in progress
+      check: transfer_pending_false
+      error_template: "空间转让处理中，暂时无法删除"
+      guidance:
+        action: "wait_transfer"
+        url: null
+
+    - code: SPACE_HAS_MEMBERS
+      description: Space must have no active members
+      check: member_count_zero
+      error_template: "该空间仍有 {member_count} 个成员"
+      guidance:
+        action: "view_members"
+        url: "/spaces/{space_id}/members"
+
+  # Invite member constraints
+  invite_member:
+    - code: NOT_SPACE_OWNER
+      description: Only space owner can invite members
+      check: is_owner
+      error_template: "只有空间所有者可以邀请成员"
+      guidance:
+        action: "transfer_ownership"
+        url: "/spaces/{space_id}/settings"
+
+  # ========== Team Operations ==========
+
+  # Create team constraints
+  create_team:
+    - code: NO_AVAILABLE_POOL
+      description: At least one active storage pool must exist
+      check: available_pools_count_gt_zero
+      error_template: "系统暂无可用存储池，无法创建新团队。请联系管理员创建存储池后再试。"
+      guidance:
+        action: "create_pool"
+        url: "/admin/pools"
+
+    - code: POOL_CAPACITY_INSUFFICIENT
+      description: Available pool capacity must be sufficient for requested quota
+      check: pool_capacity_sufficient
+      error_template: "可用存储池容量不足，请联系管理员扩容或等待资源释放"
+      guidance:
+        action: "contact_admin"
+        url: "/admin"
+
+  # Delete team constraints
+  delete_team:
+    - code: NOT_TEAM_OWNER
+      description: Only team owner can delete team
+      check: is_owner
+      error_template: "只有团队所有者可以删除团队"
+      guidance:
+        action: "contact_admin"
+        url: "/admin"
+
+    - code: TEAM_MIGRATING
+      description: Team cannot be deleted while migrating
+      check: is_migrating_false
+      error_template: "团队正在迁移中，暂时无法删除"
+      guidance:
+        action: "wait_migration"
+        url: null
+
+    - code: TEAM_HAS_PENDING_INVITATIONS
+      description: Team cannot be deleted with pending invitations
+      check: pending_invitations_zero
+      error_template: "团队仍有 {pending_invitations} 个待处理邀请，请先取消后再删除"
+      guidance:
+        action: "cancel_invitations"
+        url: null
+
+  # Join team constraints
+  join_team:
+    - code: INVALID_CREDENTIAL
+      description: Invite credential must be valid
+      check: credential_valid_true
+      error_template: "邀请码无效，请检查链接是否正确"
+      guidance:
+        action: "contact_admin"
+        url: "/admin"
+
+    - code: CREDENTIAL_EXPIRED
+      description: Invite credential must not be expired
+      check: credential_expired_false
+      error_template: "邀请码已过期，请联系管理员获取新的邀请链接"
+      guidance:
+        action: "contact_admin"
+        url: "/admin"
+
+    - code: ALREADY_TEAM_MEMBER
+      description: User must not already be a team member
+      check: already_member_false
+      error_template: "您已经是该团队成员，无需重复加入"
+      guidance:
+        action: "view_team"
+        url: "/teams/{team_id}"
+
+    - code: TEAM_INACTIVE
+      description: Team must be active
+      check: team_active_true
+      error_template: "该团队已解散或处于非活跃状态，无法加入"
+      guidance:
+        action: "view_teams"
+        url: "/teams"
+
+    - code: MEMBER_LIMIT_REACHED
+      description: Team member count must not exceed limit
+      check: member_count_lt_limit
+      error_template: "团队成员数已达上限，请联系管理员扩容"
+      guidance:
+        action: "contact_admin"
+        url: "/admin"
+
+  # ========== Space Creation ==========
+
+  # Create private space constraints
+  create_private_space:
+    - code: NOT_TEAM_MEMBER
+      description: User must be a team member
+      check: is_member_true
+      error_template: "只有团队成员才能申请私人空间"
+      guidance:
+        action: "join_team"
+        url: "/teams"
+
+    - code: MEMBERSHIP_PENDING
+      description: User's membership must not be pending approval
+      check: member_status_ne_pending
+      error_template: "您的成员资格正在等待审批，请耐心等待"
+      guidance:
+        action: "wait_approval"
+        url: null
+
+    - code: INVITATION_PENDING
+      description: User must not have pending invitation
+      check: has_pending_invitation_false
+      error_template: "您有待处理的邀请，请先接受或拒绝后再申请"
+      guidance:
+        action: "view_invitations"
+        url: "/invitations"
+
+  # ========== File Operations ==========
+
+  # Upload file constraints
+  upload_file:
+    - code: NOT_SPACE_MEMBER
+      description: User must be a member of a space/team
+      check: is_member_true
+      error_template: "请先加入团队或空间才能上传文件"
+      guidance:
+        action: "join_team"
+        url: "/teams"
+
+    - code: QUOTA_EXCEEDED
+      description: Space must have sufficient quota
+      check: sufficient_quota_true
+      error_template: "存储配额已用尽（已用 {required_bytes} 字节，可用 {available_bytes} 字节），无法上传新文件"
+      guidance:
+        action: "view_trash"
+        url: "/trash"
+
+  # ========== Quota Operations ==========
+
+  # Update quota constraints
+  update_quota:
+    - code: NOT_SPACE_OWNER
+      description: Only space owner can update quota
+      check: is_owner
+      error_template: "只有空间所有者可以修改配额"
+      guidance:
+        action: "contact_admin"
+        url: "/admin"
+
+    - code: QUOTA_LESS_THAN_USAGE
+      description: New quota must not be less than current usage
+      check: new_quota_gte_current_usage
+      error_template: "新配额不能小于当前已用空间（当前已用 {current_usage} 字节）"
+      guidance:
+        action: "reduce_usage"
+        url: null
+
+# =============================================================================
+# Constraint Check Functions (reference)
+# =============================================================================
+# 这些是 lifecycle_engine.py 中实际使用的 check 函数签名
+# 仅供文档参考，实现以代码为准
+
+constraint_checks:
+  # Pool checks
+  pool_migrating: "ctx.get('pool_migrating', False)"
+  teams_with_active_ops: "ctx.get('teams_with_active_ops', 0) > 0"
+  team_count_zero: "ctx.get('team_count', 0) == 0"
+
+  # Space checks
+  pending_share_requests_zero: "ctx.get('pending_share_requests', 0) == 0"
+  transfer_pending_false: "not ctx.get('transfer_pending', False)"
+  member_count_zero: "ctx.get('member_count', 0) == 0"
+
+  # Team checks
+  available_pools_count_gt_zero: "ctx.get('available_pools', 0) > 0"
+  pool_capacity_sufficient: "pool.get('available_bytes', 0) >= ctx.get('requested_quota', 0)"
+  is_owner: "ctx.get('is_owner', False) or ctx.get('is_admin', False)"
+  is_migrating_false: "not ctx.get('is_migrating', False)"
+  pending_invitations_zero: "ctx.get('pending_invitations', 0) == 0"
+
+  # Credential checks
+  credential_valid_true: "ctx.get('credential_valid', False)"
+  credential_expired_false: "not ctx.get('credential_expired', False)"
+  already_member_false: "not ctx.get('already_member', False)"
+  team_active_true: "ctx.get('team_active', True)"
+  member_count_lt_limit: "ctx.get('member_count', 0) < ctx.get('member_limit', float('inf'))"
+
+  # Membership checks
+  is_member_true: "ctx.get('is_member', False)"
+  member_status_ne_pending: "ctx.get('member_status') != 'pending'"
+  has_pending_invitation_false: "not ctx.get('has_pending_invitation', False)"
+
+  # Quota checks
+  sufficient_quota_true: "ctx.get('sufficient_quota', True)"
+  new_quota_gte_current_usage: "ctx.get('new_quota', 0) >= ctx.get('current_usage', 0)"
