@@ -128,10 +128,10 @@ defineExpose({
 .context-menu {
   position: fixed;
   min-width: 200px;
-  background: var(--color-surface-tile-2, #2a2a2c);
+  background: var(--color-surface-tile-2);
   border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-md, 11px);
-  padding: var(--spacing-xxs, 4px) 0;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xxs) 0;
   z-index: 10000;
   box-shadow: var(--shadow-product);
 }
@@ -143,13 +143,13 @@ defineExpose({
   height: 36px;
   cursor: pointer;
   transition: background 0.15s ease;
-  gap: var(--spacing-sm, 8px);
-  border-radius: var(--radius-md, 18px);
+  gap: var(--spacing-sm);
+  border-radius: var(--radius-md);
   margin: 2px 6px;
 }
 
 .context-menu-item:hover {
-  background: var(--color-surface-tile-1, #272729);
+  background: var(--color-surface-tile-1);
 }
 
 .context-menu-item.disabled {
@@ -158,7 +158,7 @@ defineExpose({
 }
 
 .context-menu-item.danger {
-  color: var(--color-danger, #ff3b30);
+  color: var(--color-danger);
 }
 
 .context-menu-item.danger:hover {
@@ -173,15 +173,15 @@ defineExpose({
 
 .menu-label {
   flex: 1;
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: 15px;
-  color: var(--color-body-on-dark, #ffffff);
+  color: var(--color-body-on-dark);
 }
 
 .menu-shortcut {
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: 12px;
-  color: var(--color-body-muted, #cccccc);
+  color: var(--color-body-muted);
   opacity: 0.7;
   letter-spacing: -0.224px;
 }
@@ -189,6 +189,6 @@ defineExpose({
 .context-menu-divider {
   height: 1px;
   background: var(--color-border-on-dark);
-  margin: var(--spacing-xxs, 4px) 0;
+  margin: var(--spacing-xxs) 0;
 }
 </style>
