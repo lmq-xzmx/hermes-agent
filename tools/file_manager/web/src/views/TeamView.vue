@@ -452,7 +452,7 @@ function formatDate(str) {
   height: 44px;
 }
 .search-input:focus {
-  outline: 2px solid var(--color-primary, #0066cc);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
