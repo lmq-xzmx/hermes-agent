@@ -52,8 +52,8 @@ const visibleSpaces = computed(() => {
 
 <style scoped>
 .quota-heatmap {
-  background: var(--color-surface-tile-2, #2a2a2c);
-  border-radius: var(--radius-md, 18px);
+  background: var(--color-surface-tile-2);
+  border-radius: var(--radius-md);
   padding: 16px;
   margin-bottom: 16px;
 }
@@ -89,7 +89,7 @@ const visibleSpaces = computed(() => {
 .heatmap-table td {
   padding: 8px;
   text-align: left;
-  border-bottom: 1px solid var(--color-hairline, #e0e0e0);
+  border-bottom: 1px solid var(--color-hairline);
 }
 
 .team-name {
@@ -100,7 +100,7 @@ const visibleSpaces = computed(() => {
 
 .usage-bar {
   height: 20px;
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -114,6 +114,6 @@ const visibleSpaces = computed(() => {
 
 .usage-text {
   font-size: 11px;
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
 }
 </style>

@@ -97,11 +97,7 @@ function handleOverlayClick() {
 }
 
 .modal-title {
-  font-family: var(--font-display);
-  font-size: 21px;
-  font-weight: 600;
-  line-height: 1.19;
-  letter-spacing: 0.231px;
+  font: var(--text-tagline);
   color: var(--color-ink);
   margin: 0;
 }

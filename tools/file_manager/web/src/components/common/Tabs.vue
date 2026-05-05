@@ -59,8 +59,7 @@ function selectTab(value) {
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  font-family: var(--font-family-text);
-  font-size: 15px;
+  font: var(--text-body);
   color: var(--color-ink-muted-48);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -82,11 +81,11 @@ function selectTab(value) {
 }
 
 .tab-icon {
-  font-size: 16px;
+  font-size: 16px; /* Icon size - OK as decorative */
 }
 
 .tab-badge {
-  font-size: 11px;
+  font: var(--text-fine-print);
   padding: 2px 6px;
   background: var(--color-surface-pearl);
   border-radius: var(--radius-pill);

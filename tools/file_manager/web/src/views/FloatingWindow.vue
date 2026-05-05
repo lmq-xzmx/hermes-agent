@@ -228,14 +228,14 @@ function formatSize(bytes) {
   padding: var(--space-md);
   background: var(--color-surface-black);
   color: var(--color-body-on-dark);
-  font-family: var(--font-body);
+  font: var(--text-body);
 }
 
 .status-bar {
   display: flex;
   align-items: center;
   padding: var(--space-sm) var(--space-md);
-  background: rgba(0, 102, 204, 0.2);
+  background: var(--color-primary-focus);
   border-radius: var(--radius-md);
   margin-bottom: var(--space-md);
   font-size: 13px;
@@ -280,7 +280,7 @@ function formatSize(bytes) {
 
 .drop-zone.drag-over {
   border-color: var(--color-primary);
-  background: rgba(0, 102, 204, 0.1);
+  background: var(--color-primary-subtle);
 }
 
 .drop-icon {
@@ -310,7 +310,7 @@ function formatSize(bytes) {
 .path-label {
   font-size: 11px;
   color: var(--color-body-muted);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-xxs);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -318,22 +318,21 @@ function formatSize(bytes) {
 .path-row {
   display: flex;
   gap: var(--space-sm);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-xxs);
 }
 
 .path-input-wrapper {
-  margin-bottom: 6px;
+  margin-bottom: var(--space-xxs);
 }
 
 .apple-select,
 .apple-input {
-  padding: 10px 14px;
+  padding: var(--space-sm) 20px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-pill);
   color: var(--color-body-on-dark);
-  font-family: var(--font-body);
-  font-size: 13px;
+  font: var(--text-body);
   transition: border-color 0.2s;
 }
 
@@ -344,7 +343,8 @@ function formatSize(bytes) {
 .apple-select:focus,
 .apple-input:focus {
   outline: none;
-  border-color: var(--color-primary);
+  outline: 2px solid var(--color-primary-focus);
+  border-color: transparent;
 }
 
 .apple-input.full-width {
@@ -355,12 +355,12 @@ function formatSize(bytes) {
 .path-hint {
   font-size: 10px;
   color: rgba(255, 255, 255, 0.4);
-  margin-top: 6px;
+  margin-top: var(--space-xxs);
 }
 
 .path-hint code {
   background: rgba(255, 255, 255, 0.05);
-  padding: 2px 5px;
+  padding: var(--space-xxs) var(--space-xs);
   border-radius: var(--radius-xs);
   font-family: 'SF Mono', 'Monaco', monospace;
 }
@@ -414,7 +414,7 @@ function formatSize(bytes) {
   color: var(--color-body-muted);
   cursor: pointer;
   font-size: 18px;
-  padding: 0 4px;
+  padding: 0 var(--space-xxs);
   transition: color 0.15s;
 }
 

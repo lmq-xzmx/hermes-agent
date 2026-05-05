@@ -18,7 +18,7 @@
 
 @media (max-width: 640px) {
   .tile-apple-light {
-    padding: 48px var(--spacing-md);
+    padding: var(--spacing-xxl) var(--spacing-md);
   }
 }
 </style>

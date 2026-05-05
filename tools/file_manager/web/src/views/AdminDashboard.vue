@@ -47,15 +47,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue'
 import { useAdminStore } from '@/stores/adminStore'
-import AdminOverview from '@/components/admin/AdminOverview.vue'
-import StoragePoolChart from '@/components/admin/StoragePoolChart.vue'
-import UserSpaceSankey from '@/components/admin/UserSpaceSankey.vue'
-import QuotaHeatmap from '@/components/admin/QuotaHeatmap.vue'
-import OperationTrends from '@/components/admin/OperationTrends.vue'
-import AlertList from '@/components/admin/AlertList.vue'
 import LifecycleProvider from '@/components/lifecycle/LifecycleProvider.vue'
+
+// Lazy load echarts-based components to reduce initial bundle size
+const AdminOverview = defineAsyncComponent(() => import('@/components/admin/AdminOverview.vue'))
+const StoragePoolChart = defineAsyncComponent(() => import('@/components/admin/StoragePoolChart.vue'))
+const UserSpaceSankey = defineAsyncComponent(() => import('@/components/admin/UserSpaceSankey.vue'))
+const QuotaHeatmap = defineAsyncComponent(() => import('@/components/admin/QuotaHeatmap.vue'))
+const OperationTrends = defineAsyncComponent(() => import('@/components/admin/OperationTrends.vue'))
+const AlertList = defineAsyncComponent(() => import('@/components/admin/AlertList.vue'))
 
 const store = useAdminStore()
 const refreshInterval = ref(60000)
@@ -100,15 +102,15 @@ onUnmounted(() => {
 <style scoped>
 .admin-dashboard {
   min-height: 100vh;
-  background: var(--color-canvas-parchment, #f5f5f7);
+  background: var(--color-canvas-parchment);
 }
 
 /* Dark Header */
 .dashboard-header {
-  background: var(--color-surface-black, #000000);
-  color: var(--color-body-on-dark, #ffffff);
-  padding: var(--space-section, 80px);
-  padding-bottom: 48px;
+  background: var(--color-surface-black);
+  color: var(--color-body-on-dark);
+  padding: var(--spacing-section);
+  padding-bottom: var(--spacing-xxl);
 }
 
 .header-content {
@@ -120,7 +122,7 @@ onUnmounted(() => {
 }
 
 .dashboard-header h1 {
-  font: var(--text-display-md, 34px/1.47 -0.374px);
+  font: var(--text-display-md);
   font-weight: 600;
   margin: 0;
 }
@@ -129,22 +131,22 @@ onUnmounted(() => {
 .dashboard-content {
   max-width: 1440px;
   margin: 0 auto;
-  padding: var(--space-xl, 32px);
+  padding: var(--space-xl);
 }
 
 .overview-section {
-  margin-bottom: var(--space-lg, 24px);
+  margin-bottom: var(--space-lg);
 }
 
 .charts-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-lg, 24px);
-  margin-bottom: var(--space-lg, 24px);
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
 }
 
 .alerts-section {
-  border-radius: var(--rounded-lg, 18px);
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -154,16 +156,16 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px;
-  color: var(--color-ink-muted-48, #7a7a7a);
-  gap: var(--space-md, 17px);
+  padding: var(--spacing-section);
+  color: var(--color-ink-muted-48);
+  gap: var(--space-md);
 }
 
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--color-hairline, #e0e0e0);
-  border-top-color: var(--color-primary, #0066cc);
+  border: 3px solid var(--color-hairline);
+  border-top-color: var(--color-primary);
   border-radius: var(--radius-full);
   animation: spin 1s linear infinite;
 }
@@ -196,17 +198,17 @@ onUnmounted(() => {
 
 @media (max-width: 734px) {
   .dashboard-header {
-    padding: var(--space-lg, 24px);
+    padding: var(--space-lg);
   }
 
   .header-content {
     flex-direction: column;
-    gap: var(--space-md, 17px);
+    gap: var(--space-md);
     align-items: flex-start;
   }
 
   .dashboard-content {
-    padding: var(--space-md, 17px);
+    padding: var(--space-md);
   }
 }
 </style>

@@ -283,7 +283,7 @@ onMounted(() => {
 <style scoped>
 .space-request {
   padding: 20px;
-  background: var(--bg-primary, #0d1117);
+  background: var(--bg-primary);
   min-height: 100vh;
 }
 
@@ -293,7 +293,7 @@ onMounted(() => {
 
 .page-header h1 {
   font-size: 24px;
-  color: var(--text-primary, #e6edf3);
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -320,8 +320,8 @@ onMounted(() => {
   width: 40px;
   height: 40px;
   border-radius: var(--radius-full);
-  background: var(--color-surface-tile-3, #252527);
-  color: var(--color-ink-muted-48, #7a7a7a);
+  background: var(--color-surface-tile-3);
+  color: var(--color-ink-muted-48);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -341,30 +341,30 @@ onMounted(() => {
 
 .step-label {
   font-size: 14px;
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
 }
 
 .step.active .step-label {
-  color: var(--text-primary, #e6edf3);
+  color: var(--text-primary);
 }
 
 .step-line {
   width: 100px;
   height: 2px;
-  background: var(--color-hairline, #e0e0e0);
+  background: var(--color-hairline);
   margin: 0 16px;
 }
 
 .step-content {
-  background: var(--color-surface-tile-1, #272729);
-  border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--radius-md, 18px);
+  background: var(--color-surface-tile-1);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
   padding: 32px;
 }
 
 .step-content h2 {
   font-size: 18px;
-  color: var(--text-primary, #e6edf3);
+  color: var(--text-primary);
   margin: 0 0 24px 0;
 }
 
@@ -377,9 +377,9 @@ onMounted(() => {
 
 .type-card {
   position: relative;
-  background: var(--color-surface-tile-3, #252527);
-  border: 2px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--radius-md, 18px);
+  background: var(--color-surface-tile-3);
+  border: 2px solid var(--color-hairline);
+  border-radius: var(--radius-md);
   padding: 24px;
   cursor: pointer;
   transition: all 0.2s;
@@ -407,13 +407,13 @@ onMounted(() => {
 .type-name {
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary, #e6edf3);
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 .type-desc {
   font-size: 14px;
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
   margin-bottom: 12px;
 }
 
@@ -424,11 +424,11 @@ onMounted(() => {
 }
 
 .feature {
-  background: var(--color-surface-tile-1, #272729);
+  background: var(--color-surface-tile-1);
   padding: 4px 8px;
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   font-size: 12px;
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
 }
 
 .form-section {
@@ -442,7 +442,7 @@ onMounted(() => {
 .form-group label {
   display: block;
   font-size: 14px;
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
   margin-bottom: 8px;
 }
 
@@ -453,12 +453,12 @@ onMounted(() => {
 .form-group input[type="text"],
 .form-group textarea {
   width: 100%;
-  padding: 12px 16px;
+  padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   color: var(--color-ink);
-  font-family: var(--font-family-text);
+  font: var(--text-body);
   font-size: 17px;
   line-height: 1.47;
   letter-spacing: -0.374px;
@@ -513,7 +513,7 @@ onMounted(() => {
   padding: 10px;
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   color: var(--color-ink);
   font-family: var(--font-family-text);
   font-size: 17px;
@@ -535,7 +535,7 @@ onMounted(() => {
   padding: 8px 16px;
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   color: var(--color-ink-muted-48);
   font-family: var(--font-family-text);
   font-size: 14px;
@@ -569,7 +569,7 @@ onMounted(() => {
 }
 
 .review-item {
-  padding: 12px 0;
+  padding: var(--spacing-sm) 0;
   border-bottom: 1px solid var(--color-divider-soft);
 }
 
@@ -591,7 +591,7 @@ onMounted(() => {
 }
 
 .review-value.reason {
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: 14px;
   line-height: 1.6;
   white-space: pre-wrap;

@@ -80,12 +80,12 @@ defineEmits(['click'])
 
 /* Sizes */
 .btn-apple-primary.btn-sm {
-  padding: 6px 14px;
+  padding: var(--space-xxs) var(--space-sm);
   font-size: 14px;
 }
 
 .btn-apple-primary.btn-sm.btn-icon-only {
-  padding: 6px;
+  padding: var(--space-xxs);
   width: 32px;
   height: 32px;
 }

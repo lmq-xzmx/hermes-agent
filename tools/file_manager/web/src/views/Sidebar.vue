@@ -67,11 +67,7 @@ function onLogout() {
   display: flex;
   flex-direction: column;
   height: 100vh; /* Sidebar 全屏高度 */
-  font-family: var(--font-family-text);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.0;
-  letter-spacing: -0.12px;
+  font: var(--text-nav-link);
 }
 
 /* Brand - Apple global-nav height 44px */
@@ -91,11 +87,8 @@ function onLogout() {
 }
 
 .brand-text {
-  font-family: var(--font-family-text);
-  font-size: var(--text-nav-link);
-  font-weight: 400;
+  font: var(--text-nav-link);
   color: var(--color-body-on-dark);
-  letter-spacing: -0.12px;
 }
 
 /* Navigation Items - 44px touch target per DESIGN.md */
@@ -119,11 +112,7 @@ function onLogout() {
   border-radius: var(--radius-md);
   cursor: pointer;
   color: var(--color-body-muted);
-  font-family: var(--font-family-text);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.0;
-  letter-spacing: -0.12px;
+  font: var(--text-nav-link);
   text-align: center;
   transition: background-color 0.15s ease, color 0.15s ease;
   margin: 2px var(--spacing-xs);
@@ -147,9 +136,7 @@ function onLogout() {
 }
 
 .nav-label {
-  font-size: 10px;
-  letter-spacing: -0.08px;
-  line-height: 1.2;
+  font: inherit;
 }
 
 /* Footer - Apple nav-link style */
@@ -176,10 +163,7 @@ function onLogout() {
 }
 
 .user-name {
-  font-family: var(--font-family-text);
-  font-size: var(--text-nav-link);
-  font-weight: 400;
-  letter-spacing: -0.12px;
+  font: var(--text-nav-link);
   color: var(--color-body-muted);
   max-width: 80px;
   overflow: hidden;
@@ -193,11 +177,7 @@ function onLogout() {
   border: none;
   border-radius: var(--radius-md);
   color: var(--color-body-muted);
-  font-family: var(--font-family-text);
-  font-size: var(--text-nav-link);
-  font-weight: 400;
-  line-height: 1.0;
-  letter-spacing: -0.12px;
+  font: var(--text-nav-link);
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
   text-align: center;

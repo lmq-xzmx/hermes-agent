@@ -58,7 +58,6 @@ function close() {
   align-items: center;
   gap: var(--spacing-sm);
   max-width: calc(100vw - 48px);
-  box-shadow: var(--shadow-lg);
 }
 
 .toast.info {

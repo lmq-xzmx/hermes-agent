@@ -632,20 +632,12 @@ function formatDate(str) {
 }
 
 .space-card-name {
-  font-family: var(--font-family-text);
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 1.24;
-  letter-spacing: -0.374px;
+  font: var(--text-body-strong);
   color: var(--color-ink);
 }
 
 .space-type-badge {
-  font-family: var(--font-family-text);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.43;
-  letter-spacing: -0.224px;
+  font: var(--text-caption);
   padding: var(--spacing-xxs) var(--spacing-sm);
   border-radius: var(--radius-pill);
   background: var(--color-canvas-parchment);
@@ -964,7 +956,7 @@ function formatDate(str) {
 
 .form-input {
   width: 100%;
-  padding: 12px 16px;
+  padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-md);
@@ -991,7 +983,7 @@ function formatDate(str) {
 
 .form-textarea {
   width: 100%;
-  padding: 12px 16px;
+  padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-md);

@@ -48,7 +48,7 @@ function onImageError() {
   justify-content: center;
   background: var(--color-primary);
   color: var(--color-body-on-dark);
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-weight: 600;
   overflow: hidden;
   flex-shrink: 0;
@@ -61,8 +61,8 @@ function onImageError() {
 .avatar-xl { width: 80px; height: 80px; font-size: 24px; }
 
 .avatar-circle { border-radius: var(--radius-full); }
-.avatar-square { border-radius: var(--radius-none, 0); }
-.avatar-rounded { border-radius: var(--radius-md, 18px); }
+.avatar-square { border-radius: var(--radius-none); }
+.avatar-rounded { border-radius: var(--radius-md); }
 
 .avatar-image {
   width: 100%;

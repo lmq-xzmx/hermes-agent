@@ -100,49 +100,49 @@ onMounted(() => {
 <style scoped>
 .admin-teams {
   min-height: 100vh;
-  background: var(--color-canvas-parchment, #f5f5f7);
-  padding: var(--space-section, 80px);
+  background: var(--color-canvas-parchment);
+  padding: var(--space-section);
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-xl, 32px);
+  margin-bottom: var(--space-xl);
   max-width: 1440px;
   margin-left: auto;
   margin-right: auto;
 }
 
 .page-header h1 {
-  font: var(--text-display-md, 34px/1.47 -0.374px);
+  font: var(--text-display-md);
   font-weight: 600;
-  color: var(--color-ink, #1d1d1f);
+  color: var(--color-ink);
   margin: 0;
 }
 
 .header-actions {
   display: flex;
-  gap: var(--space-sm, 12px);
+  gap: var(--space-sm);
 }
 
 .loading, .empty-state {
   text-align: center;
-  padding: var(--space-xl, 32px);
-  font: var(--text-body, 17px/1.47 -0.374px);
-  color: var(--color-ink-muted-48, #7a7a7a);
+  padding: var(--space-xl);
+  font: var(--text-body);
+  color: var(--color-ink-muted-48);
 }
 
 .teams-summary {
-  font: var(--text-caption, 14px/1.43 -0.224px);
-  color: var(--color-ink-muted-48, #7a7a7a);
-  margin-bottom: var(--space-md, 17px);
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
+  margin-bottom: var(--space-md);
 }
 
 .teams-table-container {
-  background: var(--color-canvas, #ffffff);
-  border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--rounded-lg, 18px);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--rounded-lg);
   overflow: hidden;
   max-width: 1440px;
   margin: 0 auto;
@@ -155,21 +155,21 @@ onMounted(() => {
 
 .teams-table th,
 .teams-table td {
-  padding: var(--space-md, 17px);
+  padding: var(--space-md);
   text-align: left;
-  border-bottom: 1px solid var(--color-hairline, #e0e0e0);
+  border-bottom: 1px solid var(--color-hairline);
 }
 
 .teams-table th {
-  background: var(--color-canvas-parchment, #f5f5f7);
-  font: var(--text-caption, 14px/1.43 -0.224px);
+  background: var(--color-canvas-parchment);
+  font: var(--text-caption);
   font-weight: 600;
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
 }
 
 .teams-table td {
-  font: var(--text-body, 17px/1.47 -0.374px);
-  color: var(--color-ink, #1d1d1f);
+  font: var(--text-body);
+  color: var(--color-ink);
 }
 
 .teams-table tr:last-child td {
@@ -177,7 +177,7 @@ onMounted(() => {
 }
 
 .teams-table tr:hover td {
-  background: var(--color-canvas-parchment, #f5f5f7);
+  background: var(--color-canvas-parchment);
 }
 
 .team-name {
@@ -187,14 +187,14 @@ onMounted(() => {
 .usage-badge {
   display: inline-block;
   padding: 4px 12px;
-  border-radius: var(--rounded-pill, 9999px);
-  font: var(--text-caption, 14px/1.43 -0.224px);
+  border-radius: var(--rounded-pill);
+  font: var(--text-caption);
   font-weight: 600;
 }
 
 .usage-badge.normal {
-  background: rgba(0, 102, 204, 0.1);
-  color: var(--color-primary, #0066cc);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
 }
 
 .usage-badge.warning {

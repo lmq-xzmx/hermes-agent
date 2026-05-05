@@ -35,7 +35,7 @@ defineEmits(['click'])
   background-color: var(--color-ink);
   color: var(--color-body-on-dark);
   border: none;
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   padding: 8px 15px;
   font-family: var(--font-family-text);
   font-size: 14px;

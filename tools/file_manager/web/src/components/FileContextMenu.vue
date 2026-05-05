@@ -133,7 +133,6 @@ defineExpose({
   border-radius: var(--radius-md);
   padding: var(--spacing-xxs) 0;
   z-index: 10000;
-  box-shadow: var(--shadow-product);
 }
 
 .context-menu-item {

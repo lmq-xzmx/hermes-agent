@@ -214,7 +214,7 @@ const serviceStatusClass = computed(() => ({
 .knowledge-view {
   flex: 1;
   overflow: auto;
-  padding: var(--space-section, 80px);
+  padding: var(--spacing-lg);
   background: var(--color-canvas-parchment);
 }
 
@@ -222,25 +222,25 @@ const serviceStatusClass = computed(() => ({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-xl, 32px);
+  margin-bottom: var(--space-xl);
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
-  padding: var(--space-lg, 24px);
-  background: var(--color-canvas, #ffffff);
-  border-radius: var(--rounded-lg, 18px);
-  border: 1px solid var(--color-hairline, #e0e0e0);
+  padding: var(--space-lg);
+  background: var(--color-canvas);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-hairline);
 }
 
 .header-actions {
   display: flex;
-  gap: var(--space-sm, 12px);
+  gap: var(--space-sm);
 }
 
 .section-title {
-  font: var(--text-display-lg, 600 40px/1.1 0);
+  font: var(--text-display-lg);
   font-weight: 600;
-  color: var(--color-ink, #1d1d1f);
+  color: var(--color-ink);
   margin: 0;
 }
 
@@ -250,45 +250,44 @@ const serviceStatusClass = computed(() => ({
 }
 
 .knowledge-section {
-  margin-bottom: var(--space-xl, 32px);
+  margin-bottom: var(--space-xl);
 }
 
 .subsection-title {
-  font: var(--text-body-strong, 17px/1.24 -0.374px 600);
-  font-weight: 600;
-  color: var(--color-ink, #1d1d1f);
-  margin: 0 0 var(--space-md, 17px);
+  font: var(--text-body-strong);
+  color: var(--color-ink);
+  margin: 0 0 var(--space-md);
 }
 
 /* Card Utility - Apple Store Card */
 .card-utility {
-  background: var(--color-canvas, #ffffff);
-  border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--rounded-lg, 18px);
-  padding: var(--space-lg, 24px);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--rounded-lg);
+  padding: var(--space-lg);
 }
 
 .section-desc {
-  font: var(--text-body, 17px/1.47 -0.374px);
-  color: var(--color-ink-muted-48, #7a7a7a);
-  margin-bottom: var(--space-lg, 24px);
+  font: var(--text-body);
+  color: var(--color-ink-muted-48);
+  margin-bottom: var(--space-lg);
 }
 
 /* Status Grid */
 .status-grid {
   display: flex;
-  gap: var(--space-xxl, 48px);
+  gap: var(--space-xxl);
 }
 
 .status-item {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xxs, 4px);
+  gap: var(--space-xxs);
 }
 
 .status-label {
-  font: var(--text-caption, 14px/1.43 -0.224px);
-  color: var(--color-ink-muted-48, #7a7a7a);
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
   text-transform: uppercase;
   letter-spacing: -0.12px;
 }
@@ -296,7 +295,7 @@ const serviceStatusClass = computed(() => ({
 .status-value-wrapper {
   display: flex;
   align-items: center;
-  gap: var(--space-sm, 12px);
+  gap: var(--space-sm);
 }
 
 .status-dot {
@@ -329,7 +328,7 @@ const serviceStatusClass = computed(() => ({
 }
 
 .status-value {
-  font: var(--text-body, 17px/1.47 -0.374px);
+  font: var(--text-body);
   font-weight: 600;
 }
 
@@ -337,29 +336,29 @@ const serviceStatusClass = computed(() => ({
 .status-value.stopped { color: var(--color-danger); }
 .status-value.checking { color: var(--color-warning); }
 .status-value.unknown { color: var(--color-ink-muted-48); }
-.status-value.mode { color: var(--color-ink, #1d1d1f); font-weight: 400; }
+.status-value.mode { color: var(--color-ink); font-weight: 400; }
 
 /* Form Field */
 .form-field {
-  margin-bottom: var(--space-md, 17px);
+  margin-bottom: var(--space-md);
 }
 
 .form-label {
   display: block;
-  font: var(--text-caption, 14px/1.43 -0.224px);
+  font: var(--text-caption);
   font-weight: 600;
-  color: var(--color-ink, #1d1d1f);
-  margin-bottom: var(--space-xxs, 4px);
+  color: var(--color-ink);
+  margin-bottom: var(--space-xxs);
 }
 
 /* Apple Input - pill style */
 .apple-input {
-  padding: 12px 17px;
-  background: var(--color-canvas, #ffffff);
-  border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--radius-pill, 9999px);
-  color: var(--color-ink, #1d1d1f);
-  font: var(--text-body, 17px/1.47 -0.374px);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  font: var(--text-body);
   transition: border-color 0.2s;
   height: 44px;
   box-sizing: border-box;
@@ -367,7 +366,7 @@ const serviceStatusClass = computed(() => ({
 
 .apple-input:focus {
   outline: none;
-  border-color: var(--color-primary, #0066cc);
+  border-color: var(--color-primary);
 }
 
 .apple-input.full-width {
@@ -375,39 +374,41 @@ const serviceStatusClass = computed(() => ({
 }
 
 .apple-input::placeholder {
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
 }
 
-/* Select */
+/* Select - Apple Pill Style (DESIGN.md) */
 .select-wrapper {
   position: relative;
 }
 
 .apple-select {
   appearance: none;
-  padding: 12px 40px 12px 17px;
-  background: var(--color-canvas, #ffffff);
-  border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--radius-pill, 9999px);
-  color: var(--color-ink, #1d1d1f);
-  font: var(--text-body, 17px/1.47 -0.374px);
+  padding: var(--spacing-sm) 40px var(--spacing-sm) var(--spacing-md);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  font: var(--text-body);
   height: 44px;
   cursor: pointer;
   transition: border-color 0.2s;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .apple-select:focus {
   outline: none;
-  border-color: var(--color-primary, #0066cc);
+  outline: 2px solid var(--color-primary-focus);
+  border-color: transparent;
 }
 
 .select-arrow {
   position: absolute;
-  right: 16px;
+  right: var(--space-md);
   top: 50%;
   transform: translateY(-50%);
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
   font-size: 18px;
   pointer-events: none;
 }
@@ -421,7 +422,7 @@ const serviceStatusClass = computed(() => ({
 /* Search */
 .search-wrapper {
   display: flex;
-  gap: var(--space-sm, 12px);
+  gap: var(--space-sm);
   align-items: center;
 }
 
@@ -436,17 +437,17 @@ const serviceStatusClass = computed(() => ({
   top: 50%;
   transform: translateY(-50%);
   font-size: 16px;
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
   pointer-events: none;
 }
 
 .search-input {
-  padding: 12px 20px 12px 44px;
-  background: var(--color-canvas, #ffffff);
-  border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--radius-pill, 9999px);
-  color: var(--color-ink, #1d1d1f);
-  font: var(--text-body, 17px/1.47 -0.374px);
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) 44px;
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  font: var(--text-body);
   transition: border-color 0.2s;
   height: 44px;
   box-sizing: border-box;
@@ -455,26 +456,26 @@ const serviceStatusClass = computed(() => ({
 
 .search-input:focus {
   outline: none;
-  border-color: var(--color-primary, #0066cc);
-  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-hover);
 }
 
 .search-input::placeholder {
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
 }
 
 /* Search Results */
 .search-results {
-  margin-top: var(--space-lg, 24px);
-  border-top: 1px solid var(--color-divider-soft, #f0f0f0);
-  padding-top: var(--space-lg, 24px);
+  margin-top: var(--space-lg);
+  border-top: 1px solid var(--color-divider-soft);
+  padding-top: var(--space-lg);
 }
 
 .search-result-item {
   display: flex;
-  gap: var(--space-md, 17px);
-  padding: var(--space-md, 17px) 0;
-  border-bottom: 1px solid var(--color-divider-soft, #f0f0f0);
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--color-divider-soft);
 }
 
 .search-result-item:last-child {
@@ -489,8 +490,8 @@ const serviceStatusClass = computed(() => ({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-surface-pearl, #fafafc);
-  border-radius: var(--radius-md, 18px);
+  background: var(--color-surface-pearl);
+  border-radius: var(--radius-md);
 }
 
 .result-content {
@@ -499,15 +500,15 @@ const serviceStatusClass = computed(() => ({
 }
 
 .result-title {
-  font: var(--text-body-strong, 17px/1.24 -0.374px 600);
+  font: var(--text-body-strong);
   font-weight: 600;
-  color: var(--color-primary, #0066cc);
-  margin-bottom: var(--space-xxs, 4px);
+  color: var(--color-primary);
+  margin-bottom: var(--space-xxs);
 }
 
 .result-snippet {
-  font: var(--text-caption, 14px/1.43 -0.224px);
-  color: var(--color-ink-muted-48, #7a7a7a);
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
   line-height: 1.5;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -520,19 +521,19 @@ const serviceStatusClass = computed(() => ({
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-xxl, 48px);
+  padding: var(--space-xxl);
   text-align: center;
 }
 
 .empty-icon {
   font-size: 48px;
-  margin-bottom: var(--space-md, 17px);
+  margin-bottom: var(--space-md);
   opacity: 0.5;
 }
 
 .empty-text {
-  font: var(--text-body, 17px/1.47 -0.374px);
-  color: var(--color-ink-muted-48, #7a7a7a);
+  font: var(--text-body);
+  color: var(--color-ink-muted-48);
   margin: 0;
 }
 </style>

@@ -68,7 +68,6 @@ defineExpose({ isOpen, toggle, close })
   border-radius: var(--radius-lg);
   padding: var(--spacing-xs);
   z-index: var(--z-dropdown);
-  box-shadow: var(--shadow-lg);
   font-family: var(--font-family-text);
 }
 

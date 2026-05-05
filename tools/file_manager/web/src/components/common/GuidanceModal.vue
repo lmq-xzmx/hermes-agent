@@ -277,7 +277,7 @@ if (typeof window !== 'undefined') {
   font-size: 24px;
   cursor: pointer;
   padding: 4px 8px;
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   transition: all 0.2s;
   display: flex;
   align-items: center;
@@ -301,7 +301,7 @@ if (typeof window !== 'undefined') {
 
 .guidance-message {
   margin: 0;
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: var(--text-body);
   line-height: 1.6;
   color: var(--color-ink-muted-48);
@@ -311,7 +311,7 @@ if (typeof window !== 'undefined') {
   margin-top: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   background: var(--color-canvas-parchment);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
 }
 
 .guidance-details code {
@@ -334,7 +334,7 @@ if (typeof window !== 'undefined') {
   min-width: 100px;
   padding: 11px 22px;
   border-radius: var(--radius-pill);
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: var(--text-body);
   font-weight: 400;
   cursor: pointer;
@@ -382,7 +382,7 @@ if (typeof window !== 'undefined') {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: var(--text-caption);
   color: var(--color-ink-muted-48);
   cursor: pointer;

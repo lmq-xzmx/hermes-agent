@@ -20,7 +20,8 @@ const props = defineProps({
 
 const customStyle = computed(() => ({
   fontSize: props.size === 'sm' ? '11px' : props.size === 'lg' ? '14px' : '12px',
-  padding: props.size === 'sm' ? '2px 8px' : props.size === 'lg' ? '6px 14px' : '4px 10px'
+  padding: props.size === 'sm' ? '2px 8px' : props.size === 'lg' ? '6px 14px' : '4px 10px',
+  fontFamily: 'var(--font-family-text)'
 }))
 </script>
 
@@ -29,7 +30,7 @@ const customStyle = computed(() => ({
   display: inline-flex;
   align-items: center;
   border-radius: var(--radius-pill);
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;

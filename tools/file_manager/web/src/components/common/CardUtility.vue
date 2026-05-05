@@ -24,7 +24,7 @@ defineProps({
 }
 
 .card-apple-utility img {
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
 }
 
 .card-apple-utility.card-clickable {

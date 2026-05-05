@@ -179,38 +179,38 @@ watch(() => props.pools, () => {
 
 <style scoped>
 .storage-pool-chart {
-  padding: var(--space-lg, 24px);
+  padding: var(--space-lg);
 }
 
 .chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-lg, 24px);
+  margin-bottom: var(--space-lg);
 }
 
 .chart-header h3 {
-  font: var(--text-body-strong, 17px/1.24 -0.374px 600);
+  font: var(--text-body-strong);
   font-weight: 600;
-  color: var(--color-ink, #1d1d1f);
+  color: var(--color-ink);
   margin: 0;
 }
 
 .total {
-  font: var(--text-caption, 14px/1.43 -0.224px);
-  color: var(--color-ink-muted-48, #7a7a7a);
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
 }
 
 .pools-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--space-md, 17px);
+  gap: var(--space-md);
 }
 
 .pool-card {
   display: flex;
-  gap: var(--space-md, 17px);
-  padding: var(--space-md, 17px);
+  gap: var(--space-md);
+  padding: var(--space-md);
 }
 
 .pool-ring {
@@ -222,32 +222,32 @@ watch(() => props.pools, () => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-xxs, 4px);
+  gap: var(--space-xxs);
 }
 
 .pool-info h4 {
-  font: var(--text-body-strong, 17px/1.24 -0.374px 600);
+  font: var(--text-body-strong);
   font-weight: 600;
-  color: var(--color-ink, #1d1d1f);
+  color: var(--color-ink);
   margin: 0;
 }
 
 .pool-stats {
   display: flex;
-  gap: var(--space-sm, 12px);
-  font: var(--text-caption, 14px/1.43 -0.224px);
-  color: var(--color-ink-muted-48, #7a7a7a);
+  gap: var(--space-sm);
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
 }
 
 .pool-status {
-  font: var(--text-caption, 14px/1.43 -0.224px);
+  font: var(--text-caption);
   padding: 2px 10px;
-  border-radius: var(--rounded-pill, 9999px);
+  border-radius: var(--rounded-pill);
   display: inline-block;
   width: fit-content;
 }
 
-.pool-status.normal { background: var(--color-primary-subtle); color: var(--color-primary, #0066cc); }
+.pool-status.normal { background: var(--color-primary-subtle); color: var(--color-primary); }
 .pool-status.warning { background: var(--color-warning-subtle); color: var(--color-warning-strong); }
 .pool-status.critical { background: var(--color-danger-subtle); color: var(--color-danger); }
 
@@ -266,8 +266,8 @@ watch(() => props.pools, () => {
 }
 
 .modal-content {
-  background: var(--color-canvas, #ffffff);
-  border-radius: var(--rounded-lg, 18px);
+  background: var(--color-canvas);
+  border-radius: var(--rounded-lg);
   width: 90%;
   max-width: 700px;
   max-height: 80vh;
@@ -280,21 +280,21 @@ watch(() => props.pools, () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-lg, 24px);
-  border-bottom: 1px solid var(--color-hairline, #e0e0e0);
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--color-hairline);
 }
 
 .modal-header h3 {
-  font: var(--text-body-strong, 17px/1.24 -0.374px 600);
+  font: var(--text-body-strong);
   font-weight: 600;
-  color: var(--color-ink, #1d1d1f);
+  color: var(--color-ink);
   margin: 0;
 }
 
 .modal-close {
   background: none;
   border: none;
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
   font-size: 24px;
   cursor: pointer;
   padding: 0;
@@ -302,16 +302,16 @@ watch(() => props.pools, () => {
 }
 
 .modal-close:hover {
-  color: var(--color-ink, #1d1d1f);
+  color: var(--color-ink);
 }
 
 .modal-loading,
 .modal-error,
 .modal-empty {
-  padding: var(--space-xl, 32px);
+  padding: var(--space-xl);
   text-align: center;
-  font: var(--text-body, 17px/1.47 -0.374px);
-  color: var(--color-ink-muted-48, #7a7a7a);
+  font: var(--text-body);
+  color: var(--color-ink-muted-48);
 }
 
 .modal-error {
@@ -320,7 +320,7 @@ watch(() => props.pools, () => {
 
 .modal-teams {
   overflow-y: auto;
-  padding: var(--space-md, 17px);
+  padding: var(--space-md);
 }
 
 .teams-table {
@@ -330,22 +330,22 @@ watch(() => props.pools, () => {
 
 .teams-table th,
 .teams-table td {
-  padding: var(--space-sm, 12px) var(--space-md, 17px);
+  padding: var(--space-sm) var(--space-md);
   text-align: left;
-  border-bottom: 1px solid var(--color-hairline, #e0e0e0);
+  border-bottom: 1px solid var(--color-hairline);
 }
 
 .teams-table th {
-  font: var(--text-caption, 14px/1.43 -0.224px);
+  font: var(--text-caption);
   font-weight: 600;
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
 }
 
 .usage-bar {
   width: 80px;
   height: 6px;
-  background: var(--color-hairline, #e0e0e0);
-  border-radius: var(--radius-xs, 5px);
+  background: var(--color-hairline);
+  border-radius: var(--radius-xs);
   display: inline-block;
   vertical-align: middle;
   margin-right: 8px;
@@ -353,7 +353,7 @@ watch(() => props.pools, () => {
 
 .usage-fill {
   height: 100%;
-  background: var(--color-primary, #0066cc);
-  border-radius: var(--radius-xs, 5px);
+  background: var(--color-primary);
+  border-radius: var(--radius-xs);
 }
 </style>

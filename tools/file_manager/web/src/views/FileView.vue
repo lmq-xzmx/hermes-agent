@@ -974,7 +974,7 @@ function formatDate(str) {
 .file-view {
   flex: 1;
   overflow: auto;
-  padding: var(--space-section);
+  padding: var(--spacing-lg);
   background-color: var(--color-canvas-parchment);
 }
 
@@ -988,7 +988,7 @@ function formatDate(str) {
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-lg);
   margin-bottom: var(--space-md);
-  max-width: 1440px;
+  max-width: var(--content-max-width-universal);
   margin-left: auto;
   margin-right: auto;
 }
@@ -1002,23 +1002,21 @@ function formatDate(str) {
 .breadcrumb {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-family: var(--font-family-text);
-  font-size: 14px;
-  line-height: 1.43;
-  letter-spacing: -0.224px;
+  gap: var(--space-xs);
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
 }
 
 .breadcrumb-item {
   background: none;
   border: none;
-  color: var(--color-ink-muted-48);
+  color: inherit;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: var(--space-xxs) var(--space-xs);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   transition: background 0.15s;
 }
 
@@ -1051,7 +1049,7 @@ function formatDate(str) {
   transition: background-color 0.15s, color 0.15s;
 }
 .btn-apple-icon:hover { background-color: var(--color-canvas-parchment); color: var(--color-ink); }
-.btn-apple-icon:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-apple-icon:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-apple-icon:active { transform: scale(0.95); }
 
 /* View Toggle - Apple Segment Control */
@@ -1120,7 +1118,7 @@ function formatDate(str) {
 }
 
 .file-grid-item.selected {
-  background: rgba(0, 102, 204, 0.08);
+  background: var(--color-primary-faint);
   border-color: var(--color-primary);
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
@@ -1151,7 +1149,7 @@ function formatDate(str) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px var(--space-lg);
+  padding: var(--spacing-section) var(--space-lg);
   color: var(--color-ink-muted-48);
 }
 
@@ -1181,25 +1179,18 @@ function formatDate(str) {
 }
 
 .empty-state-guidance .guidance-icon {
-  font-size: 80px;
+  font-size: var(--spacing-section);
   margin-bottom: var(--space-lg);
 }
 
 .empty-state-guidance h3 {
-  font-family: var(--font-family-display);
-  font-size: 28px;
-  line-height: 1.14;
-  letter-spacing: 0.196px;
-  font-weight: 600;
+  font: var(--text-lead);
   color: var(--color-ink);
   margin: 0 0 var(--space-sm) 0;
 }
 
 .empty-state-guidance .guidance-desc {
-  font-family: var(--font-family-text);
-  font-size: 17px;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
+  font: var(--text-body);
   color: var(--color-ink-muted-48);
   margin-bottom: var(--space-xl);
   max-width: 400px;
@@ -1274,8 +1265,8 @@ function formatDate(str) {
   transform: rotate(45deg);
 }
 
-.apple-checkbox:focus {
-  outline: 2px solid var(--color-primary);
+.apple-checkbox:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
   outline-offset: 2px;
 }
 
@@ -1301,12 +1292,7 @@ function formatDate(str) {
 
 .file-list th {
   background: var(--color-canvas-parchment);
-  font-family: var(--font-family-text);
-  font-size: 14px;
-  line-height: 1.29;
-  letter-spacing: -0.224px;
-  font-weight: 600;
-  text-transform: uppercase;
+  font: var(--text-caption-strong);
   color: var(--color-ink-muted-48);
   position: sticky;
   top: 0;
@@ -1319,7 +1305,7 @@ function formatDate(str) {
 
 /* Selected row highlight */
 .file-row.selected td {
-  background: rgba(0, 102, 204, 0.08);
+  background: var(--color-primary-faint);
 }
 
 .file-row.selected td:first-child {
@@ -1395,29 +1381,32 @@ tr:hover .file-actions {
 }
 
 .file-actions button {
-  background: none;
-  border: none;
-  color: var(--color-primary);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  color: var(--color-ink);
   cursor: pointer;
-  padding: 6px 12px;
-  border-radius: var(--radius-md);
-  font-family: var(--font-family-text);
-  font-size: 14px;
-  line-height: 1.43;
-  letter-spacing: -0.224px;
-  transition: background-color 0.15s ease;
+  padding: var(--spacing-xxs) var(--spacing-sm);
+  border-radius: var(--radius-pill);
+  font: var(--text-caption);
+  transition: all 0.15s ease;
 }
 
 .file-actions button:hover {
   background: var(--color-surface-pearl);
+  border-color: var(--color-secondary);
 }
 
 .file-actions button.danger {
   color: var(--color-danger);
+  border-color: var(--color-danger-subtle);
+}
+
+.file-actions button.danger:hover {
+  background: var(--color-danger-subtle);
 }
 
 .file-row.drag-over {
-  background: rgba(0, 102, 204, 0.08);
+  background: var(--color-primary-faint);
   outline: 2px dashed var(--color-primary);
 }
 
@@ -1425,7 +1414,7 @@ tr:hover .file-actions {
 .selection-rect {
   position: fixed;
   border: 2px dashed var(--color-primary);
-  background: rgba(0, 102, 204, 0.1);
+  background: var(--color-primary-subtle);
   pointer-events: none;
   z-index: 9998;
   border-radius: var(--radius-xs);
@@ -1442,13 +1431,14 @@ tr:hover .file-actions {
   justify-content: space-between;
   gap: var(--space-lg);
   padding: var(--space-md) var(--space-lg);
-  background: rgba(245, 245, 247, 0.9);
+  background: var(--color-canvas);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   z-index: 1000;
   min-width: 400px;
+  box-shadow: var(--shadow-md);
 }
 
 .multi-select-info {

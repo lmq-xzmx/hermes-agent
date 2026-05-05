@@ -133,17 +133,17 @@ function retry() {
   align-items: center;
   justify-content: center;
   padding: 48px;
-  background: var(--color-canvas, #ffffff);
-  border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--rounded-lg, 18px);
-  gap: var(--space-md, 17px);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--rounded-lg);
+  gap: var(--space-md);
 }
 
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--color-hairline, #e0e0e0);
-  border-top-color: var(--color-primary, #0066cc);
+  border: 3px solid var(--color-hairline);
+  border-top-color: var(--color-primary);
   border-radius: var(--radius-full);
   animation: spin 1s linear infinite;
 }
@@ -153,26 +153,26 @@ function retry() {
 }
 
 .error-message {
-  color: var(--color-ink-muted-48, #7a7a7a);
-  font: var(--text-body, 17px/1.47 -0.374px);
+  color: var(--color-ink-muted-48);
+  font: var(--text-body);
 }
 
 /* Grid Layout - 6 columns on desktop */
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: var(--space-md, 17px);
+  gap: var(--space-md);
 }
 
 /* Stat Card - Apple Store Utility Card */
 .stat-card {
-  background: var(--color-canvas, #ffffff);
-  border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--rounded-lg, 18px);
-  padding: var(--space-lg, 24px);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--rounded-lg);
+  padding: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm, 12px);
+  gap: var(--space-sm);
   position: relative;
   cursor: pointer;
   transition: transform 0.2s ease;
@@ -187,7 +187,7 @@ function retry() {
 }
 
 .alert-card {
-  border-color: var(--color-primary, #0066cc);
+  border-color: var(--color-primary);
   background: var(--color-primary-faint);
 }
 
@@ -203,26 +203,26 @@ function retry() {
 }
 
 .stat-value {
-  font: var(--text-display-md, 34px/1.47 -0.374px);
+  font: var(--text-display-md);
   font-weight: 600;
-  color: var(--color-ink, #1d1d1f);
+  color: var(--color-ink);
   line-height: 1.1;
   letter-spacing: -0.374px;
 }
 
 .stat-label {
-  font: var(--text-caption, 14px/1.43 -0.224px);
-  color: var(--color-ink-muted-48, #7a7a7a);
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
 }
 
 .stat-sub {
-  font: var(--text-caption, 14px/1.43 -0.224px);
-  color: var(--color-ink-muted-48, #7a7a7a);
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
   margin-top: 2px;
 }
 
 .stat-sub.critical {
-  color: var(--color-primary, #0066cc);
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -233,14 +233,14 @@ function retry() {
   left: 0;
   right: 0;
   height: 4px;
-  background: var(--color-hairline, #e0e0e0);
-  border-radius: 0 0 var(--rounded-lg, 18px) var(--rounded-lg, 18px);
+  background: var(--color-hairline);
+  border-radius: var(--radius-none) var(--radius-none) var(--rounded-lg) var(--rounded-lg);
   overflow: hidden;
 }
 
 .storage-bar-fill {
   height: 100%;
-  background: var(--color-primary, #0066cc);
+  background: var(--color-primary);
   transition: width 0.3s ease;
 }
 
@@ -271,7 +271,7 @@ function retry() {
   }
 
   .stat-card {
-    padding: var(--space-md, 17px);
+    padding: var(--space-md);
   }
 
   .stat-value {

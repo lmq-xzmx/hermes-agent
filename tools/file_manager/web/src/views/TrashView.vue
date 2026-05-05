@@ -215,16 +215,13 @@ function formatDate(str) {
 }
 
 .section-title {
-  font-family: var(--font-family-display);
-  font-size: 21px;
-  font-weight: 600;
+  font: var(--text-tagline);
   color: var(--color-ink);
   margin: 0;
 }
 
 .item-count {
-  font-family: var(--font-family-text);
-  font-size: var(--text-xs);
+  font: var(--text-caption);
   color: var(--color-ink-muted-48);
   background: var(--color-surface-pearl);
   padding: var(--spacing-xxs) var(--spacing-sm);
@@ -237,43 +234,45 @@ function formatDate(str) {
   align-items: center;
 }
 
-/* Select - Apple Pill Style */
+/* Select - Apple Pill Style (DESIGN.md) */
 .select-wrapper {
   position: relative;
 }
 
 .apple-select {
   appearance: none;
-  padding: var(--spacing-xs) 36px var(--spacing-xs) var(--spacing-sm);
+  padding: var(--spacing-sm) 20px;
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-pill);
   color: var(--color-ink);
-  font-family: var(--font-family-text);
-  font-size: var(--text-base);
+  font: var(--text-body);
   cursor: pointer;
   transition: border-color 0.2s;
-  height: var(--spacing-lg);
+  height: 44px;
+  min-width: 180px;
+  box-sizing: border-box;
 }
 
 .apple-select:focus {
   outline: none;
-  border-color: var(--color-primary);
+  outline: 2px solid var(--color-primary-focus);
+  border-color: transparent;
 }
 
 .select-arrow {
   position: absolute;
-  right: var(--space-sm);
+  right: var(--space-md);
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-ink-muted-48);
-  font-size: var(--text-base);
+  font-size: 14px;
   pointer-events: none;
 }
 
 /* Buttons */
 .btn-icon {
-  font-size: var(--text-base);
+  font: var(--text-body);
   line-height: 1;
 }
 
@@ -293,8 +292,7 @@ function formatDate(str) {
   justify-content: center;
   padding: var(--space-xxl);
   color: var(--color-ink-muted-48);
-  font-family: var(--font-family-text);
-  font-size: var(--text-base);
+  font: var(--text-body);
   gap: var(--space-md);
 }
 
@@ -328,16 +326,13 @@ function formatDate(str) {
 }
 
 .empty-title {
-  font-family: var(--font-family-text);
-  font-size: var(--text-base);
-  font-weight: 600;
+  font: var(--text-body-strong);
   color: var(--color-ink);
-  margin: 0 0 var(--space-xs);
+  margin: 0 0 var(--spacing-xs);
 }
 
 .empty-desc {
-  font-family: var(--font-family-text);
-  font-size: var(--text-base);
+  font: var(--text-body);
   color: var(--color-ink-muted-48);
   margin: 0;
 }
@@ -355,14 +350,12 @@ function formatDate(str) {
 .apple-table th,
 .apple-table td {
   text-align: left;
-  padding: var(--space-md) var(--spacing-lg);
+  padding: var(--space-sm) var(--space-md);
   vertical-align: middle;
 }
 
 .apple-table th {
-  font-family: var(--font-family-text);
-  font-size: var(--text-xs);
-  font-weight: 600;
+  font: var(--text-caption-strong);
   text-transform: uppercase;
   color: var(--color-ink-muted-48);
   background: var(--color-canvas-parchment);
@@ -393,13 +386,12 @@ function formatDate(str) {
 }
 
 .file-icon {
-  font-size: var(--text-lg);
+  font-size: 28px;
   flex-shrink: 0;
 }
 
 .file-name-text {
-  font-family: var(--font-family-text);
-  font-size: var(--text-base);
+  font: var(--text-body);
   color: var(--color-ink);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -415,13 +407,11 @@ function formatDate(str) {
   align-items: center;
   padding: var(--spacing-xxs) var(--spacing-sm);
   border-radius: var(--radius-pill);
-  font-family: var(--font-family-text);
-  font-size: var(--text-xs);
-  font-weight: 400;
+  font: var(--text-caption);
 }
 
 .type-badge.folder {
-  background: rgba(0, 102, 204, 0.1);
+  background: var(--color-primary-subtle);
   color: var(--color-primary);
 }
 
@@ -432,8 +422,7 @@ function formatDate(str) {
 
 .cell-date {
   width: 160px;
-  font-family: var(--font-family-text);
-  font-size: var(--text-base);
+  font: var(--text-body);
   color: var(--color-ink-muted-48);
 }
 
@@ -442,8 +431,8 @@ function formatDate(str) {
 }
 
 .path-code {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-family: monospace;
+  font: var(--text-caption);
   color: var(--color-ink-muted-48);
   background: var(--color-canvas-parchment);
   padding: var(--spacing-xxs) var(--spacing-xs);

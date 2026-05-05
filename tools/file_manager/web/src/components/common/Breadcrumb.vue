@@ -64,7 +64,7 @@ defineProps({
 }
 
 .breadcrumb-link {
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: 14px;
   line-height: 1.43;
   letter-spacing: -0.224px;
@@ -74,7 +74,7 @@ defineProps({
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   transition: all 0.15s ease;
 }
 

@@ -39,7 +39,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     cssCodeSplit: true,
-    chunkSizeWarningLimit: 500,
+    chunkSizeWarningLimit: 1200,
     rollupOptions: {
       input: {
         vue: resolve(__dirname, 'vue.html'),

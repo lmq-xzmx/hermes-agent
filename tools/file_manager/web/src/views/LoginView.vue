@@ -303,17 +303,13 @@ async function handleRegister() {
 }
 
 .login-title {
-  font-family: var(--font-family-display);
-  font-size: 34px;
-  font-weight: 600;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
+  font: var(--text-display-md);
   color: var(--color-ink);
   margin: 0 0 var(--space-xs);
 }
 
 .login-subtitle {
-  font: var(--font-family-text);
+  font: var(--text-body);
   color: var(--color-ink-muted-48);
   margin: 0;
 }
@@ -322,13 +318,13 @@ async function handleRegister() {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  background: rgba(255, 59, 48, 0.08);
+  background: var(--color-danger-subtle);
   border: 1px solid var(--color-danger);
   border-radius: var(--radius-md);
   padding: var(--space-sm) var(--space-md);
   margin-bottom: var(--space-lg);
   color: var(--color-danger);
-  font: var(--font-family-text);
+  font: var(--text-body);
 }
 
 .error-icon {
@@ -346,20 +342,19 @@ async function handleRegister() {
 
 .form-label {
   display: block;
-  font: var(--font-family-text);
-  font-weight: 600;
+  font: var(--text-body-strong);
   color: var(--color-ink);
   margin-bottom: var(--space-xxs);
 }
 
 /* Apple Input - pill shape */
 .apple-input {
-  padding: 12px 17px;
+  padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-pill);
   color: var(--color-ink);
-  font: var(--font-family-text);
+  font: var(--text-body);
   transition: border-color 0.2s;
   height: 44px;
   box-sizing: border-box;
@@ -367,9 +362,8 @@ async function handleRegister() {
 }
 
 .apple-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15);
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
 }
 
 .apple-input.full-width {
@@ -465,8 +459,9 @@ async function handleRegister() {
   font-weight: 600;
 }
 
-.checkbox-input:focus + .checkbox-custom {
-  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15);
+.checkbox-input:focus-visible + .checkbox-custom {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
 }
 
 .checkbox-input:hover + .checkbox-custom {
@@ -484,7 +479,7 @@ async function handleRegister() {
 
 .login-footer {
   text-align: center;
-  font: var(--font-family-text);
+  font: var(--text-body);
   color: var(--color-ink-muted-48);
   margin: 0;
 }
@@ -492,7 +487,7 @@ async function handleRegister() {
 .text-link {
   color: var(--color-primary);
   text-decoration: none;
-  font-weight: 600;
+  font: var(--text-body);
 }
 
 .text-link:hover {

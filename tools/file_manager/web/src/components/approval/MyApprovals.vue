@@ -154,7 +154,7 @@ onMounted(() => {
   background: var(--color-surface-tile-2);
   color: var(--color-body-on-dark);
   border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
 }
 
 .btn-refresh {
@@ -162,7 +162,7 @@ onMounted(() => {
   background: var(--color-surface-tile-2);
   color: var(--color-body-on-dark);
   border: none;
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
@@ -175,7 +175,7 @@ onMounted(() => {
   padding: 12px;
   background: var(--color-danger-subtle);
   color: var(--color-danger);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   margin-bottom: 16px;
 }
 
@@ -193,7 +193,7 @@ onMounted(() => {
 
 .request-card {
   border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   padding: 12px;
   background: var(--color-surface-tile-3);
 }
@@ -249,7 +249,7 @@ onMounted(() => {
   background: var(--color-surface-tile-2);
   color: var(--color-body-on-dark);
   border: none;
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 

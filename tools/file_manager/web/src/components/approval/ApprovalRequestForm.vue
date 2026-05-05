@@ -146,7 +146,7 @@ h3 {
   padding: var(--space-xs) var(--space-sm);
   background: var(--color-surface-tile-1);
   border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   color: var(--color-body-on-dark);
   font-size: 14px;
   box-sizing: border-box;
@@ -199,7 +199,7 @@ h3 {
   padding: var(--space-xs);
   background: var(--color-danger-subtle);
   color: var(--color-danger);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   font-size: 14px;
 }
 
@@ -208,7 +208,7 @@ h3 {
   padding: var(--space-xs);
   background: var(--color-success-subtle);
   color: var(--color-success);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   font-size: 14px;
 }
 </style>

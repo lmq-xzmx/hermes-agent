@@ -43,42 +43,42 @@ function handleAlert(alert) {
 
 <style scoped>
 .alert-list {
-  padding: var(--space-lg, 24px);
-  color: var(--color-body-on-dark, #ffffff);
+  padding: var(--space-lg);
+  color: var(--color-body-on-dark);
 }
 
 .list-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-lg, 24px);
+  margin-bottom: var(--space-lg);
 }
 
 .list-header h3 {
-  font: var(--text-body-strong, 17px/1.24 -0.374px 600);
+  font: var(--text-body-strong);
   font-weight: 600;
   margin: 0;
-  color: var(--color-body-on-dark, #ffffff);
+  color: var(--color-body-on-dark);
 }
 
 .alert-count {
-  font: var(--text-caption, 14px/1.43 -0.224px);
-  color: var(--color-body-muted, #cccccc);
+  font: var(--text-caption);
+  color: var(--color-body-muted);
 }
 
 .alert-items {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm, 12px);
+  gap: var(--space-sm);
 }
 
 .alert-item {
   display: flex;
   align-items: center;
-  gap: var(--space-md, 17px);
-  padding: var(--space-md, 17px);
-  background: var(--color-surface-tile-2, #2a2a2c);
-  border-radius: var(--rounded-md, 11px);
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-surface-tile-2);
+  border-radius: var(--rounded-md);
   border-left: 4px solid;
   transition: transform 0.1s ease;
 }
@@ -102,22 +102,22 @@ function handleAlert(alert) {
 }
 
 .alert-title {
-  font: var(--text-body, 17px/1.47 -0.374px);
-  color: var(--color-body-on-dark, #ffffff);
+  font: var(--text-body);
+  color: var(--color-body-on-dark);
   margin-bottom: 4px;
 }
 
 .alert-meta {
   display: flex;
-  gap: var(--space-lg, 24px);
-  font: var(--text-caption, 14px/1.43 -0.224px);
-  color: var(--color-body-muted, #cccccc);
+  gap: var(--space-lg);
+  font: var(--text-caption);
+  color: var(--color-body-muted);
 }
 
 .no-alerts {
   text-align: center;
-  padding: var(--space-xl, 32px);
-  font: var(--text-body, 17px/1.47 -0.374px);
-  color: var(--color-body-muted, #cccccc);
+  padding: var(--space-xl);
+  font: var(--text-body);
+  color: var(--color-body-muted);
 }
 </style>

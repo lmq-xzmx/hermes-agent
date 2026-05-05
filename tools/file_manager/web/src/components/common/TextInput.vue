@@ -47,7 +47,7 @@ defineEmits(['update:modelValue', 'focus', 'blur'])
   background-color: var(--color-canvas);
   color: var(--color-ink);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   font-family: var(--font-family-text);
   font-size: 17px;
   font-weight: 400;

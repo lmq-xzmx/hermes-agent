@@ -107,5 +107,7 @@ watch(isAuthenticated, (isAuth) => {
   flex: 1;
   overflow: auto;
   background: var(--color-canvas-parchment);
+  max-width: var(--content-max-width-universal);
+  margin: 0 auto;
 }
 </style>

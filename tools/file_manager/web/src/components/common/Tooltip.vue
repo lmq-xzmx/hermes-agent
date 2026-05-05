@@ -46,17 +46,14 @@ const delay = 200
 
 .tooltip {
   position: absolute;
-  padding: 8px 12px;
+  padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-ink);
   color: var(--color-body-on-dark);
-  border-radius: var(--radius-md, 18px);
-  font-family: var(--font-body);
-  font-size: 13px;
-  line-height: 1.4;
+  border-radius: var(--radius-md);
+  font: var(--text-fine-print);
   white-space: nowrap;
   z-index: var(--z-tooltip);
   pointer-events: none;
-  box-shadow: var(--shadow-md);
 }
 
 .tooltip.top {

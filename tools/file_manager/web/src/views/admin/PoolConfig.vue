@@ -394,7 +394,7 @@ onMounted(() => {
   padding: var(--space-xs) var(--space-sm);
   background: var(--color-surface-tile-3);
   border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-md, 18px) 0 0 var(--radius-sm);
+  border-radius: var(--radius-md) 0 0 var(--radius-sm);
   color: var(--color-body-on-dark);
   font-family: var(--font-family-text);
   font-size: 17px;
@@ -405,7 +405,7 @@ onMounted(() => {
   background: var(--color-surface-tile-3);
   border: 1px solid var(--color-border-on-dark);
   border-left: none;
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  border-radius: var(--radius-none) var(--radius-sm) var(--radius-sm) var(--radius-none);
   color: var(--color-body-muted);
 }
 
@@ -414,7 +414,7 @@ select {
   padding: var(--space-xs) var(--space-sm);
   background: var(--color-surface-tile-3);
   border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   color: var(--color-body-on-dark);
   font-family: var(--font-family-text);
   font-size: 17px;

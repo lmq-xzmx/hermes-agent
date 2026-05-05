@@ -371,7 +371,7 @@ onMounted(async () => {
   padding: 10px 20px;
   background: transparent;
   border: none;
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   color: var(--color-body-muted);
   cursor: pointer;
   font-size: 14px;
@@ -570,7 +570,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   transition: all 0.2s;
 }
 
@@ -603,7 +603,7 @@ onMounted(async () => {
   padding: var(--space-xs) var(--space-sm);
   background: var(--color-surface-tile-3);
   border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   color: var(--color-body-on-dark);
   font-family: var(--font-family-text);
   font-size: 17px;
@@ -623,7 +623,7 @@ onMounted(async () => {
 .template-preview {
   background: var(--color-surface-tile-3);
   padding: var(--space-sm);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
 }
 
 .template-preview h4 {
@@ -641,7 +641,7 @@ onMounted(async () => {
 .perm-tag {
   background: var(--color-surface-tile-1);
   padding: 4px 8px;
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   font-size: 12px;
   color: var(--color-body-muted);
 }

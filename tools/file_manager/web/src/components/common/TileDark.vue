@@ -33,7 +33,7 @@ defineProps({
 
 @media (max-width: 640px) {
   .tile-apple-dark {
-    padding: 48px var(--spacing-md);
+    padding: var(--spacing-xxl) var(--spacing-md);
   }
 }
 </style>

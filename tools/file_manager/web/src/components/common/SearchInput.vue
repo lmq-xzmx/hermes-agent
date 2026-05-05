@@ -54,16 +54,12 @@ defineEmits(['update:modelValue', 'search', 'clear'])
 .apple-search-input {
   width: 100%;
   height: 44px;
-  padding: var(--spacing-sm) var(--spacing-lg) var(--spacing-sm) var(--spacing-lg);
+  padding: 11px var(--spacing-lg) 11px var(--spacing-lg);
   background-color: var(--color-canvas);
   color: var(--color-ink);
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-pill);
-  font-family: var(--font-family-text);
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
+  font: var(--text-body);
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -74,7 +70,8 @@ defineEmits(['update:modelValue', 'search', 'clear'])
 
 .apple-search-input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-hover);
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 0;
 }
 
 .search-icon {

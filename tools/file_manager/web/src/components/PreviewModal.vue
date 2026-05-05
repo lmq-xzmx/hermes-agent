@@ -244,7 +244,7 @@ defineExpose({
   background: transparent;
   font-size: 24px;
   cursor: pointer;
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   color: var(--color-ink-muted-48);
   transition: background 0.15s;
 }
@@ -304,7 +304,7 @@ defineExpose({
   overflow: auto;
   background: var(--color-canvas-parchment);
   padding: var(--spacing-md);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
   font-size: 14px;
   line-height: 1.6;
@@ -343,7 +343,7 @@ defineExpose({
 .preview-markdown :deep(pre) {
   background: var(--color-canvas-parchment);
   padding: var(--spacing-md);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   overflow-x: auto;
 }
 

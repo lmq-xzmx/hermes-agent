@@ -31,8 +31,8 @@ function handleClick() {
   align-items: center;
   gap: var(--spacing-sm);
   padding: 10px 12px;
-  border-radius: var(--radius-md, 18px);
-  font-family: var(--font-body);
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-text);
   font-size: 15px;
   color: var(--color-ink);
   cursor: pointer;

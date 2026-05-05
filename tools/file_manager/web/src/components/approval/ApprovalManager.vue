@@ -157,7 +157,7 @@ onMounted(() => {
   margin-left: var(--space-xxs);
   background: var(--color-danger);
   color: var(--color-body-on-dark);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   font-size: 11px;
   font-weight: 600;
 }

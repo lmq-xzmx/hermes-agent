@@ -94,7 +94,7 @@ const statusText = computed(() => {
 }
 
 .status-text {
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: 12px;
   color: var(--color-body-muted);
   letter-spacing: -0.12px;
@@ -107,7 +107,7 @@ const statusText = computed(() => {
   transform: translateX(-50%);
   background: var(--color-surface-tile-2);
   border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   padding: var(--space-sm);
   min-width: 140px;
   z-index: 100;
@@ -117,7 +117,7 @@ const statusText = computed(() => {
   display: flex;
   justify-content: space-between;
   gap: var(--space-md);
-  font-family: var(--font-body);
+  font-family: var(--font-family-text);
   font-size: 12px;
   padding: 2px 0;
 }

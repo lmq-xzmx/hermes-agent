@@ -361,7 +361,7 @@ onMounted(async () => {
 <style scoped>
 .quota-transfer {
   padding: 20px;
-  background: var(--bg-primary, #0d1117);
+  background: var(--bg-primary);
   min-height: 100vh;
 }
 
@@ -374,7 +374,7 @@ onMounted(async () => {
 
 .page-header h1 {
   font-size: 24px;
-  color: var(--text-primary, #e6edf3);
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -385,26 +385,26 @@ onMounted(async () => {
 }
 
 section {
-  background: var(--color-surface-tile-1, #272729);
-  border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--radius-md, 18px);
+  background: var(--color-surface-tile-1);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
   padding: 24px;
 }
 
 section h2 {
   font-size: 16px;
-  color: var(--color-ink, #1d1d1f);
+  color: var(--color-ink);
   margin: 0 0 16px 0;
 }
 
 .space-select select {
   width: 100%;
-  padding: 12px;
-  background: var(--color-surface-tile-2, #2a2a2c);
-  border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--radius-md, 18px);
-  color: var(--color-body-on-dark, #ffffff);
-  font-size: 14px;
+  padding: var(--spacing-sm);
+  background: var(--color-surface-tile-2);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  color: var(--color-body-on-dark);
+  font: var(--text-caption);
 }
 
 .quota-overview {
@@ -415,8 +415,8 @@ section h2 {
 }
 
 .quota-stat {
-  background: var(--color-surface-tile-3, #252527);
-  border-radius: var(--radius-md, 18px);
+  background: var(--color-surface-tile-3);
+  border-radius: var(--radius-md);
   padding: 16px;
   text-align: center;
 }
@@ -424,14 +424,14 @@ section h2 {
 .stat-label {
   display: block;
   font-size: 12px;
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
   margin-bottom: 8px;
 }
 
 .stat-value {
   font-size: 20px;
   font-weight: 600;
-  color: var(--text-primary, #e6edf3);
+  color: var(--text-primary);
 }
 
 .stat-value.available {
@@ -451,7 +451,7 @@ section h2 {
 .form-group label {
   display: block;
   font-size: 14px;
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
   margin-bottom: 8px;
 }
 
@@ -464,10 +464,11 @@ section h2 {
 .form-group textarea {
   width: 100%;
   padding: 10px 12px;
-  background: var(--color-surface-tile-3, #252527);
-  border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--radius-md, 18px);
-  color: var(--text-primary, #e6edf3);
+  background: var(--color-surface-tile-3);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-family-text);
   font-size: 14px;
 }
 
@@ -481,22 +482,22 @@ section h2 {
 
 .input-with-unit input {
   flex: 1;
-  border-radius: var(--radius-md, 18px) 0 0 var(--radius-xs, 5px);
+  border-radius: var(--radius-md) 0 0 var(--radius-xs);
 }
 
 .input-with-unit .unit {
   padding: 10px 12px;
-  background: var(--color-surface-tile-3, #252527);
-  border: 1px solid var(--color-hairline, #e0e0e0);
+  background: var(--color-surface-tile-3);
+  border: 1px solid var(--color-hairline);
   border-left: none;
-  border-radius: 0 var(--radius-xs, 5px) var(--radius-xs, 5px) 0;
+  border-radius: var(--radius-none) var(--radius-xs) var(--radius-xs) var(--radius-none);
   color: var(--color-ink-muted-48);
 }
 
 .helper-text {
   display: block;
   font-size: 12px;
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
   margin-top: 4px;
 }
 
@@ -514,9 +515,9 @@ section h2 {
 
 .history-table th,
 .history-table td {
-  padding: 12px;
+  padding: var(--spacing-sm);
   text-align: left;
-  border-bottom: 1px solid var(--color-hairline, #e0e0e0);
+  border-bottom: 1px solid var(--color-hairline);
 }
 
 .history-table th {
@@ -527,12 +528,12 @@ section h2 {
 
 .history-table td {
   font-size: 14px;
-  color: var(--text-primary, #e6edf3);
+  color: var(--text-primary);
 }
 
 .type-badge {
   padding: 4px 8px;
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   font-size: 12px;
 }
 
@@ -548,7 +549,7 @@ section h2 {
 
 .status-badge {
   padding: 4px 8px;
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   font-size: 12px;
 }
 
@@ -576,7 +577,7 @@ section h2 {
 .empty-state {
   text-align: center;
   padding: 40px;
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
 }
 
 .modal-overlay {
@@ -593,9 +594,9 @@ section h2 {
 }
 
 .modal {
-  background: var(--color-surface-tile-1, #272729);
-  border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--radius-md, 18px);
+  background: var(--color-surface-tile-1);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
   width: 450px;
   max-width: 90vw;
 }
@@ -605,13 +606,13 @@ section h2 {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid var(--color-hairline, #e0e0e0);
+  border-bottom: 1px solid var(--color-hairline);
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 16px;
-  color: var(--text-primary, #e6edf3);
+  color: var(--text-primary);
 }
 
 .btn-close {
@@ -619,7 +620,7 @@ section h2 {
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
 }
 
 .modal-body {
@@ -627,21 +628,21 @@ section h2 {
 }
 
 .modal-body p {
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
   margin: 0 0 16px 0;
 }
 
 .confirm-details {
-  background: var(--color-surface-tile-3, #252527);
-  border-radius: var(--radius-md, 18px);
-  padding: 12px;
+  background: var(--color-surface-tile-3);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm);
 }
 
 .detail-row {
   display: flex;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 1px solid var(--color-hairline, #e0e0e0);
+  border-bottom: 1px solid var(--color-hairline);
 }
 
 .detail-row:last-child {
@@ -649,7 +650,7 @@ section h2 {
 }
 
 .detail-row span:first-child {
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
 }
 
 .detail-row span:last-child {
@@ -662,18 +663,18 @@ section h2 {
   justify-content: flex-end;
   gap: 12px;
   padding: 16px;
-  border-top: 1px solid var(--color-hairline, #e0e0e0);
+  border-top: 1px solid var(--color-hairline);
 }
 
 .loading {
   text-align: center;
   padding: 40px;
-  color: var(--color-ink-muted-48, #7a7a7a);
+  color: var(--color-ink-muted-48);
 }
 
 .btn {
   padding: 10px 20px;
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   cursor: pointer;
   border: none;
   font-size: 14px;

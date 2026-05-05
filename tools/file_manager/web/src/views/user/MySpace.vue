@@ -436,7 +436,7 @@ onMounted(async () => {
 .warning-banner {
   background: var(--color-danger-subtle);
   border: 1px solid var(--color-danger-hover);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   padding: var(--space-md);
   color: var(--color-danger);
   font-size: 14px;
@@ -599,7 +599,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   transition: all 0.2s;
 }
 
@@ -629,7 +629,7 @@ onMounted(async () => {
 .current-quota {
   padding: var(--space-sm);
   background: var(--color-surface-tile-3);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   color: var(--color-body-on-dark);
   font-weight: 400;
 }
@@ -644,7 +644,7 @@ onMounted(async () => {
   padding: 10px 16px;
   background: var(--color-surface-tile-3);
   border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   color: var(--color-body-on-dark);
   cursor: pointer;
   transition: all 0.2s;
@@ -665,7 +665,7 @@ onMounted(async () => {
   padding: var(--space-sm);
   background: var(--color-surface-tile-3);
   border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-md);
   color: var(--color-body-on-dark);
   resize: vertical;
   font-family: var(--font-family-text);

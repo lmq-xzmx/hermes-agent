@@ -331,7 +331,7 @@ function formatDate(str) {
 .team-card {
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--rounded-lg);
+  border-radius: var(--radius-lg);
   padding: var(--space-lg);
 }
 
@@ -357,7 +357,7 @@ function formatDate(str) {
   font: var(--text-caption);
   color: var(--color-ink-muted-48);
   display: block;
-  margin-top: 4px;
+  margin-top: var(--space-xxs);
 }
 
 .team-stats {
@@ -386,7 +386,7 @@ function formatDate(str) {
 
 .quota-bar {
   width: 100px;
-  height: 6px;
+  height: var(--spacing-xs);
   background: var(--color-canvas-parchment);
   border-radius: var(--radius-xs);
   overflow: hidden;
@@ -418,10 +418,9 @@ function formatDate(str) {
 /* Badge */
 .badge {
   display: inline-block;
-  padding: 4px 12px;
-  border-radius: var(--rounded-pill);
-  font: var(--text-caption);
-  font-weight: 600;
+  padding: var(--spacing-xxs) var(--spacing-sm);
+  border-radius: var(--radius-pill);
+  font: var(--text-caption-strong);
 }
 
 .badge-active {
@@ -430,7 +429,7 @@ function formatDate(str) {
 }
 
 .badge-inactive {
-  background: rgba(120, 120, 128, 0.15);
+  background: var(--color-gray-subtle);
   color: var(--color-ink-muted-48);
 }
 
@@ -447,12 +446,12 @@ function formatDate(str) {
   color: var(--color-ink);
   font: var(--text-body);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--rounded-pill);
-  padding: 12px 20px;
+  border-radius: var(--radius-pill);
+  padding: var(--space-sm) var(--space-md);
   height: 44px;
 }
 .search-input:focus {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-primary-focus);
   outline-offset: 2px;
 }
 
@@ -499,7 +498,7 @@ function formatDate(str) {
 
 .modal-content {
   background: var(--color-canvas);
-  border-radius: var(--rounded-lg);
+  border-radius: var(--radius-lg);
   width: 90%;
   max-width: 600px;
   max-height: 80vh;
@@ -552,7 +551,7 @@ function formatDate(str) {
   gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   background: var(--color-canvas-parchment);
-  border-radius: var(--radius-md, 18px);
+  border-radius: var(--radius-sm);
 }
 
 .credential-token {
@@ -560,7 +559,7 @@ function formatDate(str) {
   font-size: 14px;
   color: var(--color-ink);
   background: var(--color-canvas);
-  padding: 4px 8px;
+  padding: var(--space-xxs) var(--space-xs);
   border-radius: var(--radius-xs);
 }
 
