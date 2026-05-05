@@ -1,99 +1,99 @@
 <template>
   <LifecycleProvider>
   <div class="my-space">
-    <header class="page-header">
-      <h1>我的空间</h1>
-      <button @click="showApplyExpand = true" class="btn-apple-primary">
+    <header class="my-space__header">
+      <h1 class="my-space__title">我的空间</h1>
+      <button @click="showApplyExpand = true" class="button-primary">
         申请扩容
       </button>
     </header>
 
-    <div v-if="loading" class="loading">加载中...</div>
+    <div v-if="loading" class="my-space__loading">加载中...</div>
 
-    <div v-else class="space-content">
+    <div v-else class="my-space__content">
       <!-- 我的私有空间 -->
-      <section class="private-space">
-        <div class="section-header">
-          <h2>我的私有空间</h2>
+      <section class="my-space__section">
+        <div class="my-space__section-header">
+          <h2 class="my-space__section-title">我的私有空间</h2>
         </div>
 
         <div class="space-card">
-          <div class="space-info">
-            <div class="space-name">{{ currentUser.username }} 的空间</div>
-            <div class="space-meta">
-              <span class="quota-label">配额</span>
-              <span class="quota-value">{{ formatBytes(mySpace.committed_bytes) }}</span>
+          <div class="space-card__info">
+            <div class="space-card__name">{{ currentUser.username }} 的空间</div>
+            <div class="space-card__meta">
+              <span class="space-card__label">配额</span>
+              <span class="space-card__value">{{ formatBytes(mySpace.committed_bytes) }}</span>
             </div>
-            <div class="space-meta">
-              <span class="quota-label">已用</span>
-              <span class="quota-value">{{ formatBytes(mySpace.used_bytes) }}</span>
+            <div class="space-card__meta">
+              <span class="space-card__label">已用</span>
+              <span class="space-card__value">{{ formatBytes(mySpace.used_bytes) }}</span>
             </div>
-            <div class="space-meta">
-              <span class="quota-label">剩余</span>
-              <span class="quota-value">{{ formatBytes(mySpace.available_bytes) }}</span>
+            <div class="space-card__meta">
+              <span class="space-card__label">剩余</span>
+              <span class="space-card__value">{{ formatBytes(mySpace.available_bytes) }}</span>
             </div>
           </div>
 
-          <div class="usage-progress">
+          <div class="space-card__progress">
             <div class="progress-bar">
               <div
-                class="progress-fill"
+                class="progress-bar__fill"
                 :class="getUsageClass(mySpace.used_bytes / mySpace.committed_bytes)"
                 :style="{ width: Math.min(100, (mySpace.used_bytes / mySpace.committed_bytes) * 100) + '%' }"
               ></div>
             </div>
-            <div class="progress-text">
+            <div class="progress-bar__text">
               {{ ((mySpace.used_bytes / mySpace.committed_bytes) * 100).toFixed(1) }}%
             </div>
           </div>
 
-          <div v-if="mySpace.used_bytes > mySpace.committed_bytes * 0.9" class="warning-banner">
+          <div v-if="mySpace.used_bytes > mySpace.committed_bytes * 0.9" class="space-card__warning">
             ⚠️ 空间使用率超过 90%，请及时清理或申请扩容
           </div>
         </div>
       </section>
 
       <!-- 加入的团队 -->
-      <section class="team-spaces">
-        <div class="section-header">
-          <h2>加入的团队</h2>
+      <section class="my-space__section">
+        <div class="my-space__section-header">
+          <h2 class="my-space__section-title">加入的团队</h2>
         </div>
 
-        <div v-if="teamSpaces.length === 0" class="empty-state">
+        <div v-if="teamSpaces.length === 0" class="my-space__empty">
           暂未加入任何团队
         </div>
 
         <div v-else class="team-list">
           <div v-for="team in teamSpaces" :key="team.id" class="team-card">
-            <div class="team-header">
-              <span class="team-name">{{ team.name }}</span>
-              <span class="status-badge" :class="getStatusClass(team)">
+            <div class="team-card__header">
+              <span class="team-card__name">{{ team.name }}</span>
+              <span class="badge" :class="getStatusClass(team)">
                 {{ getStatusText(team) }}
               </span>
             </div>
 
-            <div class="team-quota">
-              <div class="quota-row">
+            <div class="team-card__quota">
+              <div class="team-card__quota-row">
                 <span>配额</span>
                 <span>{{ formatBytes(team.committed_bytes) }}</span>
               </div>
-              <div class="quota-row">
+              <div class="team-card__quota-row">
                 <span>已用</span>
                 <span>{{ formatBytes(team.used_bytes) }}</span>
               </div>
             </div>
 
-            <div class="team-progress">
-              <div class="progress-bar small">
+            <div class="team-card__progress">
+              <div class="progress-bar progress-bar--sm">
                 <div
-                  class="progress-fill"
+                  class="progress-bar__fill"
                   :class="getUsageClass(team.used_bytes / team.committed_bytes)"
                   :style="{ width: Math.min(100, (team.used_bytes / team.committed_bytes) * 100) + '%' }"
                 ></div>
               </div>
             </div>
 
-            <button @click="viewTeamDetail(team)" class="btn-apple-secondary btn-sm">
+            <button @click="viewTeamDetail(team)" class="button-secondary button-secondary--sm">
               查看详情
             </button>
           </div>
@@ -101,16 +101,16 @@
       </section>
 
       <!-- 申请记录 -->
-      <section class="request-history">
-        <div class="section-header">
-          <h2>申请记录</h2>
+      <section class="my-space__section">
+        <div class="my-space__section-header">
+          <h2 class="my-space__section-title">申请记录</h2>
         </div>
 
-        <div v-if="requestHistory.length === 0" class="empty-state">
+        <div v-if="requestHistory.length === 0" class="my-space__empty">
           暂无申请记录
         </div>
 
-        <table v-else class="history-table">
+        <table v-else class="data-table">
           <thead>
             <tr>
               <th>申请类型</th>
@@ -124,7 +124,7 @@
               <td>{{ req.type }}</td>
               <td>{{ req.content }}</td>
               <td>
-                <span class="status-badge" :class="getRequestStatusClass(req.status)">
+                <span class="badge" :class="getRequestStatusClass(req.status)">
                   {{ req.status_text }}
                 </span>
               </td>
@@ -138,24 +138,24 @@
     <!-- 申请扩容弹窗 -->
     <div v-if="showApplyExpand" class="modal-overlay" @click.self="showApplyExpand = false">
       <div class="modal">
-        <div class="modal-header">
-          <h3>申请扩容</h3>
-          <button @click="showApplyExpand = false" class="btn-close">×</button>
+        <div class="modal__header">
+          <h3 class="modal__title">申请扩容</h3>
+          <button @click="showApplyExpand = false" class="modal__close">×</button>
         </div>
-        <div class="modal-body">
+        <div class="modal__body">
           <div class="form-group">
-            <label>当前配额</label>
-            <div class="current-quota">
+            <label class="form-group__label">当前配额</label>
+            <div class="form-group__value">
               {{ formatBytes(mySpace.committed_bytes) }}
             </div>
           </div>
           <div class="form-group">
-            <label>申请扩容至</label>
+            <label class="form-group__label">申请扩容至</label>
             <div class="quota-options">
               <button
                 v-for="option in quotaOptions"
                 :key="option.value"
-                :class="['quota-option', { selected: expandRequest.newQuota === option.value }]"
+                :class="['quota-option', { 'quota-option--selected': expandRequest.newQuota === option.value }]"
                 @click="expandRequest.newQuota = option.value"
               >
                 {{ option.label }}
@@ -163,17 +163,18 @@
             </div>
           </div>
           <div class="form-group">
-            <label>申请理由</label>
+            <label class="form-group__label">申请理由</label>
             <textarea
               v-model="expandRequest.reason"
               placeholder="请输入申请扩容的理由..."
               rows="4"
+              class="form-textarea"
             ></textarea>
           </div>
         </div>
-        <div class="modal-footer">
-          <button @click="showApplyExpand = false" class="btn-apple-secondary">取消</button>
-          <button @click="submitExpandRequest" class="btn-apple-primary" :disabled="submitting">
+        <div class="modal__footer">
+          <button @click="showApplyExpand = false" class="button-secondary">取消</button>
+          <button @click="submitExpandRequest" class="button-primary" :disabled="submitting">
             {{ submitting ? '提交中...' : '提交申请' }}
           </button>
         </div>
@@ -257,16 +258,16 @@ function formatDate(date) {
 }
 
 function getUsageClass(ratio) {
-  if (ratio >= 0.95) return 'critical'
-  if (ratio >= 0.8) return 'warning'
-  return 'normal'
+  if (ratio >= 0.95) return 'progress-bar__fill--critical'
+  if (ratio >= 0.8) return 'progress-bar__fill--warning'
+  return 'progress-bar__fill--normal'
 }
 
 function getStatusClass(team) {
   const ratio = team.used_bytes / team.committed_bytes
-  if (ratio >= 0.95) return 'status-critical'
-  if (ratio >= 0.8) return 'status-warning'
-  return 'status-normal'
+  if (ratio >= 0.95) return 'badge--danger'
+  if (ratio >= 0.8) return 'badge--warning'
+  return 'badge--success'
 }
 
 function getStatusText(team) {
@@ -277,19 +278,16 @@ function getStatusText(team) {
 }
 
 function getRequestStatusClass(status) {
-  if (status === 'approved') return 'status-normal'
-  if (status === 'rejected') return 'status-critical'
-  return 'status-warning'
+  if (status === 'approved') return 'badge--success'
+  if (status === 'rejected') return 'badge--danger'
+  return 'badge--warning'
 }
 
-function viewTeamDetail(team) {
-  // Navigate to team detail page
-}
+function viewTeamDetail(team) {}
 
 async function submitExpandRequest() {
   submitting.value = true
   try {
-    // API call to submit expansion request
     await new Promise(resolve => setTimeout(resolve, 500))
     requestHistory.value.unshift({
       id: 'r' + Date.now(),
@@ -307,250 +305,300 @@ async function submitExpandRequest() {
 }
 
 onMounted(async () => {
-  // Load user space data
   await new Promise(resolve => setTimeout(resolve, 300))
   loading.value = false
 })
 </script>
 
 <style scoped>
+/* === MySpace - 用户空间页面 === */
+
 .my-space {
   padding: var(--spacing-lg);
-  background: var(--color-surface-tile-1);
-  min-height: 100vh;
+  max-width: var(--content-max-width-universal);
+  margin: 0 auto;
 }
 
-.page-header {
+/* === Header === */
+.my-space__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--spacing-xl);
 }
 
-.page-header h1 {
-  font-family: var(--font-display);
-  font-size: 28px;
-  font-weight: 600;
-  color: var(--color-body-on-dark);
+.my-space__title {
+  font: var(--text-display-md);
+  color: var(--color-ink);
   margin: 0;
-  letter-spacing: -0.374px;
 }
 
-.space-content {
+/* === Loading === */
+.my-space__loading {
+  text-align: center;
+  padding: var(--spacing-xxl);
+  font: var(--text-body);
+  color: var(--color-ink-muted-48);
+}
+
+/* === Content === */
+.my-space__content {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xl);
 }
 
-.section-header {
-  margin-bottom: var(--space-md);
-}
-
-.section-header h2 {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--color-body-on-dark);
-  margin: 0;
-  letter-spacing: -0.374px;
-}
-
-.private-space {
-  background: var(--color-surface-tile-2);
-  border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-}
-
-.space-card {
+/* === Section === */
+.my-space__section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-md);
 }
 
-.space-name {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--color-body-on-dark);
-  margin-bottom: var(--space-md);
-}
-
-.space-meta {
+.my-space__section-header {
   display: flex;
   justify-content: space-between;
-  padding: var(--space-xs) 0;
-  border-bottom: 1px solid var(--color-border-on-dark-soft);
+  align-items: center;
 }
 
-.quota-label {
-  color: var(--color-body-muted);
+.my-space__section-title {
+  font: var(--text-body-strong);
+  color: var(--color-ink);
+  margin: 0;
 }
 
-.quota-value {
-  color: var(--color-body-on-dark);
-  font-weight: 400;
+/* === Empty State === */
+.my-space__empty {
+  padding: var(--spacing-xl);
+  text-align: center;
+  font: var(--text-body);
+  color: var(--color-ink-muted-48);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
 }
 
-.usage-progress {
+/* === Space Card === */
+.space-card {
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.space-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.space-card__name {
+  font: var(--text-body-strong);
+  color: var(--color-ink);
+}
+
+.space-card__meta {
+  display: flex;
+  justify-content: space-between;
+  font: var(--text-caption);
+}
+
+.space-card__label {
+  color: var(--color-ink-muted-48);
+}
+
+.space-card__value {
+  color: var(--color-ink);
+}
+
+.space-card__progress {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  margin-top: var(--space-sm);
+  gap: var(--spacing-sm);
 }
 
+.space-card__warning {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-warning-subtle);
+  color: var(--color-warning-strong);
+  border-radius: var(--radius-sm);
+  font: var(--text-caption);
+}
+
+/* === Team List === */
+.team-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-md);
+}
+
+/* === Team Card === */
+.team-card {
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.team-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.team-card__name {
+  font: var(--text-body-strong);
+  color: var(--color-ink);
+}
+
+.team-card__quota {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+
+.team-card__quota-row {
+  display: flex;
+  justify-content: space-between;
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
+}
+
+.team-card__progress {
+  margin-top: var(--spacing-xs);
+}
+
+/* === Progress Bar === */
 .progress-bar {
-  flex: 1;
-  height: 12px;
-  background: var(--color-surface-tile-3);
-  border-radius: var(--radius-full);
+  height: var(--spacing-xs);
+  background: var(--color-canvas-parchment);
+  border-radius: var(--radius-xs);
   overflow: hidden;
 }
 
-.progress-bar.small {
-  height: 6px;
+.progress-bar--sm {
+  height: 4px;
 }
 
-.progress-fill {
+.progress-bar__fill {
   height: 100%;
-  background: var(--color-success);
-  border-radius: var(--radius-full);
-  transition: width 0.3s ease;
+  border-radius: var(--radius-xs);
+  transition: width 0.3s;
 }
 
-.progress-fill.warning {
-  background: var(--color-warning);
-}
+.progress-bar__fill--normal { background: var(--color-success); }
+.progress-bar__fill--warning { background: var(--color-warning); }
+.progress-bar__fill--critical { background: var(--color-danger); }
 
-.progress-fill.critical {
-  background: var(--color-danger);
-}
-
-.progress-text {
-  font-size: 14px;
-  color: var(--color-body-muted);
+.progress-bar__text {
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
   min-width: 50px;
   text-align: right;
 }
 
-.warning-banner {
-  background: var(--color-danger-subtle);
-  border: 1px solid var(--color-danger-hover);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
-  color: var(--color-danger);
-  font-size: 14px;
-}
-
-.team-spaces {
-  background: var(--color-surface-tile-2);
-  border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-}
-
-.team-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--spacing-md);
-}
-
-.team-card {
-  background: var(--color-surface-tile-3);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-}
-
-.team-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-sm);
-}
-
-.team-name {
-  font-weight: 600;
-  color: var(--color-body-on-dark);
-}
-
-.team-quota {
-  margin-bottom: var(--space-sm);
-}
-
-.quota-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 14px;
-  padding: var(--space-xxs) 0;
-  color: var(--color-body-muted);
-}
-
-.team-progress {
-  margin-bottom: var(--space-sm);
-}
-
-.team-card .btn-small {
-  padding: 6px 14px;
-  font-size: 14px;
-}
-
-.request-history {
-  background: var(--color-surface-tile-2);
-  border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-}
-
-.history-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.history-table th,
-.history-table td {
-  padding: var(--space-sm);
-  text-align: left;
-  border-bottom: 1px solid var(--color-border-on-dark-soft);
-}
-
-.history-table th {
-  font-size: 12px;
-  color: var(--color-body-muted);
-  font-weight: 600;
-}
-
-.history-table td {
-  font-size: 14px;
-  color: var(--color-body-on-dark);
-}
-
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: var(--color-body-muted);
-}
-
-.status-badge {
-  padding: 4px 10px;
+/* === Badge === */
+.badge {
+  display: inline-block;
+  padding: var(--spacing-xxs) var(--spacing-sm);
   border-radius: var(--radius-pill);
-  font-size: 12px;
+  font: var(--text-caption);
 }
 
-.status-normal {
+.badge--success {
   background: var(--color-success-subtle);
   color: var(--color-success);
 }
 
-.status-warning {
+.badge--warning {
   background: var(--color-warning-subtle);
-  color: var(--color-warning);
+  color: var(--color-warning-strong);
 }
 
-.status-critical {
+.badge--danger {
   background: var(--color-danger-subtle);
-  color: var(--color-danger);
+  color: var(--color-danger-strong);
 }
 
+/* === Data Table === */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: var(--spacing-md);
+  text-align: left;
+  border-bottom: 1px solid var(--color-divider-soft);
+}
+
+.data-table th {
+  font: var(--text-caption-strong);
+  color: var(--color-ink-muted-48);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.data-table td {
+  font: var(--text-body);
+  color: var(--color-ink);
+}
+
+/* === Buttons === */
+.button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font: var(--text-body);
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.15s ease;
+}
+
+.button-primary:active {
+  transform: scale(0.95);
+}
+
+.button-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font: var(--text-body);
+  cursor: pointer;
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+
+.button-secondary:active {
+  transform: scale(0.95);
+}
+
+.button-secondary--sm {
+  font: var(--text-caption);
+  padding: var(--spacing-xxs) var(--spacing-sm);
+}
+
+/* === Modal Overlay === */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -561,144 +609,110 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: var(--z-modal);
+  z-index: var(--z-modal-backdrop);
 }
 
+/* === Modal === */
 .modal {
-  background: var(--color-surface-tile-2);
-  border: 1px solid var(--color-border-on-dark);
+  background: var(--color-canvas);
   border-radius: var(--radius-lg);
-  width: 500px;
-  max-width: 90vw;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow: auto;
 }
 
-.modal-header {
+.modal__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-md);
-  border-bottom: 1px solid var(--color-border-on-dark-soft);
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--color-divider-soft);
 }
 
-.modal-header h3 {
+.modal__title {
+  font: var(--text-body-strong);
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--color-body-on-dark);
 }
 
-.btn-close {
+.modal__close {
   background: none;
   border: none;
   font-size: 24px;
+  color: var(--color-ink-muted-48);
   cursor: pointer;
-  color: var(--color-body-muted);
-  width: 32px;
-  height: 32px;
+}
+
+.modal__body {
+  padding: var(--spacing-lg);
+}
+
+.modal__footer {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  transition: all 0.2s;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--color-divider-soft);
 }
 
-.btn-close:hover {
-  background: var(--color-surface-tile-1);
-}
-
-.btn-close:active {
-  transform: scale(0.95);
-}
-
-.modal-body {
-  padding: var(--space-md);
-}
-
+/* === Form Group === */
 .form-group {
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--spacing-md);
 }
 
-.form-group label {
+.form-group__label {
   display: block;
-  font-size: 14px;
-  color: var(--color-body-muted);
-  margin-bottom: var(--space-xs);
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
+  margin-bottom: var(--spacing-xxs);
 }
 
-.current-quota {
-  padding: var(--space-sm);
-  background: var(--color-surface-tile-3);
+.form-group__value {
+  font: var(--text-body-strong);
+  color: var(--color-ink);
+}
+
+.form-textarea {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-hairline);
   border-radius: var(--radius-md);
-  color: var(--color-body-on-dark);
-  font-weight: 400;
+  font: var(--text-body);
+  color: var(--color-ink);
+  resize: vertical;
+  box-sizing: border-box;
 }
 
+.form-textarea:focus {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+}
+
+/* === Quota Options === */
 .quota-options {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-xs);
+  gap: var(--spacing-xs);
 }
 
 .quota-option {
-  padding: 10px 16px;
-  background: var(--color-surface-tile-3);
-  border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-md);
-  color: var(--color-body-on-dark);
+  padding: var(--spacing-xxs) var(--spacing-sm);
+  background: var(--color-canvas-parchment);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-pill);
+  font: var(--text-caption);
+  color: var(--color-ink);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .quota-option:hover {
-  border-color: var(--color-primary);
+  background: var(--color-canvas);
 }
 
-.quota-option.selected {
+.quota-option--selected {
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: var(--color-on-primary);
 }
-
-.form-group textarea {
-  width: 100%;
-  padding: var(--space-sm);
-  background: var(--color-surface-tile-3);
-  border: 1px solid var(--color-border-on-dark);
-  border-radius: var(--radius-md);
-  color: var(--color-body-on-dark);
-  resize: vertical;
-  font-family: var(--font-family-text);
-  font-size: 17px;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-sm);
-  padding: var(--space-md);
-  border-top: 1px solid var(--color-border-on-dark-soft);
-}
-
-.loading {
-  text-align: center;
-  padding: 40px;
-  color: var(--color-body-muted);
-}
-
-.btn {
-  padding: 11px 22px;
-  border-radius: var(--radius-pill);
-  cursor: pointer;
-  border: none;
-  font-family: var(--font-family-text);
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
-  transition: var(--transition-active);
-}
-
 </style>

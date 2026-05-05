@@ -1,21 +1,21 @@
 <template>
   <LifecycleProvider>
   <div class="quota-transfer">
-    <header class="page-header">
-      <h1>配额调配</h1>
-      <button @click="showTransferRequest = true" class="btn-apple-primary">
+    <header class="quota-transfer__header">
+      <h1 class="quota-transfer__title">配额调配</h1>
+      <button @click="showTransferRequest = true" class="button-primary">
         发起调配请求
       </button>
     </header>
 
-    <div v-if="loading" class="loading">加载中...</div>
+    <div v-if="loading" class="quota-transfer__loading">加载中...</div>
 
-    <div v-else class="transfer-content">
+    <div v-else class="quota-transfer__content">
       <!-- 当前空间配额 -->
-      <section class="current-space">
-        <h2>当前空间</h2>
+      <section class="quota-transfer__section">
+        <h2 class="quota-transfer__section-title">当前空间</h2>
         <div class="space-select">
-          <select v-model="selectedSpaceId" @change="loadSpaceQuota">
+          <select v-model="selectedSpaceId" @change="loadSpaceQuota" class="select-input">
             <option value="">选择空间</option>
             <option v-for="space in userSpaces" :key="space.id" :value="space.id">
               {{ space.name }}
@@ -25,28 +25,28 @@
 
         <div v-if="currentSpace" class="quota-overview">
           <div class="quota-stat">
-            <span class="stat-label">承诺配额</span>
-            <span class="stat-value">{{ formatBytes(currentSpace.committed_bytes) }}</span>
+            <span class="quota-stat__label">承诺配额</span>
+            <span class="quota-stat__value">{{ formatBytes(currentSpace.committed_bytes) }}</span>
           </div>
           <div class="quota-stat">
-            <span class="stat-label">已用</span>
-            <span class="stat-value">{{ formatBytes(currentSpace.used_bytes) }}</span>
+            <span class="quota-stat__label">已用</span>
+            <span class="quota-stat__value">{{ formatBytes(currentSpace.used_bytes) }}</span>
           </div>
           <div class="quota-stat">
-            <span class="stat-label">可用</span>
-            <span class="stat-value available">{{ formatBytes(currentSpace.available_bytes) }}</span>
+            <span class="quota-stat__label">可用</span>
+            <span class="quota-stat__value quota-stat__value--available">{{ formatBytes(currentSpace.available_bytes) }}</span>
           </div>
         </div>
       </section>
 
       <!-- 发起调配请求 -->
-      <section v-if="showTransferRequest" class="transfer-request-section">
-        <h2>发起调配请求</h2>
+      <section v-if="showTransferRequest" class="quota-transfer__section">
+        <h2 class="quota-transfer__section-title">发起调配请求</h2>
 
         <div class="form-grid">
           <div class="form-group">
-            <label>目标空间 <span class="required">*</span></label>
-            <select v-model="transferRequest.target_space_id">
+            <label class="form-label">目标空间 <span class="required">*</span></label>
+            <select v-model="transferRequest.target_space_id" class="select-input">
               <option value="">选择目标空间</option>
               <option
                 v-for="space in availableTargetSpaces"
@@ -59,33 +59,35 @@
           </div>
 
           <div class="form-group">
-            <label>调配配额 <span class="required">*</span></label>
+            <label class="form-label">调配配额 <span class="required">*</span></label>
             <div class="input-with-unit">
               <input
                 v-model.number="transferRequest.transfer_quota_gb"
                 type="number"
                 min="1"
                 :max="maxTransferQuota"
+                class="form-input form-input--number"
               />
               <span class="unit">GB</span>
             </div>
-            <span class="helper-text">
+            <span class="form-hint">
               最大可调配: {{ formatBytes(maxTransferQuota) }}
             </span>
           </div>
 
-          <div class="form-group">
-            <label>调配原因 <span class="required">*</span></label>
+          <div class="form-group form-group--full">
+            <label class="form-label">调配原因 <span class="required">*</span></label>
             <textarea
               v-model="transferRequest.reason"
               placeholder="请输入调配原因..."
               rows="3"
+              class="form-textarea"
             ></textarea>
           </div>
 
           <div class="form-group">
-            <label>有效期</label>
-            <select v-model="transferRequest.duration_days">
+            <label class="form-label">有效期</label>
+            <select v-model="transferRequest.duration_days" class="select-input">
               <option :value="7">7 天</option>
               <option :value="14">14 天</option>
               <option :value="30">30 天</option>
@@ -94,22 +96,22 @@
         </div>
 
         <div class="form-actions">
-          <button @click="cancelTransfer" class="btn-apple-secondary">取消</button>
-          <button @click="submitTransfer" class="btn-apple-primary" :disabled="submitting">
+          <button @click="cancelTransfer" class="button-secondary">取消</button>
+          <button @click="submitTransfer" class="button-primary" :disabled="submitting">
             {{ submitting ? '提交中...' : '提交' }}
           </button>
         </div>
       </section>
 
       <!-- 调配历史 -->
-      <section class="transfer-history">
-        <h2>调配历史</h2>
+      <section class="quota-transfer__section">
+        <h2 class="quota-transfer__section-title">调配历史</h2>
 
         <div v-if="transferHistory.length === 0" class="empty-state">
           暂无调配记录
         </div>
 
-        <table v-else class="history-table">
+        <table v-else class="data-table">
           <thead>
             <tr>
               <th>时间</th>
@@ -124,14 +126,14 @@
             <tr v-for="record in transferHistory" :key="record.id">
               <td>{{ formatDate(record.created_at) }}</td>
               <td>
-                <span :class="['type-badge', record.direction]">
+                <span :class="['badge', record.direction === 'out' ? 'badge--warning' : 'badge--success']">
                   {{ record.direction === 'out' ? '调配出' : '收到' }}
                 </span>
               </td>
               <td>{{ record.space_name }}</td>
               <td>{{ formatBytes(record.transfer_bytes) }}</td>
               <td>
-                <span :class="['status-badge', record.status]">
+                <span :class="['badge', getStatusBadgeClass(record.status)]">
                   {{ getStatusText(record.status) }}
                 </span>
               </td>
@@ -145,34 +147,34 @@
     <!-- 确认弹窗 -->
     <div v-if="showConfirmDialog" class="modal-overlay" @click.self="showConfirmDialog = false">
       <div class="modal">
-        <div class="modal-header">
-          <h3>确认调配</h3>
-          <button @click="showConfirmDialog = false" class="btn-close">×</button>
+        <div class="modal__header">
+          <h3 class="modal__title">确认调配</h3>
+          <button @click="showConfirmDialog = false" class="modal__close">×</button>
         </div>
-        <div class="modal-body">
-          <p>确定要发起以下调配请求吗？</p>
+        <div class="modal__body">
+          <p class="confirm-message">确定要发起以下调配请求吗？</p>
           <div class="confirm-details">
             <div class="detail-row">
-              <span>从:</span>
-              <span>{{ currentSpace?.name }}</span>
+              <span class="detail-row__label">从:</span>
+              <span class="detail-row__value">{{ currentSpace?.name }}</span>
             </div>
             <div class="detail-row">
-              <span>到:</span>
-              <span>{{ getTargetSpaceName() }}</span>
+              <span class="detail-row__label">到:</span>
+              <span class="detail-row__value">{{ getTargetSpaceName() }}</span>
             </div>
             <div class="detail-row">
-              <span>配额:</span>
-              <span>{{ transferRequest.transfer_quota_gb }} GB</span>
+              <span class="detail-row__label">配额:</span>
+              <span class="detail-row__value">{{ transferRequest.transfer_quota_gb }} GB</span>
             </div>
             <div class="detail-row">
-              <span>有效期:</span>
-              <span>{{ transferRequest.duration_days }} 天</span>
+              <span class="detail-row__label">有效期:</span>
+              <span class="detail-row__value">{{ transferRequest.duration_days }} 天</span>
             </div>
           </div>
         </div>
-        <div class="modal-footer">
-          <button @click="showConfirmDialog = false" class="btn-apple-secondary">取消</button>
-          <button @click="confirmTransfer" class="btn-apple-primary">确认</button>
+        <div class="modal__footer">
+          <button @click="showConfirmDialog = false" class="button-secondary">取消</button>
+          <button @click="confirmTransfer" class="button-primary">确认</button>
         </div>
       </div>
     </div>
@@ -211,27 +213,9 @@ const maxTransferQuota = computed(() => {
 
 async function loadUserSpaces() {
   userSpaces.value = [
-    {
-      id: 's1',
-      name: '团队A',
-      committed_bytes: 500 * 1024 * 1024 * 1024,
-      used_bytes: 200 * 1024 * 1024 * 1024,
-      available_bytes: 300 * 1024 * 1024 * 1024
-    },
-    {
-      id: 's2',
-      name: '团队B',
-      committed_bytes: 300 * 1024 * 1024 * 1024,
-      used_bytes: 280 * 1024 * 1024 * 1024,
-      available_bytes: 20 * 1024 * 1024 * 1024
-    },
-    {
-      id: 's3',
-      name: '团队C',
-      committed_bytes: 200 * 1024 * 1024 * 1024,
-      used_bytes: 50 * 1024 * 1024 * 1024,
-      available_bytes: 150 * 1024 * 1024 * 1024
-    }
+    { id: 's1', name: '团队A', committed_bytes: 500 * 1024 * 1024 * 1024, used_bytes: 200 * 1024 * 1024 * 1024, available_bytes: 300 * 1024 * 1024 * 1024 },
+    { id: 's2', name: '团队B', committed_bytes: 300 * 1024 * 1024 * 1024, used_bytes: 280 * 1024 * 1024 * 1024, available_bytes: 20 * 1024 * 1024 * 1024 },
+    { id: 's3', name: '团队C', committed_bytes: 200 * 1024 * 1024 * 1024, used_bytes: 50 * 1024 * 1024 * 1024, available_bytes: 150 * 1024 * 1024 * 1024 }
   ]
 }
 
@@ -245,43 +229,15 @@ function loadSpaceQuota() {
 
 async function loadTransferHistory() {
   transferHistory.value = [
-    {
-      id: 't1',
-      direction: 'out',
-      space_name: '团队A',
-      transfer_bytes: 200 * 1024 * 1024 * 1024,
-      status: 'expired',
-      created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
-      expires_at: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000)
-    },
-    {
-      id: 't2',
-      direction: 'in',
-      space_name: '团队C',
-      transfer_bytes: 100 * 1024 * 1024 * 1024,
-      status: 'expired',
-      created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-      expires_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
-    },
-    {
-      id: 't3',
-      direction: 'in',
-      space_name: '团队B',
-      transfer_bytes: 50 * 1024 * 1024 * 1024,
-      status: 'approved',
-      created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      expires_at: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
-    }
+    { id: 't1', direction: 'out', space_name: '团队A', transfer_bytes: 200 * 1024 * 1024 * 1024, status: 'expired', created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), expires_at: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000) },
+    { id: 't2', direction: 'in', space_name: '团队C', transfer_bytes: 100 * 1024 * 1024 * 1024, status: 'expired', created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), expires_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
+    { id: 't3', direction: 'in', space_name: '团队B', transfer_bytes: 50 * 1024 * 1024 * 1024, status: 'approved', created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), expires_at: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) }
   ]
 }
 
 function formatBytes(bytes) {
-  if (bytes >= 1024 * 1024 * 1024 * 1024) {
-    return (bytes / (1024 * 1024 * 1024 * 1024)).toFixed(2) + ' TB'
-  }
-  if (bytes >= 1024 * 1024 * 1024) {
-    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
-  }
+  if (bytes >= 1024 * 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024 * 1024)).toFixed(2) + ' TB'
+  if (bytes >= 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
   return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
 }
 
@@ -290,14 +246,14 @@ function formatDate(date) {
 }
 
 function getStatusText(status) {
-  const statusMap = {
-    pending: '待审批',
-    approved: '已通过',
-    rejected: '已拒绝',
-    expired: '已过期',
-    cancelled: '已取消'
-  }
+  const statusMap = { pending: '待审批', approved: '已通过', rejected: '已拒绝', expired: '已过期', cancelled: '已取消' }
   return statusMap[status] || status
+}
+
+function getStatusBadgeClass(status) {
+  if (status === 'approved') return 'badge--success'
+  if (status === 'rejected' || status === 'expired') return 'badge--danger'
+  return 'badge--warning'
 }
 
 function getTargetSpaceName() {
@@ -307,12 +263,7 @@ function getTargetSpaceName() {
 
 function cancelTransfer() {
   showTransferRequest.value = false
-  transferRequest.value = {
-    target_space_id: '',
-    transfer_quota_gb: 10,
-    reason: '',
-    duration_days: 7
-  }
+  transferRequest.value = { target_space_id: '', transfer_quota_gb: 10, reason: '', duration_days: 7 }
 }
 
 function submitTransfer() {
@@ -332,7 +283,6 @@ async function confirmTransfer() {
   submitting.value = true
 
   try {
-    // API call to submit transfer request
     await new Promise(resolve => setTimeout(resolve, 500))
 
     transferHistory.value.unshift({
@@ -359,325 +309,375 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* === QuotaTransfer - 配额调配页面 === */
+
 .quota-transfer {
-  padding: 20px;
-  background: var(--bg-primary);
-  min-height: 100vh;
+  padding: var(--spacing-lg);
+  max-width: var(--content-max-width-universal);
+  margin: 0 auto;
 }
 
-.page-header {
+/* === Header === */
+.quota-transfer__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-xl);
 }
 
-.page-header h1 {
-  font-size: 24px;
-  color: var(--text-primary);
+.quota-transfer__title {
+  font: var(--text-display-md);
+  color: var(--color-ink);
   margin: 0;
 }
 
-.transfer-content {
+/* === Loading === */
+.quota-transfer__loading {
+  text-align: center;
+  padding: var(--spacing-xxl);
+  font: var(--text-body);
+  color: var(--color-ink-muted-48);
+}
+
+/* === Content === */
+.quota-transfer__content {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--spacing-xl);
 }
 
-section {
-  background: var(--color-surface-tile-1);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md);
-  padding: 24px;
+/* === Section === */
+.quota-transfer__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
 
-section h2 {
-  font-size: 16px;
+.quota-transfer__section-title {
+  font: var(--text-body-strong);
   color: var(--color-ink);
-  margin: 0 0 16px 0;
+  margin: 0;
 }
 
-.space-select select {
-  width: 100%;
-  padding: var(--spacing-sm);
-  background: var(--color-surface-tile-2);
+/* === Empty State === */
+.empty-state {
+  padding: var(--spacing-xl);
+  text-align: center;
+  font: var(--text-body);
+  color: var(--color-ink-muted-48);
+  background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md);
-  color: var(--color-body-on-dark);
-  font: var(--text-caption);
+  border-radius: var(--radius-lg);
 }
 
+/* === Space Select === */
+.space-select {
+  max-width: 300px;
+}
+
+.select-input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-pill);
+  font: var(--text-body);
+  color: var(--color-ink);
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.select-input:focus {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+}
+
+/* === Quota Overview === */
 .quota-overview {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-top: 16px;
+  display: flex;
+  gap: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
 }
 
 .quota-stat {
-  background: var(--color-surface-tile-3);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
 }
 
-.stat-label {
-  display: block;
-  font-size: 12px;
+.quota-stat__label {
+  font: var(--text-caption);
   color: var(--color-ink-muted-48);
-  margin-bottom: 8px;
 }
 
-.stat-value {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary);
+.quota-stat__value {
+  font: var(--text-body-strong);
+  color: var(--color-ink);
 }
 
-.stat-value.available {
+.quota-stat__value--available {
   color: var(--color-success);
 }
 
+/* === Form Grid === */
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: var(--spacing-md);
 }
 
 .form-group {
-  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
 }
 
-.form-group label {
-  display: block;
-  font-size: 14px;
+.form-group--full {
+  grid-column: 1 / -1;
+}
+
+.form-label {
+  font: var(--text-caption);
   color: var(--color-ink-muted-48);
-  margin-bottom: 8px;
 }
 
 .required {
   color: var(--color-danger);
 }
 
-.form-group select,
-.form-group input,
-.form-group textarea {
-  width: 100%;
-  padding: 10px 12px;
-  background: var(--color-surface-tile-3);
+.form-input {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-family: var(--font-family-text);
-  font-size: 14px;
+  border-radius: var(--radius-pill);
+  font: var(--text-body);
+  color: var(--color-ink);
+  box-sizing: border-box;
 }
 
-.form-group textarea {
+.form-input:focus {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+}
+
+.form-input--number {
+  width: 120px;
+}
+
+.form-textarea {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  font: var(--text-body);
+  color: var(--color-ink);
   resize: vertical;
+  box-sizing: border-box;
+}
+
+.form-textarea:focus {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+}
+
+.form-hint {
+  font: var(--text-fine-print);
+  color: var(--color-ink-muted-48);
 }
 
 .input-with-unit {
   display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
 }
 
-.input-with-unit input {
-  flex: 1;
-  border-radius: var(--radius-md) 0 0 var(--radius-xs);
-}
-
-.input-with-unit .unit {
-  padding: 10px 12px;
-  background: var(--color-surface-tile-3);
-  border: 1px solid var(--color-hairline);
-  border-left: none;
-  border-radius: var(--radius-none) var(--radius-xs) var(--radius-xs) var(--radius-none);
+.unit {
+  font: var(--text-body);
   color: var(--color-ink-muted-48);
 }
 
-.helper-text {
-  display: block;
-  font-size: 12px;
-  color: var(--color-ink-muted-48);
-  margin-top: 4px;
-}
-
+/* === Form Actions === */
 .form-actions {
   display: flex;
+  gap: var(--spacing-sm);
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
 }
 
-.history-table {
+/* === Data Table === */
+.data-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.history-table th,
-.history-table td {
-  padding: var(--spacing-sm);
+.data-table th,
+.data-table td {
+  padding: var(--spacing-md);
   text-align: left;
-  border-bottom: 1px solid var(--color-hairline);
+  border-bottom: 1px solid var(--color-divider-soft);
 }
 
-.history-table th {
-  font-size: 12px;
-  color: var(--color-body-muted);
-  font-weight: 600;
+.data-table th {
+  font: var(--text-caption-strong);
+  color: var(--color-ink-muted-48);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.history-table td {
-  font-size: 14px;
-  color: var(--text-primary);
+.data-table td {
+  font: var(--text-body);
+  color: var(--color-ink);
 }
 
-.type-badge {
-  padding: 4px 8px;
-  border-radius: var(--radius-md);
-  font-size: 12px;
+/* === Badge === */
+.badge {
+  display: inline-block;
+  padding: var(--spacing-xxs) var(--spacing-sm);
+  border-radius: var(--radius-pill);
+  font: var(--text-caption);
 }
 
-.type-badge.out {
-  background: var(--color-danger-subtle);
-  color: var(--color-danger);
-}
-
-.type-badge.in {
+.badge--success {
   background: var(--color-success-subtle);
   color: var(--color-success);
 }
 
-.status-badge {
-  padding: 4px 8px;
-  border-radius: var(--radius-md);
-  font-size: 12px;
-}
-
-.status-badge.pending {
+.badge--warning {
   background: var(--color-warning-subtle);
   color: var(--color-warning-strong);
 }
 
-.status-badge.approved {
-  background: var(--color-success-subtle);
-  color: var(--color-success);
-}
-
-.status-badge.rejected,
-.status-badge.expired {
+.badge--danger {
   background: var(--color-danger-subtle);
-  color: var(--color-danger);
+  color: var(--color-danger-strong);
 }
 
-.status-badge.cancelled {
-  background: var(--color-surface-tile-3);
-  color: var(--color-ink-muted-48);
-}
-
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: var(--color-ink-muted-48);
-}
-
+/* === Modal === */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal-backdrop);
 }
 
 .modal {
-  background: var(--color-surface-tile-1);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md);
-  width: 450px;
-  max-width: 90vw;
+  background: var(--color-canvas);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow: auto;
 }
 
-.modal-header {
+.modal__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid var(--color-hairline);
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--color-divider-soft);
 }
 
-.modal-header h3 {
+.modal__title {
+  font: var(--text-body-strong);
   margin: 0;
-  font-size: 16px;
-  color: var(--text-primary);
 }
 
-.btn-close {
+.modal__close {
   background: none;
   border: none;
   font-size: 24px;
+  color: var(--color-ink-muted-48);
   cursor: pointer;
-  color: var(--color-ink-muted-48);
 }
 
-.modal-body {
-  padding: 16px;
+.modal__body {
+  padding: var(--spacing-lg);
 }
 
-.modal-body p {
-  color: var(--color-ink-muted-48);
-  margin: 0 0 16px 0;
+.modal__footer {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--color-divider-soft);
+}
+
+.confirm-message {
+  font: var(--text-body);
+  color: var(--color-ink);
+  margin: 0 0 var(--spacing-md) 0;
 }
 
 .confirm-details {
-  background: var(--color-surface-tile-3);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
 }
 
 .detail-row {
   display: flex;
   justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--color-hairline);
+  gap: var(--spacing-md);
 }
 
-.detail-row:last-child {
-  border-bottom: none;
-}
-
-.detail-row span:first-child {
+.detail-row__label {
+  font: var(--text-caption);
   color: var(--color-ink-muted-48);
 }
 
-.detail-row span:last-child {
-  color: var(--color-body-on-dark);
-  font-weight: 400;
+.detail-row__value {
+  font: var(--text-body);
+  color: var(--color-ink);
+  text-align: right;
 }
 
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px;
-  border-top: 1px solid var(--color-hairline);
-}
-
-.loading {
-  text-align: center;
-  padding: 40px;
-  color: var(--color-ink-muted-48);
-}
-
-.btn {
-  padding: 10px 20px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
+/* === Buttons === */
+.button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   border: none;
-  font-size: 14px;
+  border-radius: var(--radius-pill);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font: var(--text-body);
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.15s ease;
 }
 
+.button-primary:active {
+  transform: scale(0.95);
+}
+
+.button-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font: var(--text-body);
+  cursor: pointer;
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+
+.button-secondary:active {
+  transform: scale(0.95);
+}
 </style>
