@@ -63,7 +63,7 @@
               </label>
             </div>
 
-            <button type="submit" class="btn-primary btn-full">登录</button>
+            <button type="submit" class="btn-apple-primary btn-full">登录</button>
           </form>
 
           <p class="login-footer">
@@ -142,7 +142,7 @@
               </div>
             </div>
 
-            <button type="submit" class="btn-primary btn-full">创建账户</button>
+            <button type="submit" class="btn-apple-primary btn-full">创建账户</button>
           </form>
 
           <p class="login-footer">
@@ -269,7 +269,7 @@ async function handleRegister() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-canvas-parchment, #f5f5f7);
+  background: var(--color-canvas-parchment);
 }
 
 .login-container {
@@ -277,7 +277,7 @@ async function handleRegister() {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: var(--space-lg, 24px);
+  padding: var(--space-lg);
   width: 100%;
 }
 
@@ -288,45 +288,47 @@ async function handleRegister() {
 
 .login-box {
   width: 100%;
-  padding: var(--space-lg, 24px);
+  padding: var(--space-lg);
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: var(--space-xl, 32px);
+  margin-bottom: var(--space-xl);
 }
 
 .brand-icon {
   font-size: 56px;
-  margin-bottom: var(--space-md, 17px);
+  margin-bottom: var(--space-md);
   display: block;
 }
 
 .login-title {
-  font: var(--text-display-md, 600 34px/1.47 -0.374px);
+  font-family: var(--font-family-display);
+  font-size: 34px;
   font-weight: 600;
-  color: var(--color-ink, #1d1d1f);
-  margin: 0 0 var(--space-xs, 8px);
-  line-height: 1.2;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  color: var(--color-ink);
+  margin: 0 0 var(--space-xs);
 }
 
 .login-subtitle {
-  font: var(--text-body, 17px/1.47 -0.374px);
-  color: var(--color-ink-muted-48, #7a7a7a);
+  font: var(--font-family-text);
+  color: var(--color-ink-muted-48);
   margin: 0;
 }
 
 .error-msg {
   display: flex;
   align-items: center;
-  gap: var(--space-sm, 12px);
+  gap: var(--space-sm);
   background: rgba(255, 59, 48, 0.08);
-  border: 1px solid var(--color-danger, #ff3b30);
-  border-radius: var(--radius-md, 11px);
-  padding: var(--space-sm, 12px) var(--space-md, 17px);
-  margin-bottom: var(--space-lg, 24px);
-  color: var(--color-danger, #ff3b30);
-  font: var(--text-body, 17px/1.47 -0.374px);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-lg);
+  color: var(--color-danger);
+  font: var(--font-family-text);
 }
 
 .error-icon {
@@ -335,29 +337,29 @@ async function handleRegister() {
 }
 
 .login-form {
-  margin-bottom: var(--space-lg, 24px);
+  margin-bottom: var(--space-lg);
 }
 
 .form-field {
-  margin-bottom: var(--space-md, 17px);
+  margin-bottom: var(--space-md);
 }
 
 .form-label {
   display: block;
-  font: var(--text-caption, 14px/1.43 -0.224px);
+  font: var(--font-family-text);
   font-weight: 600;
-  color: var(--color-ink, #1d1d1f);
-  margin-bottom: var(--space-xxs, 4px);
+  color: var(--color-ink);
+  margin-bottom: var(--space-xxs);
 }
 
 /* Apple Input - pill shape */
 .apple-input {
   padding: 12px 17px;
-  background: var(--color-canvas, #ffffff);
-  border: 1px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--radius-pill, 9999px);
-  color: var(--color-ink, #1d1d1f);
-  font: var(--text-body, 17px/1.47 -0.374px);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  font: var(--font-family-text);
   transition: border-color 0.2s;
   height: 44px;
   box-sizing: border-box;
@@ -366,7 +368,7 @@ async function handleRegister() {
 
 .apple-input:focus {
   outline: none;
-  border-color: var(--color-primary, #0066cc);
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15);
 }
 
@@ -396,7 +398,7 @@ async function handleRegister() {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-full, 9999px);
+  border-radius: var(--radius-full);
   transition: background-color 0.15s ease;
 }
 
@@ -418,16 +420,16 @@ async function handleRegister() {
 }
 
 .checkbox-field {
-  margin-bottom: var(--space-lg, 24px);
+  margin-bottom: var(--space-lg);
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: var(--space-sm, 12px);
+  gap: var(--space-sm);
   cursor: pointer;
-  font: var(--text-caption, 14px/1.43 -0.224px);
-  color: var(--color-ink-muted-80, #333333);
+  font: var(--font-family-text);
+  color: var(--color-ink-muted-80);
   user-select: none;
 }
 
@@ -441,9 +443,9 @@ async function handleRegister() {
 .checkbox-custom {
   width: 20px;
   height: 20px;
-  border: 2px solid var(--color-hairline, #e0e0e0);
-  border-radius: var(--radius-xs, 5px);
-  background: var(--color-canvas, #ffffff);
+  border: 2px solid var(--color-hairline);
+  border-radius: var(--radius-xs);
+  background: var(--color-canvas);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -452,8 +454,8 @@ async function handleRegister() {
 }
 
 .checkbox-input:checked + .checkbox-custom {
-  background: var(--color-primary, #0066cc);
-  border-color: var(--color-primary, #0066cc);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .checkbox-input:checked + .checkbox-custom::after {
@@ -468,56 +470,27 @@ async function handleRegister() {
 }
 
 .checkbox-input:hover + .checkbox-custom {
-  border-color: var(--color-primary, #0066cc);
+  border-color: var(--color-primary);
 }
 
 .checkbox-text {
   flex: 1;
 }
 
-/* Button Primary - pill shape */
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-primary, #0066cc);
-  color: var(--color-on-primary, #ffffff);
-  border: none;
-  border-radius: var(--radius-pill, 9999px);
-  font: var(--text-body, 17px/1.47 -0.374px);
-  padding: 11px 22px;
-  cursor: pointer;
-  transition: transform 0.1s ease;
-  height: 44px;
-  width: 100%;
-}
-
-.btn-primary:hover {
-  background: var(--color-primary-focus, #0071e3);
-}
-
-.btn-primary:active {
-  transform: scale(0.95);
-}
-
-.btn-primary:focus {
-  outline: 2px solid var(--color-primary-focus, #0071e3);
-  outline-offset: 2px;
-}
-
-.btn-primary.btn-full {
+/* Button Full Width - utility */
+.btn-full {
   width: 100%;
 }
 
 .login-footer {
   text-align: center;
-  font: var(--text-caption, 14px/1.43 -0.224px);
-  color: var(--color-ink-muted-48, #7a7a7a);
+  font: var(--font-family-text);
+  color: var(--color-ink-muted-48);
   margin: 0;
 }
 
 .text-link {
-  color: var(--color-primary, #0066cc);
+  color: var(--color-primary);
   text-decoration: none;
   font-weight: 600;
 }
