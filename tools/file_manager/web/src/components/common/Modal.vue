@@ -80,7 +80,6 @@ function handleOverlayClick() {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: var(--shadow-lg);
 }
 
 .modal-sm { max-width: 360px; }
