@@ -75,7 +75,7 @@ function onLogout() {
   align-items: center;
   gap: var(--spacing-sm);
   padding: 0 var(--spacing-md);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--color-border-on-dark);
 }
 
 .brand-icon {
@@ -118,16 +118,16 @@ function onLogout() {
   text-align: left;
   width: 100%;
   transition: background-color 0.15s ease, color 0.15s ease;
-  margin: var(--spacing-2xs) var(--spacing-sm);
+  margin: var(--spacing-xxs) var(--spacing-sm);
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-border-on-dark-soft);
   color: var(--color-body-on-dark);
 }
 
 .nav-item.active {
-  background: rgba(0, 102, 204, 0.25);
+  background: var(--color-primary-focus);
   color: var(--color-primary-on-dark);
 }
 
@@ -148,7 +148,7 @@ function onLogout() {
 /* Footer */
 .nav-footer {
   padding: var(--spacing-md);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--color-border-on-dark);
 }
 
 .user-section {
@@ -176,7 +176,7 @@ function onLogout() {
 
 .btn-logout {
   width: 100%;
-  padding: var(--spacing-2xs) var(--spacing-sm);
+  padding: var(--spacing-xxs) var(--spacing-sm);
   background: transparent;
   border: none;
   border-radius: var(--radius-md);
@@ -192,7 +192,7 @@ function onLogout() {
 }
 
 .btn-logout:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-border-on-dark-soft);
   color: var(--color-body-on-dark);
 }
 </style>
