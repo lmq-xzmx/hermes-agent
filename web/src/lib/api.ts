@@ -1,5 +1,68 @@
 const BASE = "";
 
+// ── Retry configuration ────────────────────────────────────────────────
+const DEFAULT_MAX_RETRIES = 3;
+const DEFAULT_INITIAL_DELAY_MS = 500;
+const DEFAULT_BACKOFF_MULTIPLIER = 2;
+const DEFAULT_MAX_DELAY_MS = 10000;
+
+/**
+ * Returns true for errors that are worth retrying:
+ * - 5xx server errors (backend is struggling)
+ * - 429 Too Many Requests (rate limited)
+ * - Network errors (transient connectivity issues)
+ */
+function isRetryable(res: Response | undefined, _error: unknown): boolean {
+  if (!res) return true; // network error
+  if (res.status === 429) return true;
+  return res.status >= 500;
+}
+
+function shouldRetry(method: string): boolean {
+  // Idempotent methods — safe to retry
+  return ["GET", "HEAD", "OPTIONS"].includes(method?.toUpperCase());
+}
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry<T>(
+  url: string,
+  init: RequestInit,
+  retries = DEFAULT_MAX_RETRIES,
+  delayMs = DEFAULT_INITIAL_DELAY_MS,
+): Promise<T> {
+  const method = init?.method ?? "GET";
+
+  while (true) {
+    let res: Response | undefined;
+    try {
+      res = await fetch(url, init);
+    } catch (err) {
+      // Network error (DNS, timeout, CORS, etc.)
+      if (!retries || !shouldRetry(method)) throw err;
+      await sleep(delayMs);
+      delayMs = Math.min(delayMs * DEFAULT_BACKOFF_MULTIPLIER, DEFAULT_MAX_DELAY_MS);
+      retries--;
+      continue;
+    }
+
+    if (isRetryable(res, undefined) && retries && shouldRetry(method)) {
+      await sleep(delayMs);
+      delayMs = Math.min(delayMs * DEFAULT_BACKOFF_MULTIPLIER, DEFAULT_MAX_DELAY_MS);
+      retries--;
+      continue;
+    }
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => res.statusText);
+      throw new Error(`${res.status}: ${text}`);
+    }
+    return res.json();
+  }
+}
+
 import type { DashboardTheme } from "@/themes/types";
 
 // Ephemeral session token for protected endpoints.
@@ -18,19 +81,18 @@ function setSessionHeader(headers: Headers, token: string): void {
   }
 }
 
-export async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
+export async function fetchJSON<T>(
+  url: string,
+  init?: RequestInit,
+  retries = DEFAULT_MAX_RETRIES,
+): Promise<T> {
   // Inject the session token into all /api/ requests.
   const headers = new Headers(init?.headers);
   const token = window.__HERMES_SESSION_TOKEN__;
   if (token) {
     setSessionHeader(headers, token);
   }
-  const res = await fetch(`${BASE}${url}`, { ...init, headers });
-  if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText);
-    throw new Error(`${res.status}: ${text}`);
-  }
-  return res.json();
+  return fetchWithRetry<T>(`${BASE}${url}`, { ...init, headers }, retries);
 }
 
 async function getSessionToken(): Promise<string> {

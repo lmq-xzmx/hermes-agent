@@ -373,7 +373,7 @@ from functools import wraps
 from typing import Callable, Optional, Dict, Any
 
 
-def AuditLog(
+def audit_log(
     action: "AuditAction | str",
     path_fn: Optional[Callable[..., str]] = None,
     extra_fn: Optional[Callable[..., Dict[str, Any]]] = None,
@@ -382,11 +382,11 @@ def AuditLog(
     Decorator for automatic audit logging of service methods.
 
     Usage:
-        @AuditLog(AuditAction.FILE_DELETE)
+        @audit_log(AuditAction.FILE_DELETE)
         def delete_file(self, path: str, user_ctx):
             ...
 
-        @AuditLog(AuditAction.FILE_READ, path_fn=lambda self, path, **kw: path)
+        @audit_log(AuditAction.FILE_READ, path_fn=lambda self, path, **kw: path)
         def read_file(self, path: str, user_ctx):
             ...
 

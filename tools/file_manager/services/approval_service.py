@@ -465,6 +465,8 @@ def check_requires_approval(approval_type: str, context: Dict[str, Any]) -> bool
         team_id = context.get("team_id")
         if team_id:
             # TODO: 检查团队配置，看是否需要审批
+            # 当前实现: 无 Team 模型，使用 Space 替代团队概念
+            # 空间加入审批通过 space_request 机制处理
             return False  # 默认不需要审批
         return False
 

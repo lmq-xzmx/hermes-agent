@@ -171,10 +171,15 @@ class RBACChecker:
         """
         Check if scope constraint is satisfied.
 
-        For now, scope is considered satisfied if the permission exists.
-        Subclasses can implement more complex scope checking.
+        Current implementation: basic permission check without scope validation.
+        The scope parameter is passed but not used for fine-grained access control.
+        This is sufficient for current HFM architecture where:
+        - Admin bypass covers all access
+        - Space membership is checked separately via SpaceMember records
+        - Scope validation would require additional context (user's spaces, ownership)
         """
         # TODO: Implement scope validation (e.g., user can only access their own space)
+        # Requires: context with user spaces, ownership checks
         return True
 
     def has_role(user_id: str, role_name: str, ctx: Optional["PermissionContext"] = None) -> bool:

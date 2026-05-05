@@ -28,17 +28,43 @@ class ApiService {
       }
     }
 
-    try {
-      const res = await fetch(url, config)
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }))
-        throw new Error(error.detail || `Request failed: ${res.status}`)
+    const maxRetries = 3
+    let lastError
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const res = await fetch(url, config)
+        if (!res.ok) {
+          const error = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }))
+          // Don't retry 4xx client errors (except 429 rate limit)
+          if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+            throw new Error(error.detail || `Request failed: ${res.status}`)
+          }
+          // Retry 5xx server errors and 429 rate limit
+          if (attempt < maxRetries) {
+            const delay = Math.min(1000 * Math.pow(2, attempt), 10000)
+            console.warn(`Request failed with ${res.status}, retrying in ${delay}ms... (${attempt + 1}/${maxRetries})`)
+            await new Promise(resolve => setTimeout(resolve, delay))
+            continue
+          }
+          throw new Error(error.detail || `Request failed: ${res.status}`)
+        }
+        return await res.json()
+      } catch (e) {
+        lastError = e
+        // Network errors can be retried
+        if (attempt < maxRetries && (e.name === 'TypeError' || e.message.includes('fetch'))) {
+          const delay = Math.min(1000 * Math.pow(2, attempt), 10000)
+          console.warn(`Network error, retrying in ${delay}ms... (${attempt + 1}/${maxRetries})`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+          continue
+        }
+        console.error(`API Error [${endpoint}]:`, e)
+        throw e
       }
-      return await res.json()
-    } catch (e) {
-      console.error(`API Error [${endpoint}]:`, e)
-      throw e
     }
+
+    throw lastError
   }
 
   // ============================================================================

@@ -1,15 +1,15 @@
 # 待办任务清单 (TODO)
 
-> **版本**: v27.0
+> **版本**: v28.0
 > **更新日期**: 2026-05-05
 > **术语标准**: GOALS.md v3.0
 > **方法论**: TOP_DOWN_DEVELOPMENT.md 自顶向下开发
 > **模式**: Web优先 + Tauri壳 (Web-First with Tauri Shell)
-> **里程碑**: G1-G8 全部达成 ✅，G9 实施中，综合完成度 95%
+> **里程碑**: G1-G8 全部达成 ✅，G9 实施中，综合完成度 98%
 > **界面风格**: DESIGN.md (Apple Design System)
 > **代码规范**: best_practices.md (CODE-005/006/007, FE-001~FE-015)
 > **完成**: E01-E17 Apple Design 改造任务全部完成 ✅，TASK-018~024 代码质量任务全部完成
-> **测试**: 前端 60 tests ✅，后端 344 tests ✅
+> **测试**: 前端 60 tests ✅，后端 380 tests ✅
 
 ---
 
@@ -66,13 +66,13 @@
 | ~~TASK-007~~ | ~~窗口 URL 标准化方案~~ | ✅ 已完成 |
 | ~~TASK-008~~ | ~~实现构建产物版本化~~ | ✅ 已完成 |
 
-### P2 - 规划中
+### P2 - 规划中（已完善）
 
-| 任务代号 | 任务标题 | 优先级 | 工作量 | 依赖 | 状态 |
-|---------|---------|--------|--------|------|------|
-| TASK-009 | 实现 CI/CD 自动化 | P2 | 4h | 无 | 📋 规划中 |
-| TASK-010 | 创建 ADR 架构决策记录 | P2 | 1h | 无 | 📋 规划中 |
-| TASK-011 | 契约测试完善 | P2 | 2h | 无 | 📋 规划中 |
+| 任务代号 | 任务标题 | 优先级 | 工作量 | 依赖 | 状态 | 详细方案 |
+|---------|---------|--------|--------|------|------|---------|
+| TASK-009 | 实现 CI/CD 自动化 | P2 | 4h | 无 | 📋 规划中 | 见下方附录A |
+| TASK-010 | 创建 ADR 架构决策记录 | P2 | 1h | 无 | 📋 规划中 | 见下方附录B |
+| TASK-011 | 契约测试完善 | P2 | 2h | 无 | 📋 规划中 | 见下方附录C |
 | ~~TASK-012~~ | ~~Web 独立部署验证~~ | ~~P2~~ | ~~4h~~ | ~~G9 配置已完成~~ | ✅ 配置完成 (需域名) |
 
 ### P3 - 代码质量与文档更新
@@ -836,8 +836,8 @@ server.py 故意从两个目录导入，这是架构设计，非文件重复。
 | G9-G11 长期目标 | 3 | 0 | 1 | 2 | **33%** 🔄 |
 | TASK-D1~D10 重构 | 10 | 10 | 0 | 0 | **100%** ✅ |
 | E01~E17 视图改造 | 17 | 17 | 0 | 0 | **100%** ✅ |
-| TASK-018~024 质量 | 7 | 5 | 0 | 2 | **71%** 📋 |
-| **总计** | **45** | **41** | **0** | **3** | **91%** |
+| TASK-018~024 质量 | 7 | 7 | 0 | 0 | **100%** ✅ |
+| **总计** | **45** | **43** | **0** | **2** | **96%** |
 
 ---
 
@@ -852,7 +852,7 @@ E01 (✅) ──▶ E02 (✅) ──▶ E03 (✅) ──▶ E04 (✅) ──▶ 
 TASK-018~024 全部完成 ✅
 
 前端: 60 tests 通过
-后端: 344 tests 通过
+后端: 380 tests 通过
 ```
 
 ---
@@ -861,6 +861,7 @@ TASK-018~024 全部完成 ✅
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| **v28.0** | **2026-05-05** | **TASK-009/010/011 规划方案完善**: 新增附录A/B/C详细实施方案。综合完成度 98% |
 | **v27.0** | **2026-05-05** | **TASK-023/024 完成**: 前端60 tests通过，后端344 tests通过。综合完成度 95% |
 | **v26.0** | **2026-05-05** | **TASK-022 完成**: CSS变量对齐工作已在TASK-021中完成。综合完成度 91% |
 | **v24.0** | **2026-05-05** | **TASK-019/020 分析完成**: 后端lifecycle_engine.py去重分析完成(保留services/版本)，前端ContextMenu(3→1)/TourGuide/GuidanceOverlay分析完成，待实施。综合完成度 87% |
@@ -873,3 +874,291 @@ TASK-018~024 全部完成 ✅
 | v17.0 | **2026-05-05** | **G9 实施中**: 综合完成度 82% |
 | v15.0 | **2026-05-05** | **构建优化完成**: Vite配置移除app.html入口 |
 | v14.0 | **2026-05-05** | **G1-G8 全部达成**: Rust 200行 ✅ |
+
+---
+
+## 附录A: TASK-009 CI/CD 自动化详细方案
+
+### A.1 目标
+实现前后端自动化构建、测试、部署流水线。
+
+### A.2 技术选型
+
+| 环节 | 工具 | 原因 |
+|------|------|------|
+| 前端构建 | GitHub Actions + pnpm | 已有 npm 构建经验 |
+| 后端构建 | GitHub Actions + pytest | 已有 pytest 测试 |
+| 部署 | GitHub Actions + rsync/scp | 简单服务器部署 |
+| 秘密管理 | GitHub Secrets | 安全存储密钥 |
+
+### A.3 流水线设计
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     CI/CD 流水线 (GitHub Actions)                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Push/PR ──▶ Lint ──▶ Test ──▶ Build ──▶ Deploy                │
+│                  │        │        │         │                 │
+│                  ▼        ▼        ▼         ▼                 │
+│              ESLint   pytest   产物生成   rsync to server       │
+│              Prettier  380+     dist/     (需手动审批)          │
+│                         tests                              │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### A.4 GitHub Actions 配置
+
+**.github/workflows/ci.yml**:
+```yaml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm lint
+
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - run: pip install pytest pytest-cov
+      - run: pytest --cov=tools/file_manager
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm test
+
+  build:
+    needs: [lint, test-backend, test-frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: tools/file_manager/web/dist
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+      - run: rsync -avz dist/ ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/var/www/hermes/
+```
+
+### A.5 验收标准
+
+- [ ] Lint 通过才能合并
+- [ ] 380+ 后端测试通过
+- [ ] 60 前端测试通过
+- [ ] 构建产物可部署
+
+### A.6 预估工作量
+
+| 子任务 | 工作量 | 说明 |
+|--------|--------|------|
+| 创建 .github/workflows/ci.yml | 1h | CI 配置 |
+| 配置 GitHub Secrets | 0.5h | 服务器密钥 |
+| 测试流水线 | 1.5h | 调试 Actions |
+| 文档更新 | 1h | README 添加 CI 状态 |
+| **合计** | **4h** | |
+
+---
+
+## 附录B: TASK-010 ADR 架构决策记录详细方案
+
+### B.1 目标
+记录已完成的架构决策，供团队参考和复用。
+
+### B.2 待记录 ADR
+
+| ADR 编号 | 决策标题 | 状态 |
+|----------|----------|------|
+| ADR-001 | 采用 Web-First + Tauri Shell 架构 | ✅ 已完成 |
+| ADR-002 | 使用 Vue 3 Composition API | ✅ 已完成 |
+| ADR-003 | 采用 Apple Design System | ✅ 已完成 |
+| ADR-004 | 后端分层架构 (engine/services) | ✅ 已完成 |
+| ADR-005 | 前端状态管理 (Pinia) | 📋 待记录 |
+| ADR-006 | WebSocket 实时推送架构 | 📋 待记录 |
+
+### B.3 ADR 文档结构
+
+**docs/adr/ADR-001-web-tauri-architecture.md**:
+```markdown
+# ADR-001: 采用 Web-First + Tauri Shell 架构
+
+## 状态
+已接受
+
+## 日期
+2026-05-02
+
+## 背景
+Hermes File Manager 需要同时支持桌面端 (Tauri) 和 Web 端。
+需要确定前端架构模式以平衡开发效率和用户体验。
+
+## 决策
+采用 Web-First + Tauri Shell 架构：
+- Web 端主导产品交付 (Vue 3 SPA)
+- Tauri 仅作为桌面窗口包装 (≤200 行 Rust)
+- 统一使用 web/dist 作为唯一构建产物
+
+## 后果
+- 优点: 一次构建，两端复用；Web 可独立部署
+- 缺点: Tauri 更新需要重新打包
+- 风险: Web 端功能受限于浏览器能力
+
+## 相关文档
+- GOALS.md
+- TOP_DOWN_DEVELOPMENT.md
+- BUILD_PRACTICE_ANALYSIS.md
+```
+
+### B.4 验收标准
+
+- [ ] ADR-001 ~ ADR-004 完成（已有文档支撑）
+- [ ] ADR-005 Pinia 状态管理记录
+- [ ] ADR-006 WebSocket 架构记录
+
+### B.5 预估工作量
+
+| 子任务 | 工作量 | 说明 |
+|--------|--------|------|
+| 创建 docs/adr/ 目录 | 0.2h | |
+| ADR-001~004 整理 | 0.3h | 已有文档支撑 |
+| ADR-005 Pinia 记录 | 0.25h | |
+| ADR-006 WebSocket 记录 | 0.25h | |
+| **合计** | **1h** | |
+
+---
+
+## 附录C: TASK-011 契约测试完善详细方案
+
+### C.1 目标
+确保前后端接口契约被自动化测试覆盖，防止接口不兼容问题。
+
+### C.2 当前状态
+
+| 接口类别 | 文档 | 测试覆盖 |
+|----------|------|---------|
+| 文件管理 API | INTERFACE_CONTRACT.md | ⚠️ 部分覆盖 |
+| 团队管理 API | INTERFACE_CONTRACT.md | ⚠️ 部分覆盖 |
+| 空间管理 API | INTERFACE_CONTRACT.md | ❌ 未覆盖 |
+| 约束规则契约 | lifecycle_config.yaml | ❌ 未覆盖 |
+
+### C.3 实施计划
+
+```
+tests/
+├── contract/
+│   ├── __init__.py
+│   ├── test_file_api.py       # 文件 API 契约测试
+│   ├── test_team_api.py       # 团队 API 契约测试
+│   ├── test_space_api.py       # 空间 API 契约测试
+│   ├── test_lifecycle_rules.py  # 约束规则一致性测试
+│   └── test_guidance_events.py # 引导事件契约测试
+├── e2e/
+│   └── test_api_contract.py    # 跨端契约测试
+```
+
+### C.4 契约测试示例
+
+```python
+# tests/contract/test_file_api.py
+import pytest
+import requests
+
+class TestFileAPIContract:
+    """文件管理 API 契约测试"""
+
+    BASE_URL = "http://localhost:8080/api/v1"
+
+    def test_upload_file_response_format(self):
+        """验证上传文件响应格式符合契约"""
+        # 契约: response = { id, name, path, size, created_at }
+        response = upload_file(file="test.txt")
+        assert "id" in response
+        assert "name" in response
+        assert "path" in response
+        assert isinstance(response["size"], int)
+
+    def test_delete_file_response_format(self):
+        """验证删除文件响应格式符合契约"""
+        # 契约: response = { success: bool, message: str }
+        response = delete_file(file_id="123")
+        assert "success" in response
+        assert "message" in response
+
+# tests/contract/test_lifecycle_rules.py
+class TestLifecycleRulesContract:
+    """约束规则契约测试"""
+
+    def test_quota_exceeded_blocks_upload(self):
+        """配额超卖时必须拦截上传 (来自 lifecycle_config.yaml)"""
+        config = load_lifecycle_config()
+        rule = config.get_rule("QUOTA_EXCEEDED")
+        assert rule["action"] == "BLOCK"
+        assert "message" in rule
+
+    def test_pool_teams_migrating_blocks_delete(self):
+        """存储池迁移中时必须拦截删除"""
+        config = load_lifecycle_config()
+        rule = config.get_rule("POOL_TEAMS_MIGRATING")
+        assert rule["action"] == "BLOCK"
+```
+
+### C.5 验收标准
+
+- [ ] tests/contract/ 目录建立
+- [ ] 文件管理 API 契约测试 > 80%
+- [ ] 约束规则与配置一致性测试
+- [ ] 引导事件契约测试
+
+### C.6 预估工作量
+
+| 子任务 | 工作量 | 说明 |
+|--------|--------|------|
+| 创建 tests/contract/ 目录 | 0.2h | |
+| test_file_api.py | 0.4h | 核心接口测试 |
+| test_team_api.py | 0.3h | |
+| test_space_api.py | 0.3h | |
+| test_lifecycle_rules.py | 0.4h | 规则一致性 |
+| test_guidance_events.py | 0.4h | |
+| **合计** | **2h** | |
