@@ -215,20 +215,19 @@ function formatDate(str) {
 }
 
 .section-title {
-  font-family: var(--font-display);
+  font-family: var(--font-family-display);
   font-size: 21px;
   font-weight: 600;
-  letter-spacing: -0.374px;
   color: var(--color-ink);
   margin: 0;
 }
 
 .item-count {
-  font-family: var(--font-body);
-  font-size: 12px;
+  font-family: var(--font-family-text);
+  font-size: var(--text-xs);
   color: var(--color-ink-muted-48);
   background: var(--color-surface-pearl);
-  padding: 4px 10px;
+  padding: var(--spacing-xxs) var(--spacing-sm);
   border-radius: var(--radius-pill);
 }
 
@@ -245,16 +244,16 @@ function formatDate(str) {
 
 .apple-select {
   appearance: none;
-  padding: 8px 36px 8px 14px;
+  padding: var(--spacing-xs) 36px var(--spacing-xs) var(--spacing-sm);
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-pill);
   color: var(--color-ink);
-  font-family: var(--font-body);
-  font-size: 14px;
+  font-family: var(--font-family-text);
+  font-size: var(--text-base);
   cursor: pointer;
   transition: border-color 0.2s;
-  height: 36px;
+  height: var(--spacing-lg);
 }
 
 .apple-select:focus {
@@ -264,17 +263,17 @@ function formatDate(str) {
 
 .select-arrow {
   position: absolute;
-  right: 14px;
+  right: var(--space-sm);
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-ink-muted-48);
-  font-size: 16px;
+  font-size: var(--text-base);
   pointer-events: none;
 }
 
 /* Buttons */
 .btn-icon {
-  font-size: 14px;
+  font-size: var(--text-base);
   line-height: 1;
 }
 
@@ -294,14 +293,14 @@ function formatDate(str) {
   justify-content: center;
   padding: var(--space-xxl);
   color: var(--color-ink-muted-48);
-  font-family: var(--font-body);
-  font-size: 15px;
+  font-family: var(--font-family-text);
+  font-size: var(--text-base);
   gap: var(--space-md);
 }
 
 .spinner {
-  width: 24px;
-  height: 24px;
+  width: var(--spacing-lg);
+  height: var(--spacing-lg);
   border: 2px solid var(--color-hairline);
   border-top-color: var(--color-primary);
   border-radius: var(--radius-full);
@@ -318,27 +317,27 @@ function formatDate(str) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px var(--space-lg);
+  padding: var(--space-xxl) var(--space-lg);
   text-align: center;
 }
 
 .empty-icon {
-  font-size: 64px;
+  font-size: var(--spacing-xxl);
   margin-bottom: var(--space-md);
   opacity: 0.5;
 }
 
 .empty-title {
-  font-family: var(--font-body);
-  font-size: 17px;
+  font-family: var(--font-family-text);
+  font-size: var(--text-base);
   font-weight: 600;
   color: var(--color-ink);
   margin: 0 0 var(--space-xs);
 }
 
 .empty-desc {
-  font-family: var(--font-body);
-  font-size: 15px;
+  font-family: var(--font-family-text);
+  font-size: var(--text-base);
   color: var(--color-ink-muted-48);
   margin: 0;
 }
@@ -350,22 +349,21 @@ function formatDate(str) {
 
 .apple-table {
   width: 100%;
-  border-collapse: collapse%;
+  border-collapse: collapse;
 }
 
 .apple-table th,
 .apple-table td {
   text-align: left;
-  padding: 14px 17px;
+  padding: var(--space-md) var(--spacing-lg);
   vertical-align: middle;
 }
 
 .apple-table th {
-  font-family: var(--font-body);
-  font-size: 11px;
+  font-family: var(--font-family-text);
+  font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: -0.12px;
   color: var(--color-ink-muted-48);
   background: var(--color-canvas-parchment);
   border-bottom: 1px solid var(--color-hairline);
@@ -395,13 +393,13 @@ function formatDate(str) {
 }
 
 .file-icon {
-  font-size: 20px;
+  font-size: var(--text-lg);
   flex-shrink: 0;
 }
 
 .file-name-text {
-  font-family: var(--font-body);
-  font-size: 15px;
+  font-family: var(--font-family-text);
+  font-size: var(--text-base);
   color: var(--color-ink);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -415,10 +413,10 @@ function formatDate(str) {
 .type-badge {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
+  padding: var(--spacing-xxs) var(--spacing-sm);
   border-radius: var(--radius-pill);
-  font-family: var(--font-body);
-  font-size: 12px;
+  font-family: var(--font-family-text);
+  font-size: var(--text-xs);
   font-weight: 400;
 }
 
@@ -434,8 +432,8 @@ function formatDate(str) {
 
 .cell-date {
   width: 160px;
-  font-family: var(--font-body);
-  font-size: 14px;
+  font-family: var(--font-family-text);
+  font-size: var(--text-base);
   color: var(--color-ink-muted-48);
 }
 
@@ -444,11 +442,11 @@ function formatDate(str) {
 }
 
 .path-code {
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
   color: var(--color-ink-muted-48);
   background: var(--color-canvas-parchment);
-  padding: 4px 8px;
+  padding: var(--spacing-xxs) var(--spacing-xs);
   border-radius: var(--radius-xs);
   overflow: hidden;
   text-overflow: ellipsis;
