@@ -1,126 +1,126 @@
 <template>
   <div class="team-view">
     <!-- Toolbar -->
-    <div class="toolbar">
-      <button class="btn-apple-primary" @click="showCreateTeam">+ 创建团队</button>
-      <div class="toolbar-spacer"></div>
-      <button class="btn-apple-secondary" @click="loadTeams">刷新</button>
+    <div class="team-view__toolbar">
+      <button class="team-view__btn team-view__btn--primary" @click="showCreateTeam">+ 创建团队</button>
+      <div class="team-view__spacer"></div>
+      <button class="team-view__btn team-view__btn--secondary" @click="loadTeams">刷新</button>
     </div>
 
     <!-- My Teams section -->
-    <div class="view-header">
-      <h3 class="section-title">我所在的团队</h3>
+    <div class="team-view__header">
+      <h3 class="team-view__title">我所在的团队</h3>
     </div>
     <div id="myTeamsSection">
-      <div v-if="loading" class="loading">加载中...</div>
-      <div v-else-if="myTeams.length === 0" class="empty-state show">
-        <div class="empty-state-icon">👥</div>
+      <div v-if="loading" class="team-view__loading">加载中...</div>
+      <div v-else-if="myTeams.length === 0" class="team-view__empty show">
+        <div class="team-view__empty-icon">👥</div>
         <p>您还没有加入任何团队</p>
       </div>
-      <div v-else class="team-list">
+      <div v-else class="team-view__list">
         <div v-for="team in myTeams" :key="team.team_id" class="team-card">
-          <div class="team-card-main">
-            <div class="team-info">
-              <span class="team-name">{{ team.name }}</span>
-              <span v-if="team.description" class="team-desc">{{ team.description }}</span>
+          <div class="team-card__main">
+            <div class="team-card__info">
+              <span class="team-card__name">{{ team.name }}</span>
+              <span v-if="team.description" class="team-card__desc">{{ team.description }}</span>
             </div>
-            <div class="team-stats">
-              <div class="stat-item">
-                <span class="stat-value">{{ team.member_count || 0 }}</span>
-                <span class="stat-label">成员</span>
+            <div class="team-card__stats">
+              <div class="team-card__stat">
+                <span class="team-card__stat-value">{{ team.member_count || 0 }}</span>
+                <span class="team-card__stat-label">成员</span>
               </div>
-              <div class="stat-item quota-stat">
-                <span class="stat-value">{{ formatSize(team.quota_used) }}</span>
-                <span class="stat-label">/ {{ formatSize(team.quota_total) }}</span>
+              <div class="team-card__stat team-card__stat--quota">
+                <span class="team-card__stat-value">{{ formatSize(team.quota_used) }}</span>
+                <span class="team-card__stat-label">/ {{ formatSize(team.quota_total) }}</span>
               </div>
             </div>
-            <div class="quota-bar">
-              <div class="quota-fill" :class="getQuotaClass(team.quota_usage)"></div>
+            <div class="team-card__quota-bar">
+              <div class="team-card__quota-fill" :class="getQuotaClass(team.quota_usage)"></div>
             </div>
-            <span class="badge" :class="team.status === 'active' ? 'badge-active' : 'badge-inactive'">
+            <span class="team-card__badge" :class="team.status === 'active' ? 'team-card__badge--active' : 'team-card__badge--inactive'">
               {{ team.status === 'active' ? '活跃' : '未激活' }}
             </span>
           </div>
-          <div class="team-card-actions">
-            <button class="btn-apple-primary btn-sm" @click="enterTeam(team)">进入</button>
-            <button class="btn-apple-secondary btn-sm" @click="showTeamMembers(team)">成员</button>
-            <button v-if="team.my_role === 'owner'" class="btn-apple-secondary btn-sm" @click="showTeamCredentials(team)">邀请码</button>
+          <div class="team-card__actions">
+            <button class="team-view__btn team-view__btn--secondary team-view__btn--sm" @click="enterTeam(team)">进入</button>
+            <button class="team-view__btn team-view__btn--secondary team-view__btn--sm" @click="showTeamMembers(team)">成员</button>
+            <button v-if="team.my_role === 'owner'" class="team-view__btn team-view__btn--secondary team-view__btn--sm" @click="showTeamCredentials(team)">邀请码</button>
           </div>
         </div>
       </div>
     </div>
 
     <!-- All teams (admin) -->
-    <div v-if="isAdmin" id="allTeamsSection" class="section-gap">
-      <div class="view-header">
-        <h3 class="section-title">所有团队 (管理)</h3>
+    <div v-if="isAdmin" id="allTeamsSection" class="team-view__section-gap">
+      <div class="team-view__header">
+        <h3 class="team-view__title">所有团队 (管理)</h3>
       </div>
-      <div v-if="allTeams.length === 0" class="empty-state show">
+      <div v-if="allTeams.length === 0" class="team-view__empty show">
         <p>暂无团队数据</p>
       </div>
-      <div v-else class="team-list">
+      <div v-else class="team-view__list">
         <div v-for="team in allTeams" :key="team.team_id" class="team-card">
-          <div class="team-card-main">
-            <div class="team-info">
-              <span class="team-name">{{ team.name }}</span>
+          <div class="team-card__main">
+            <div class="team-card__info">
+              <span class="team-card__name">{{ team.name }}</span>
             </div>
-            <div class="team-stats">
-              <div class="stat-item">
-                <span class="stat-value">{{ team.member_count || 0 }}</span>
-                <span class="stat-label">成员</span>
+            <div class="team-card__stats">
+              <div class="team-card__stat">
+                <span class="team-card__stat-value">{{ team.member_count || 0 }}</span>
+                <span class="team-card__stat-label">成员</span>
               </div>
-              <div class="stat-item quota-stat">
-                <span class="stat-value">{{ formatSize(team.quota_used) }}</span>
-                <span class="stat-label">/ {{ formatSize(team.quota_total) }}</span>
+              <div class="team-card__stat team-card__stat--quota">
+                <span class="team-card__stat-value">{{ formatSize(team.quota_used) }}</span>
+                <span class="team-card__stat-label">/ {{ formatSize(team.quota_total) }}</span>
               </div>
             </div>
-            <div class="quota-bar">
-              <div class="quota-fill" :class="getQuotaClass(team.quota_usage)"></div>
+            <div class="team-card__quota-bar">
+              <div class="team-card__quota-fill" :class="getQuotaClass(team.quota_usage)"></div>
             </div>
-            <span class="team-owner">{{ team.owner_username || '-' }}</span>
+            <span class="team-card__owner">{{ team.owner_username || '-' }}</span>
           </div>
-          <div class="team-card-actions">
-            <button class="btn-apple-secondary btn-sm" @click="editTeam(team)">编辑</button>
+          <div class="team-card__actions">
+            <button class="team-view__btn team-view__btn--secondary team-view__btn--sm" @click="editTeam(team)">编辑</button>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Join team -->
-    <div class="section-gap">
-      <h3 class="section-title">加入团队</h3>
-      <div class="join-form">
-        <input type="text" v-model="joinToken" placeholder="输入邀请码" class="search-input">
-        <button class="btn-apple-primary" @click="joinTeam">加入</button>
+    <div class="team-view__section-gap">
+      <h3 class="team-view__title">加入团队</h3>
+      <div class="team-view__join-form">
+        <input type="text" v-model="joinToken" placeholder="输入邀请码" class="team-view__search-input">
+        <button class="team-view__btn team-view__btn--primary" @click="joinTeam">加入</button>
       </div>
     </div>
 
     <!-- Team Credentials Modal -->
-    <div v-if="showCredentials" class="modal-overlay" @click.self="showCredentials = false">
-      <div class="modal-content">
-        <div class="modal-header">
+    <div v-if="showCredentials" class="team-view__modal-overlay" @click.self="showCredentials = false">
+      <div class="team-view__modal">
+        <div class="team-view__modal-header">
           <h3>{{ selectedTeam.name }} - 邀请码</h3>
-          <button class="btn-close" @click="showCredentials = false">&times;</button>
+          <button class="team-view__modal-close" @click="showCredentials = false">&times;</button>
         </div>
-        <div class="modal-body">
-          <button class="btn-apple-primary" style="margin-bottom:16px" @click="createCredential">+ 生成邀请码</button>
-          <div v-if="credentials.length === 0" class="empty-state show">
+        <div class="team-view__modal-body">
+          <button class="team-view__btn team-view__btn--primary" style="margin-bottom:var(--spacing-md)" @click="createCredential">+ 生成邀请码</button>
+          <div v-if="credentials.length === 0" class="team-view__empty show">
             <p>暂无邀请码</p>
           </div>
-          <div v-else class="credential-list">
-            <div v-for="cred in credentials" :key="cred.id" class="credential-item">
-              <code class="credential-token">{{ cred.token }}</code>
-              <span class="badge" :class="cred.used_count >= cred.max_uses ? 'badge-inactive' : 'badge-active'">
+          <div v-else class="team-view__credential-list">
+            <div v-for="cred in credentials" :key="cred.id" class="team-view__credential-item">
+              <code class="team-view__credential-token">{{ cred.token }}</code>
+              <span class="team-card__badge" :class="cred.used_count >= cred.max_uses ? 'team-card__badge--inactive' : 'team-card__badge--active'">
                 {{ cred.used_count >= cred.max_uses ? '已用完' : '可用' }}
               </span>
-              <span class="credential-detail">{{ cred.expires_at ? formatDate(cred.expires_at) : '永不过期' }}</span>
-              <span class="credential-detail">{{ cred.used_count }} / {{ cred.max_uses }}</span>
-              <button class="btn-apple-danger btn-sm" @click="deleteCredential(cred.id)">删除</button>
+              <span class="team-view__credential-detail">{{ cred.expires_at ? formatDate(cred.expires_at) : '永不过期' }}</span>
+              <span class="team-view__credential-detail">{{ cred.used_count }} / {{ cred.max_uses }}</span>
+              <button class="team-view__btn team-view__btn--danger team-view__btn--sm" @click="deleteCredential(cred.id)">删除</button>
             </div>
           </div>
         </div>
-        <div class="modal-footer">
-          <button class="btn-apple-secondary" @click="showCredentials = false">关闭</button>
+        <div class="team-view__modal-footer">
+          <button class="team-view__btn team-view__btn--secondary" @click="showCredentials = false">关闭</button>
         </div>
       </div>
     </div>
@@ -260,9 +260,9 @@ async function deleteCredential(credId) {
 }
 
 function getQuotaClass(usage) {
-  if (usage > 0.9) return 'danger'
-  if (usage > 0.7) return 'warn'
-  return 'ok'
+  if (usage > 0.9) return 'team-card__quota-fill--danger'
+  if (usage > 0.7) return 'team-card__quota-fill--warn'
+  return 'team-card__quota-fill--ok'
 }
 
 function formatSize(bytes) {
@@ -284,107 +284,185 @@ function formatDate(str) {
 </script>
 
 <style scoped>
+/* ============================================
+   TeamView - Apple Design System
+   Based on DESIGN.md Apple Design System specs
+   ============================================ */
+
+/* --------------------------------------------
+   Layout - View Container
+   -------------------------------------------- */
 .team-view {
   flex: 1;
   overflow: auto;
-  padding: var(--space-lg);
+  padding: var(--spacing-lg);
 }
 
-/* Toolbar */
-.toolbar {
+/* --------------------------------------------
+   Toolbar
+   -------------------------------------------- */
+.team-view__toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-md) 0;
-  margin-bottom: var(--space-lg);
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) 0;
+  margin-bottom: var(--spacing-lg);
 }
 
-.toolbar-spacer {
+.team-view__spacer {
   flex: 1;
 }
 
-/* Typography */
-.view-header {
+/* --------------------------------------------
+   Typography - Headers & Titles
+   -------------------------------------------- */
+.team-view__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--spacing-md);
 }
 
-.section-title {
+.team-view__title {
   font: var(--text-body-strong);
   color: var(--color-ink);
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--spacing-sm);
 }
 
-.section-gap {
-  margin-top: var(--space-xl);
+.team-view__section-gap {
+  margin-top: var(--spacing-xl);
 }
 
-/* Team List */
-.team-list {
+/* --------------------------------------------
+   Buttons - Apple Design System
+   -------------------------------------------- */
+.team-view__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--text-body);
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.15s ease;
+}
+
+.team-view__btn:active {
+  transform: scale(0.95);
+}
+
+.team-view__btn--primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.team-view__btn--primary:focus {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+}
+
+.team-view__btn--secondary {
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-hairline);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.team-view__btn--secondary:hover {
+  background: var(--color-canvas-parchment);
+}
+
+.team-view__btn--secondary:focus {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+}
+
+.team-view__btn--danger {
+  background: transparent;
+  color: var(--color-danger);
+  border: 1px solid var(--color-hairline);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.team-view__btn--danger:hover {
+  background: var(--color-danger-subtle);
+}
+
+.team-view__btn--sm {
+  font: var(--text-caption);
+  padding: var(--spacing-xxs) var(--spacing-sm);
+}
+
+/* --------------------------------------------
+   Team List - Card Grid
+   -------------------------------------------- */
+.team-view__list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: var(--spacing-md);
 }
 
+/* --------------------------------------------
+   Team Card - store-utility-card Style
+   -------------------------------------------- */
 .team-card {
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-lg);
-  padding: var(--space-lg);
+  padding: var(--spacing-lg);
 }
 
-.team-card-main {
+.team-card__main {
   display: flex;
   align-items: center;
-  gap: var(--space-lg);
+  gap: var(--spacing-lg);
   flex-wrap: wrap;
 }
 
-.team-info {
+.team-card__info {
   flex: 1;
   min-width: 150px;
 }
 
-.team-name {
+.team-card__name {
   font: var(--text-body-strong);
   color: var(--color-ink);
   display: block;
 }
 
-.team-desc {
+.team-card__desc {
   font: var(--text-caption);
   color: var(--color-ink-muted-48);
   display: block;
-  margin-top: var(--space-xxs);
+  margin-top: var(--spacing-xxs);
 }
 
-.team-stats {
+.team-card__stats {
   display: flex;
-  gap: var(--space-lg);
+  gap: var(--spacing-lg);
 }
 
-.stat-item {
+.team-card__stat {
   text-align: center;
 }
 
-.stat-value {
+.team-card__stat-value {
   font: var(--text-body-strong);
   color: var(--color-ink);
   display: block;
 }
 
-.stat-label {
+.team-card__stat-label {
   font: var(--text-caption);
   color: var(--color-ink-muted-48);
 }
 
-.quota-stat .stat-label {
+.team-card__stat--quota .team-card__stat-label {
   color: var(--color-ink-muted-48);
 }
 
-.quota-bar {
+.team-card__quota-bar {
   width: 100px;
   height: var(--spacing-xs);
   background: var(--color-canvas-parchment);
@@ -392,111 +470,119 @@ function formatDate(str) {
   overflow: hidden;
 }
 
-.quota-fill {
+.team-card__quota-fill {
   height: 100%;
   border-radius: var(--radius-xs);
   transition: width 0.3s;
 }
 
-.quota-fill.ok { background: var(--color-success); }
-.quota-fill.warn { background: var(--color-warning); }
-.quota-fill.danger { background: var(--color-danger); }
+.team-card__quota-fill--ok { background: var(--color-success); }
+.team-card__quota-fill--warn { background: var(--color-warning); }
+.team-card__quota-fill--danger { background: var(--color-danger); }
 
-.team-owner {
+.team-card__owner {
   font: var(--text-caption);
   color: var(--color-ink-muted-48);
 }
 
-.team-card-actions {
-  display: flex;
-  gap: var(--space-xs);
-  margin-top: var(--space-md);
-  padding-top: var(--space-md);
-  border-top: 1px solid var(--color-divider-soft);
-}
-
-/* Badge */
-.badge {
+.team-card__badge {
   display: inline-block;
   padding: var(--spacing-xxs) var(--spacing-sm);
   border-radius: var(--radius-pill);
   font: var(--text-caption-strong);
 }
 
-.badge-active {
+.team-card__badge--active {
   background: var(--color-success-subtle);
   color: var(--color-success);
 }
 
-.badge-inactive {
+.team-card__badge--inactive {
   background: var(--color-gray-subtle);
   color: var(--color-ink-muted-48);
 }
 
-/* Join Form */
-.join-form {
+.team-card__actions {
   display: flex;
-  gap: var(--space-sm);
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-divider-soft);
+}
+
+/* --------------------------------------------
+   Join Form
+   -------------------------------------------- */
+.team-view__join-form {
+  display: flex;
+  gap: var(--spacing-sm);
   max-width: 400px;
 }
 
-.search-input {
+.team-view__search-input {
   flex: 1;
   background: var(--color-canvas);
   color: var(--color-ink);
   font: var(--text-body);
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-pill);
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--spacing-sm) var(--spacing-md);
   height: 44px;
 }
-.search-input:focus {
+
+.team-view__search-input:focus {
   outline: 2px solid var(--color-primary-focus);
   outline-offset: 2px;
 }
 
-/* Empty State */
-.empty-state {
+/* --------------------------------------------
+   Empty State
+   -------------------------------------------- */
+.team-view__empty {
   display: none;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-xxl) var(--space-lg);
+  padding: var(--spacing-xxl) var(--spacing-lg);
 }
 
-.empty-state.show {
+.team-view__empty--show {
   display: flex;
 }
 
-.empty-state-icon {
+.team-view__empty-icon {
   font-size: 48px;
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--spacing-md);
   opacity: 0.5;
 }
 
-/* Loading */
-.loading {
+/* --------------------------------------------
+   Loading
+   -------------------------------------------- */
+.team-view__loading {
   text-align: center;
-  padding: var(--space-lg);
+  padding: var(--spacing-lg);
   font: var(--text-body);
   color: var(--color-ink-muted-48);
 }
 
-/* Modal */
-.modal-overlay {
+/* --------------------------------------------
+   Modal - Apple Design System
+   -------------------------------------------- */
+.team-view__modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: var(--z-modal-backdrop);
 }
 
-.modal-content {
+.team-view__modal {
   background: var(--color-canvas);
   border-radius: var(--radius-lg);
   width: 90%;
@@ -505,20 +591,20 @@ function formatDate(str) {
   overflow: auto;
 }
 
-.modal-header {
+.team-view__modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-lg);
+  padding: var(--spacing-lg);
   border-bottom: 1px solid var(--color-divider-soft);
 }
 
-.modal-header h3 {
+.team-view__modal-header h3 {
   font: var(--text-body-strong);
   margin: 0;
 }
 
-.btn-close {
+.team-view__modal-close {
   background: none;
   border: none;
   font-size: 24px;
@@ -526,44 +612,46 @@ function formatDate(str) {
   color: var(--color-ink-muted-48);
 }
 
-.modal-body {
-  padding: var(--space-lg);
+.team-view__modal-body {
+  padding: var(--spacing-lg);
 }
 
-.modal-footer {
+.team-view__modal-footer {
   display: flex;
-  gap: var(--space-sm);
+  gap: var(--spacing-sm);
   justify-content: flex-end;
-  padding: var(--space-lg);
+  padding: var(--spacing-lg);
   border-top: 1px solid var(--color-divider-soft);
 }
 
-/* Credential List */
-.credential-list {
+/* --------------------------------------------
+   Credential List
+   -------------------------------------------- */
+.team-view__credential-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--spacing-sm);
 }
 
-.credential-item {
+.team-view__credential-item {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-sm) var(--space-md);
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-canvas-parchment);
   border-radius: var(--radius-sm);
 }
 
-.credential-token {
-  font-family: monospace;
-  font-size: 14px;
+.team-view__credential-token {
+  font: var(--text-caption);
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", monospace;
   color: var(--color-ink);
   background: var(--color-canvas);
-  padding: var(--space-xxs) var(--space-xs);
+  padding: var(--spacing-xxs) var(--spacing-xs);
   border-radius: var(--radius-xs);
 }
 
-.credential-detail {
+.team-view__credential-detail {
   font: var(--text-caption);
   color: var(--color-ink-muted-48);
 }
