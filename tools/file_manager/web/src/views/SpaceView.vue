@@ -600,14 +600,18 @@ function formatDate(str) {
   margin-top: var(--space-md);
 }
 
-/* Space Card */
+/* Space Card - Apple DESIGN.md store-utility-card */
 .space-card {
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--rounded-lg);
-  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
   cursor: pointer;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.space-card:hover {
+  border-color: var(--color-primary);
 }
 
 .space-card:hover {
@@ -616,6 +620,7 @@ function formatDate(str) {
 
 .space-card.selected {
   border-color: var(--color-primary);
+  border-width: 2px;
   background: var(--color-canvas-parchment);
 }
 
@@ -623,18 +628,26 @@ function formatDate(str) {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--spacing-sm);
 }
 
 .space-card-name {
-  font: var(--text-body-strong);
+  font-family: var(--font-family-text);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.24;
+  letter-spacing: -0.374px;
   color: var(--color-ink);
 }
 
 .space-type-badge {
-  font: var(--text-caption);
-  padding: 4px 12px;
-  border-radius: var(--rounded-pill);
+  font-family: var(--font-family-text);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.43;
+  letter-spacing: -0.224px;
+  padding: var(--spacing-xxs) var(--spacing-sm);
+  border-radius: var(--radius-pill);
   background: var(--color-canvas-parchment);
   color: var(--color-ink-muted-48);
 }
@@ -645,14 +658,12 @@ function formatDate(str) {
 }
 
 .space-type-badge.private {
-  /* TODO: --color-warning-subtle 使用 0.15 alpha，原始值为 0.1 */
-  background: rgba(255, 149, 0, 0.1);
+  background: var(--color-warning-subtle);
   color: var(--color-warning);
 }
 
 .space-type-badge.root {
-  /* TODO: 紫色 (142, 82, 255) 无对应 token，保留原值 */
-  background: rgba(142, 82, 255, 0.1);
+  background: var(--color-primary-subtle);
   color: var(--color-primary);
 }
 
@@ -707,15 +718,15 @@ function formatDate(str) {
 /* Tab Bar */
 .tab-bar {
   display: flex;
-  gap: 4px;
+  gap: var(--space-xs);
   padding-bottom: var(--space-sm);
   margin-bottom: var(--space-md);
   border-bottom: 1px solid var(--color-hairline);
 }
 
 .tab-btn {
-  padding: 8px 20px;
-  border-radius: var(--rounded-pill);
+  padding: var(--spacing-xxs) var(--spacing-lg);
+  border-radius: var(--radius-pill);
   border: none;
   background: transparent;
   color: var(--color-ink-muted-48);
@@ -748,13 +759,13 @@ function formatDate(str) {
   padding: var(--space-md);
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--rounded-md);
+  border-radius: var(--radius-md);
 }
 
 .member-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--spacing-xxs);
 }
 
 .member-name {
@@ -783,7 +794,7 @@ function formatDate(str) {
   padding: var(--space-md);
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--rounded-md);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -808,7 +819,7 @@ function formatDate(str) {
 .badge {
   display: inline-block;
   padding: 4px 12px;
-  border-radius: var(--rounded-pill);
+  border-radius: var(--radius-pill);
   font: var(--text-caption);
   font-weight: 600;
 }
@@ -819,8 +830,7 @@ function formatDate(str) {
 }
 
 .badge-inactive {
-  /* TODO: 灰色半透明无对应 token，保留原值 */
-  background: rgba(120, 120, 128, 0.15);
+  background: var(--color-gray-subtle);
   color: var(--color-ink-muted-48);
 }
 
@@ -832,7 +842,7 @@ function formatDate(str) {
 .quota-card {
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--rounded-lg);
+  border-radius: var(--radius-lg);
   padding: var(--space-lg);
 }
 
@@ -876,7 +886,7 @@ function formatDate(str) {
 .activity-card {
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--rounded-lg);
+  border-radius: var(--radius-lg);
   padding: var(--space-lg);
 }
 
@@ -930,7 +940,7 @@ function formatDate(str) {
   padding: var(--space-lg);
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--rounded-lg);
+  border-radius: var(--radius-lg);
 }
 
 /* Form Elements */
@@ -1049,7 +1059,7 @@ function formatDate(str) {
 
 .modal-content {
   background: var(--color-canvas);
-  border-radius: var(--rounded-lg);
+  border-radius: var(--radius-lg);
   width: 90%;
   max-width: 500px;
   max-height: 80vh;

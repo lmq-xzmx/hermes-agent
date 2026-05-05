@@ -52,6 +52,9 @@
   --color-warning-strong: #9e6a03;
   --color-warning-bar: rgba(210, 153, 34, 0.3);
 
+  /** Gray 透明度变体 - inactive badge */
+  --color-gray-subtle: rgba(120, 120, 128, 0.15);
+
   /** Danger 透明度变体 */
   --color-danger-subtle: rgba(255, 59, 48, 0.15);
   --color-danger-hover: rgba(255, 59, 48, 0.1);
@@ -347,8 +350,16 @@
    * Layout - 布局
    * ============================================ */
 
-  /** Sidebar 宽度 */
-  --sidebar-width: 200px;
+  /** Sidebar 宽度 - Apple Store 风格侧边栏 */
+  --sidebar-width: 180px;
+
+  /** 内容区域最大宽度 - DESIGN.md 合规 */
+  /** text-heavy sections: ~980px */
+  --content-max-width-text: 980px;
+  /** product grids: ~1440px */
+  --content-max-width-grid: 1440px;
+  /** universal content lock */
+  --content-max-width-universal: 1440px;
 }
 
 /* ============================================
