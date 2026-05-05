@@ -300,9 +300,18 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS 配置：通过环境变量控制允许的来源
+# 开发环境: HFM_CORS_ORIGINS="http://localhost:5173,http://localhost:8080"
+# 生产环境: HFM_CORS_ORIGINS="https://your-app.vercel.app,https://your-app-staging.vercel.app"
+_cors_env = os.environ.get("HFM_CORS_ORIGINS", "")
+if _cors_env:
+    _allowed_origins = [o.strip() for o in _cors_env.split(",") if o.strip()]
+else:
+    _allowed_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins if _allowed_origins != ["*"] else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
