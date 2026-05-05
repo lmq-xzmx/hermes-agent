@@ -215,7 +215,7 @@ const serviceStatusClass = computed(() => ({
   flex: 1;
   overflow: auto;
   padding: var(--space-section, 80px);
-  background: var(--color-canvas-parchment, #f5f5f7);
+  background: var(--color-canvas-parchment);
 }
 
 .view-header {
@@ -300,27 +300,27 @@ const serviceStatusClass = computed(() => ({
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: var(--spacing-xs);
+  height: var(--spacing-xs);
   border-radius: var(--radius-full);
   flex-shrink: 0;
 }
 
 .status-dot.running {
-  background: var(--color-success, #34c759);
+  background: var(--color-success);
 }
 
 .status-dot.stopped {
-  background: var(--color-danger, #ff3b30);
+  background: var(--color-danger);
 }
 
 .status-dot.checking {
-  background: var(--color-warning, #ff9500);
+  background: var(--color-warning);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
 .status-dot.unknown {
-  background: var(--color-ink-muted-48, #7a7a7a);
+  background: var(--color-ink-muted-48);
 }
 
 @keyframes pulse {
@@ -333,10 +333,10 @@ const serviceStatusClass = computed(() => ({
   font-weight: 600;
 }
 
-.status-value.running { color: var(--color-success, #34c759); }
-.status-value.stopped { color: var(--color-danger, #ff3b30); }
-.status-value.checking { color: var(--color-warning, #ff9500); }
-.status-value.unknown { color: var(--color-ink-muted-48, #7a7a7a); }
+.status-value.running { color: var(--color-success); }
+.status-value.stopped { color: var(--color-danger); }
+.status-value.checking { color: var(--color-warning); }
+.status-value.unknown { color: var(--color-ink-muted-48); }
 .status-value.mode { color: var(--color-ink, #1d1d1f); font-weight: 400; }
 
 /* Form Field */
