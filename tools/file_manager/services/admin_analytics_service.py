@@ -52,6 +52,8 @@ class AdminAnalyticsService:
     # Class-level cache shared across all instances
     _cache: Dict[str, Any] = {}
     _cache_timestamps: Dict[str, datetime] = {}
+
+    def __init__(
         self,
         db_factory: Callable,
         event_bus: Optional[EventBus] = None,
@@ -358,10 +360,12 @@ class AdminAnalyticsService:
                     "data": [daily_stats.get(date, {}).get(action, 0) for date in dates]
                 })
 
-            return {
+            result = {
                 "dates": dates,
                 "series": series
             }
+            self._set_cached(cache_key, result)
+            return result
         finally:
             session.close()
 
@@ -370,8 +374,13 @@ class AdminAnalyticsService:
     # -------------------------------------------------------------------------
 
     def get_active_users(self, ctx: PermissionContext, days: int = 7) -> Dict[str, Any]:
-        """Get active users in the last N days."""
+        """Get active users in the last N days. Cached with 5-min TTL."""
         self._require_admin(ctx)
+
+        cache_key = self._get_cache_key("get_active_users", days)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
 
         session = self.db_factory()
         try:
@@ -414,11 +423,13 @@ class AdminAnalyticsService:
             # Sort by action count descending
             users.sort(key=lambda x: x["action_count"], reverse=True)
 
-            return {
+            result = {
                 "users": users,
                 "total": len(users),
                 "total_actions": total_actions,
             }
+            self._set_cached(cache_key, result)
+            return result
         finally:
             session.close()
 
@@ -427,8 +438,13 @@ class AdminAnalyticsService:
     # -------------------------------------------------------------------------
 
     def get_overview(self, ctx: PermissionContext) -> Dict[str, Any]:
-        """Get combined overview data for dashboard."""
+        """Get combined overview data for dashboard. Cached with 5-min TTL."""
         self._require_admin(ctx)
+
+        cache_key = self._get_cache_key("get_overview")
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
 
         session = self.db_factory()
         try:
@@ -502,7 +518,7 @@ class AdminAnalyticsService:
                     "created_at": log.created_at,
                 })
 
-            return {
+            result = {
                 "total_users": total_users,
                 "active_users_7d": active_users_7d,
                 "new_users_7d": new_users_7d,
@@ -518,6 +534,8 @@ class AdminAnalyticsService:
                 "alerts": alerts[:10],  # Limit to 10 most recent
                 "recent_activities": recent_activities,
             }
+            self._set_cached(cache_key, result)
+            return result
         finally:
             session.close()
 
@@ -559,7 +577,9 @@ class AdminAnalyticsService:
             # Sort by usage_rate descending (most critical first)
             alerts.sort(key=lambda x: x["usage_rate"], reverse=True)
 
-            return {"alerts": alerts, "total": len(alerts)}
+            result = {"alerts": alerts, "total": len(alerts)}
+            self._set_cached(cache_key, result)
+            return result
         finally:
             session.close()
 
@@ -568,8 +588,13 @@ class AdminAnalyticsService:
     # -------------------------------------------------------------------------
 
     def get_teams_by_pool(self, ctx: PermissionContext, pool_id: str) -> Dict[str, Any]:
-        """Get all teams using a specific storage pool. Used for STORAGE_POOL_IN_USE constraint."""
+        """Get all teams using a specific storage pool. Used for STORAGE_POOL_IN_USE constraint. Cached with 5-min TTL."""
         self._require_admin(ctx)
+
+        cache_key = self._get_cache_key("get_teams_by_pool", pool_id)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
 
         session = self.db_factory()
         try:
@@ -609,11 +634,13 @@ class AdminAnalyticsService:
                     "created_at": team.created_at,
                 })
 
-            return {
+            result = {
                 "pool_id": pool_id,
                 "pool_name": pool.name,
                 "teams": team_list,
                 "total": len(team_list),
             }
+            self._set_cached(cache_key, result)
+            return result
         finally:
             session.close()
