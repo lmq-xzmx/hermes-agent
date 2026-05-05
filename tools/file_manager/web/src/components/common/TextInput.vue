@@ -43,7 +43,7 @@ defineEmits(['update:modelValue', 'focus', 'blur'])
 .apple-text-input {
   width: 100%;
   height: 44px;
-  padding: 11px 15px;
+  padding: var(--spacing-sm) var(--spacing-md);
   background-color: var(--color-canvas);
   color: var(--color-ink);
   border: 1px solid var(--color-hairline);
