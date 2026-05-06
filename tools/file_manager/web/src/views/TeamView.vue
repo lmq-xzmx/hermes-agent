@@ -80,6 +80,35 @@
       </div>
     </div>
 
+    <!-- 待办入口面板 -->
+    <div class="pending-tasks-panel" v-if="isAdmin">
+      <div class="panel-header">
+        <h3>待办任务</h3>
+        <span class="task-badge" v-if="pendingTasks.length > 0">{{ pendingTasks.length }}</span>
+      </div>
+      <div class="task-list" v-if="pendingTasks.length > 0">
+        <div
+          v-for="task in pendingTasks"
+          :key="task.id"
+          class="task-item"
+        >
+          <div class="task-info">
+            <span class="task-type">{{ getTaskTypeName(task.type) }}</span>
+            <span class="task-applicant">{{ task.applicant_name }}</span>
+            <span class="task-time">{{ formatTime(task.created_at) }}</span>
+          </div>
+          <div class="task-actions">
+            <button @click="showTaskDetail(task)" class="btn-detail">查看</button>
+            <button @click="approveTask(task)" class="btn-approve">批准</button>
+            <button @click="rejectTask(task)" class="btn-reject">拒绝</button>
+          </div>
+        </div>
+      </div>
+      <div class="task-empty" v-else>
+        <span>暂无待办任务</span>
+      </div>
+    </div>
+
     <!-- All teams (admin) -->
     <div v-if="isAdmin" class="all-teams-section team-view__section-gap">
       <div class="team-view__header">
@@ -193,9 +222,11 @@ const selectedTeamQuota = ref({
   max_members: 0
 })
 const credentials = ref([])
+const pendingTasks = ref([])
 
 onMounted(() => {
   loadTeams()
+  loadPendingTasks()
 })
 
 async function loadTeams() {
@@ -351,6 +382,42 @@ function formatDate(str) {
   const d = new Date(str)
   return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
+
+async function loadPendingTasks(teamId) {
+  try {
+    const tasks = await teamStore.fetchPendingTasks(teamId)
+    pendingTasks.value = tasks || []
+  } catch (err) {
+    console.error('Failed to load pending tasks:', err)
+  }
+}
+
+function getTaskTypeName(type) {
+  const typeMap = {
+    'team_join': '申请加入团队',
+    'team_member_exit': '成员退出申请',
+    'private_space': '私人空间申请'
+  }
+  return typeMap[type] || type
+}
+
+function formatTime(time) {
+  if (!time) return ''
+  const date = new Date(time)
+  return date.toLocaleDateString()
+}
+
+function showTaskDetail(task) {
+  console.log('Show task detail:', task)
+}
+
+async function approveTask(task) {
+  console.log('Approve task:', task)
+}
+
+async function rejectTask(task) {
+  console.log('Reject task:', task)
+}
 </script>
 
 <style scoped>
@@ -405,5 +472,65 @@ function formatDate(str) {
 .quota-bar-fill.ok { background: var(--color-green); }
 .quota-bar-fill.warn { background: var(--color-yellow); }
 .quota-bar-fill.danger { background: var(--color-red); }
+
+.pending-tasks-panel {
+  background: var(--color-surface-secondary);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.task-badge {
+  background: var(--color-red);
+  color: white;
+  border-radius: 50%;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.task-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid var(--color-surface-tertiary);
+}
+
+.task-item:last-child {
+  border-bottom: none;
+}
+
+.task-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-type {
+  font-weight: 500;
+}
+
+.task-applicant {
+  color: var(--color-ink-muted-48);
+  font-size: 12px;
+}
+
+.task-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.task-empty {
+  color: var(--color-ink-muted-48);
+  text-align: center;
+  padding: 16px;
+}
 </style>
 
