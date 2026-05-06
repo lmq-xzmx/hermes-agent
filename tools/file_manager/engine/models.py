@@ -1386,8 +1386,8 @@ class ApprovalType(str, PyEnum):
     QUOTA_EXTEND = "quota_extend"
     STORAGE_POOL = "storage_pool"
     TEAM_CREATE = "team_create"
-    team_join = "team_join"           # 申请加入团队（新增团队场景）
-    team_member_exit = "team_member_exit"  # 成员退出待处理
+    TEAM_JOIN = "team_join"           # 申请加入团队（新增团队场景）
+    TEAM_MEMBER_EXIT = "team_member_exit"  # 成员退出待处理
 
 
 class RequestStatus(str, PyEnum):
