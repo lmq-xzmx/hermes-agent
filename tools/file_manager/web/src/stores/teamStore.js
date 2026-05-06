@@ -289,6 +289,52 @@ export const useTeamStore = defineStore('teams', () => {
     }
   }
 
+  // 成员申请退出团队
+  async function requestTeamExit(teamId) {
+    try {
+      const res = await fetch(`${API_BASE}/teams/${teamId}/members/request-exit`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      })
+      if (!res.ok) throw new Error('Failed to request team exit')
+      return await res.json()
+    } catch (e) {
+      error.value = e.message
+      throw e
+    }
+  }
+
+  // 管理员移除团队成员
+  async function removeTeamMember(teamId, memberId) {
+    try {
+      const res = await fetch(`${API_BASE}/teams/${teamId}/members/${memberId}/remove`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      })
+      if (!res.ok) throw new Error('Failed to remove team member')
+      return await res.json()
+    } catch (e) {
+      error.value = e.message
+      throw e
+    }
+  }
+
+  // 处理审批（批准/拒绝）
+  async function processApproval(requestId, decision, comment = null) {
+    try {
+      const res = await fetch(`${API_BASE}/approvals/${requestId}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ decision, comment })
+      })
+      if (!res.ok) throw new Error('Failed to process approval')
+      return await res.json()
+    } catch (e) {
+      error.value = e.message
+      throw e
+    }
+  }
+
   async function updateTeam(teamId, data) {
     try {
       const res = await fetch(`${API_BASE}/teams/${teamId}`, {
@@ -344,6 +390,9 @@ export const useTeamStore = defineStore('teams', () => {
     fetchTeamQuotaStatus,
     deleteTeamCredential,
     fetchPendingTasks,
+    requestTeamExit,
+    removeTeamMember,
+    processApproval,
     updateTeam,
     setCurrentTeam,
     clearTeams
