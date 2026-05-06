@@ -352,6 +352,39 @@ class ApprovalService:
             # 存储池申请通过
             pass
 
+        elif approval_type == ApprovalType.TEAM_JOIN.value:
+            # 加入团队申请通过
+            from services.team_service import TeamService
+            team_service = TeamService()
+            # 将成员添加到团队
+            try:
+                team_service.add_member(request.target_id, request.applicant_id)
+                logger.info(f"Approval approved: user {request.applicant_id} joined team {request.target_id}")
+            except Exception as e:
+                logger.error(f"Failed to add member to team: {e}")
+                raise
+
+        elif approval_type == ApprovalType.TEAM_MEMBER_EXIT.value:
+            # 成员退出申请通过
+            from services.space_service import SpaceService
+            import json
+            space_service = SpaceService()
+            params = json.loads(request.params or "{}")
+            member_id = params.get("member_id", request.applicant_id)
+
+            # 执行成员退出
+            try:
+                space_service.remove_member_with_notification(
+                    team_id=request.target_id,
+                    member_id=member_id,
+                    operator_id=request.approved_by,
+                    action="member_exit_approved"
+                )
+                logger.info(f"Approval approved: member {member_id} exited team {request.target_id}")
+            except Exception as e:
+                logger.error(f"Failed to process member exit: {e}")
+                raise
+
     def _add_user_to_team(self, user_id: str, team_id: str, session) -> None:
         """将用户添加到团队（作为成员）"""
         from ..engine.models import TeamMember
