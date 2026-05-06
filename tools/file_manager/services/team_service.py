@@ -68,6 +68,11 @@ class UserAlreadyInTeam(Exception):
     pass
 
 
+class UserNotFound(Exception):
+    """User not found."""
+    pass
+
+
 class NotTeamOwner(Exception):
     """Only the team owner can perform this action."""
     pass
@@ -413,6 +418,61 @@ class TeamService:
 
             session.delete(member)
             session.commit()
+        finally:
+            session.close()
+
+    def add_member(self, team_id: str, user_id: str, role: str = "member") -> SpaceMember:
+        """
+        直接将成员添加到团队（管理员操作，无需邀请码）
+
+        Args:
+            team_id: 团队ID
+            user_id: 用户ID
+            role: 成员角色，默认 "member"
+
+        Returns:
+            创建的 SpaceMember 对象
+
+        Raises:
+            TeamNotFound: 团队不存在
+            UserNotFound: 用户不存在
+            UserAlreadyInTeam: 用户已在团队中
+        """
+        session = self._db()
+        try:
+            # 验证团队存在
+            team = session.query(Space).filter(
+                Space.id == team_id,
+                Space.space_type == "team"
+            ).first()
+            if not team:
+                raise TeamNotFound(f"Team {team_id} not found")
+
+            # 验证用户存在
+            user = session.query(User).filter(User.id == user_id).first()
+            if not user:
+                raise UserNotFound(f"User {user_id} not found")
+
+            # 检查用户是否已在团队中
+            existing = session.query(SpaceMember).filter(
+                SpaceMember.space_id == team_id,
+                SpaceMember.user_id == user_id
+            ).first()
+            if existing:
+                raise UserAlreadyInTeam(f"User {user_id} already in team {team_id}")
+
+            # 创建成员记录
+            member = SpaceMember(
+                space_id=team_id,
+                user_id=user_id,
+                role=role,
+                status="active"
+            )
+            session.add(member)
+            session.commit()
+            session.refresh(member)
+
+            return member
         finally:
             session.close()
 
