@@ -11,7 +11,7 @@
     <div class="team-view__header">
       <h3 class="team-view__title">我所在的团队</h3>
     </div>
-    <div id="myTeamsSection">
+    <div class="my-teams-section">
       <div v-if="loading" class="team-view__loading">加载中...</div>
       <div v-else-if="myTeams.length === 0" class="team-view__empty show">
         <div class="team-view__empty-icon">👥</div>
@@ -50,8 +50,38 @@
       </div>
     </div>
 
+    <!-- 配额状态面板 -->
+    <div class="team-quota-panel" v-if="selectedTeamForQuota">
+      <h3 class="team-quota-panel__title">团队配额</h3>
+      <div class="quota-info">
+        <div class="quota-row">
+          <span class="quota-label">总配额:</span>
+          <span class="quota-value">{{ formatSize(selectedTeamQuota.max_bytes) }}</span>
+        </div>
+        <div class="quota-row">
+          <span class="quota-label">已用:</span>
+          <span class="quota-value">{{ formatSize(selectedTeamQuota.used_bytes) }}</span>
+        </div>
+        <div class="quota-row">
+          <span class="quota-label">可用:</span>
+          <span class="quota-value">{{ formatSize(selectedTeamQuota.available_bytes) }}</span>
+        </div>
+        <div class="quota-row">
+          <span class="quota-label">成员数:</span>
+          <span class="quota-value">{{ selectedTeamQuota.member_count }} / {{ selectedTeamQuota.max_members }}</span>
+        </div>
+      </div>
+      <div class="quota-bar">
+        <div
+          class="quota-bar-fill"
+          :style="{ width: quotaUsagePercent + '%' }"
+          :class="getQuotaClassForPanel(quotaUsagePercent)"
+        ></div>
+      </div>
+    </div>
+
     <!-- All teams (admin) -->
-    <div v-if="isAdmin" id="allTeamsSection" class="team-view__section-gap">
+    <div v-if="isAdmin" class="all-teams-section team-view__section-gap">
       <div class="team-view__header">
         <h3 class="team-view__title">所有团队 (管理)</h3>
       </div>
@@ -129,17 +159,39 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { api } from '../services/api.js'
+import { useAuthStore } from '../stores/authStore.js'
+import { useTeamStore } from '../stores/teamStore.js'
 
 const emit = defineEmits(['show-toast', 'navigate'])
+
+const authStore = useAuthStore()
+const teamStore = useTeamStore()
+
+// Admin判断必须通过 authStore（符合 FE-016）
+const isAdmin = computed(() => authStore.isAdmin)
+
+// 配额使用百分比
+const quotaUsagePercent = computed(() => {
+  if (selectedTeamQuota.value.max_bytes === 0) return 0
+  return Math.round(
+    (selectedTeamQuota.value.used_bytes / selectedTeamQuota.value.max_bytes) * 100
+  )
+})
 
 const myTeams = ref([])
 const allTeams = ref([])
 const loading = ref(false)
 const joinToken = ref('')
-const isAdmin = computed(() => localStorage.getItem('hfm_role') === 'admin')
 const showCredentials = ref(false)
 const selectedTeam = ref(null)
+const selectedTeamForQuota = ref(null)
+const selectedTeamQuota = ref({
+  max_bytes: 0,
+  used_bytes: 0,
+  available_bytes: 0,
+  member_count: 0,
+  max_members: 0
+})
 const credentials = ref([])
 
 onMounted(() => {
@@ -149,11 +201,11 @@ onMounted(() => {
 async function loadTeams() {
   loading.value = true
   try {
-    const data = await api.getTeams()
-    myTeams.value = data.teams || []
+    await teamStore.loadTeams()
+    myTeams.value = teamStore.myTeams || []
     if (isAdmin.value) {
-      const allData = await api.getAllTeams()
-      allTeams.value = allData.teams || []
+      await teamStore.loadAllTeams()
+      allTeams.value = teamStore.allTeams || []
     }
   } catch (err) {
     emit('show-toast', { type: 'error', title: '错误', message: err.message })
@@ -162,6 +214,7 @@ async function loadTeams() {
   }
 }
 
+// 使用 teamStore.joinTeamWithValidation（符合 FE-022 先预检再加入）
 async function joinTeam() {
   if (!joinToken.value.trim()) {
     emit('show-toast', { type: 'error', title: '错误', message: '请输入邀请码' })
@@ -170,12 +223,14 @@ async function joinTeam() {
 
   loading.value = true
   try {
-    await api.joinTeam(joinToken.value)
+    // 先预检邀请码，有效则自动加入（符合 FE-022）
+    await teamStore.joinTeamWithValidation(joinToken.value)
     emit('show-toast', { type: 'success', title: '成功', message: '已加入团队' })
     joinToken.value = ''
     loadTeams()
   } catch (err) {
-    emit('show-toast', { type: 'error', title: '错误', message: err.message })
+    // 预检失败会抛出明确错误信息
+    emit('show-toast', { type: 'error', title: '无法加入', message: err.message })
   } finally {
     loading.value = false
   }
@@ -188,7 +243,7 @@ async function showCreateTeam() {
   const description = prompt('请输入团队描述 (可选):') || ''
 
   try {
-    await api.createTeam(name, description)
+    await teamStore.createTeam(name, description)
     emit('show-toast', { type: 'success', title: '成功', message: '团队创建成功' })
     loadTeams()
   } catch (err) {
@@ -202,8 +257,7 @@ function enterTeam(team) {
 
 async function showTeamMembers(team) {
   try {
-    const data = await api.getTeamMembers(team.team_id)
-    const members = data.members || []
+    const members = await teamStore.loadTeamMembers(team.team_id)
     const memberList = members.map(m => `${m.username} (${m.role})`).join('\n')
     alert(`团队成员 (${members.length}):\n\n${memberList || '暂无成员'}`)
   } catch (err) {
@@ -218,7 +272,7 @@ async function editTeam(team) {
   const newDescription = prompt('请输入新的团队描述:', team.description || '') || ''
 
   try {
-    await api.updateTeam(team.team_id, { name: newName, description: newDescription })
+    await teamStore.updateTeam(team.team_id, { name: newName, description: newDescription })
     emit('show-toast', { type: 'success', title: '成功', message: '团队信息已更新' })
     loadTeams()
   } catch (err) {
@@ -230,7 +284,7 @@ async function showTeamCredentials(team) {
   selectedTeam.value = team
   showCredentials.value = true
   try {
-    const data = await api.getTeamCredentials(team.team_id)
+    const data = await teamStore.getTeamCredentials(team.team_id)
     credentials.value = data.credentials || []
   } catch (err) {
     emit('show-toast', { type: 'error', title: '错误', message: err.message })
@@ -240,7 +294,7 @@ async function showTeamCredentials(team) {
 async function createCredential() {
   if (!selectedTeam.value) return
   try {
-    await api.createTeamCredential(selectedTeam.value.team_id, { max_uses: 10, expires_at: null })
+    await teamStore.createInviteCode(selectedTeam.value.team_id)
     emit('show-toast', { type: 'success', title: '成功', message: '邀请码已生成' })
     showTeamCredentials(selectedTeam.value)
   } catch (err) {
@@ -251,7 +305,7 @@ async function createCredential() {
 async function deleteCredential(credId) {
   if (!confirm('确定要删除这个邀请码吗？')) return
   try {
-    await api.deleteTeamCredential(selectedTeam.value.team_id, credId)
+    await teamStore.deleteTeamCredential(selectedTeam.value.team_id, credId)
     emit('show-toast', { type: 'success', title: '成功', message: '邀请码已删除' })
     showTeamCredentials(selectedTeam.value)
   } catch (err) {
@@ -263,6 +317,22 @@ function getQuotaClass(usage) {
   if (usage > 0.9) return 'team-card__quota-fill--danger'
   if (usage > 0.7) return 'team-card__quota-fill--warn'
   return 'team-card__quota-fill--ok'
+}
+
+function getQuotaClassForPanel(percent) {
+  if (percent >= 90) return 'danger'
+  if (percent >= 70) return 'warn'
+  return 'ok'
+}
+
+function loadTeamQuota(team) {
+  selectedTeamForQuota.value = team
+  fetch(`/api/v1/teams/${team.team_id}/quota-status`)
+    .then(res => res.json())
+    .then(data => {
+      selectedTeamQuota.value = data
+    })
+    .catch(err => console.error('Failed to load team quota:', err))
 }
 
 function formatSize(bytes) {
@@ -284,375 +354,56 @@ function formatDate(str) {
 </script>
 
 <style scoped>
-/* ============================================
-   TeamView - Apple Design System
-   Based on DESIGN.md Apple Design System specs
-   ============================================ */
-
-/* --------------------------------------------
-   Layout - View Container
-   -------------------------------------------- */
-.team-view {
-  flex: 1;
-  overflow: auto;
-  padding: var(--spacing-lg);
+.team-quota-panel {
+  background: var(--color-surface-secondary);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 16px;
 }
 
-/* --------------------------------------------
-   Toolbar
-   -------------------------------------------- */
-.team-view__toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md) 0;
-  margin-bottom: var(--spacing-lg);
+.team-quota-panel__title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-ink-primary);
+  margin-bottom: 12px;
 }
 
-.team-view__spacer {
-  flex: 1;
-}
-
-/* --------------------------------------------
-   Typography - Headers & Titles
-   -------------------------------------------- */
-.team-view__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--spacing-md);
-}
-
-.team-view__title {
-  font: var(--text-body-strong);
-  color: var(--color-ink);
-  margin-bottom: var(--spacing-sm);
-}
-
-.team-view__section-gap {
-  margin-top: var(--spacing-xl);
-}
-
-/* --------------------------------------------
-   Buttons - Apple Design System
-   -------------------------------------------- */
-.team-view__btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font: var(--text-body);
-  border: none;
-  border-radius: var(--radius-pill);
-  cursor: pointer;
-  transition: transform 0.1s ease, opacity 0.15s ease;
-}
-
-.team-view__btn:active {
-  transform: scale(0.95);
-}
-
-.team-view__btn--primary {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  padding: var(--spacing-sm) var(--spacing-md);
-}
-
-.team-view__btn--primary:focus {
-  outline: 2px solid var(--color-primary-focus);
-  outline-offset: 2px;
-}
-
-.team-view__btn--secondary {
-  background: transparent;
-  color: var(--color-primary);
-  border: 1px solid var(--color-hairline);
-  padding: var(--spacing-sm) var(--spacing-md);
-}
-
-.team-view__btn--secondary:hover {
-  background: var(--color-canvas-parchment);
-}
-
-.team-view__btn--secondary:focus {
-  outline: 2px solid var(--color-primary-focus);
-  outline-offset: 2px;
-}
-
-.team-view__btn--danger {
-  background: transparent;
-  color: var(--color-danger);
-  border: 1px solid var(--color-hairline);
-  padding: var(--spacing-sm) var(--spacing-md);
-}
-
-.team-view__btn--danger:hover {
-  background: var(--color-danger-subtle);
-}
-
-.team-view__btn--sm {
-  font: var(--text-caption);
-  padding: var(--spacing-xxs) var(--spacing-sm);
-}
-
-/* --------------------------------------------
-   Team List - Card Grid
-   -------------------------------------------- */
-.team-view__list {
+.quota-info {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: 8px;
 }
 
-/* --------------------------------------------
-   Team Card - store-utility-card Style
-   -------------------------------------------- */
-.team-card {
-  background: var(--color-canvas);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-}
-
-.team-card__main {
+.quota-row {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-lg);
-  flex-wrap: wrap;
+  justify-content: space-between;
 }
 
-.team-card__info {
-  flex: 1;
-  min-width: 150px;
-}
-
-.team-card__name {
-  font: var(--text-body-strong);
-  color: var(--color-ink);
-  display: block;
-}
-
-.team-card__desc {
-  font: var(--text-caption);
-  color: var(--color-ink-muted-48);
-  display: block;
-  margin-top: var(--spacing-xxs);
-}
-
-.team-card__stats {
-  display: flex;
-  gap: var(--spacing-lg);
-}
-
-.team-card__stat {
-  text-align: center;
-}
-
-.team-card__stat-value {
-  font: var(--text-body-strong);
-  color: var(--color-ink);
-  display: block;
-}
-
-.team-card__stat-label {
-  font: var(--text-caption);
+.quota-label {
   color: var(--color-ink-muted-48);
 }
 
-.team-card__stat--quota .team-card__stat-label {
-  color: var(--color-ink-muted-48);
+.quota-value {
+  color: var(--color-ink-primary);
+  font-weight: 500;
 }
 
-.team-card__quota-bar {
-  width: 100px;
-  height: var(--spacing-xs);
-  background: var(--color-canvas-parchment);
-  border-radius: var(--radius-xs);
+.quota-bar {
+  height: 8px;
+  background: var(--color-surface-tertiary);
+  border-radius: 4px;
+  margin-top: 12px;
   overflow: hidden;
 }
 
-.team-card__quota-fill {
+.quota-bar-fill {
   height: 100%;
-  border-radius: var(--radius-xs);
-  transition: width 0.3s;
+  border-radius: 4px;
+  transition: width 0.3s ease;
 }
 
-.team-card__quota-fill--ok { background: var(--color-success); }
-.team-card__quota-fill--warn { background: var(--color-warning); }
-.team-card__quota-fill--danger { background: var(--color-danger); }
-
-.team-card__owner {
-  font: var(--text-caption);
-  color: var(--color-ink-muted-48);
-}
-
-.team-card__badge {
-  display: inline-block;
-  padding: var(--spacing-xxs) var(--spacing-sm);
-  border-radius: var(--radius-pill);
-  font: var(--text-caption-strong);
-}
-
-.team-card__badge--active {
-  background: var(--color-success-subtle);
-  color: var(--color-success);
-}
-
-.team-card__badge--inactive {
-  background: var(--color-gray-subtle);
-  color: var(--color-ink-muted-48);
-}
-
-.team-card__actions {
-  display: flex;
-  gap: var(--spacing-xs);
-  margin-top: var(--spacing-md);
-  padding-top: var(--spacing-md);
-  border-top: 1px solid var(--color-divider-soft);
-}
-
-/* --------------------------------------------
-   Join Form
-   -------------------------------------------- */
-.team-view__join-form {
-  display: flex;
-  gap: var(--spacing-sm);
-  max-width: 400px;
-}
-
-.team-view__search-input {
-  flex: 1;
-  background: var(--color-canvas);
-  color: var(--color-ink);
-  font: var(--text-body);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-pill);
-  padding: var(--spacing-sm) var(--spacing-md);
-  height: 44px;
-}
-
-.team-view__search-input:focus {
-  outline: 2px solid var(--color-primary-focus);
-  outline-offset: 2px;
-}
-
-/* --------------------------------------------
-   Empty State
-   -------------------------------------------- */
-.team-view__empty {
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-xxl) var(--spacing-lg);
-}
-
-.team-view__empty--show {
-  display: flex;
-}
-
-.team-view__empty-icon {
-  font-size: 48px;
-  margin-bottom: var(--spacing-md);
-  opacity: 0.5;
-}
-
-/* --------------------------------------------
-   Loading
-   -------------------------------------------- */
-.team-view__loading {
-  text-align: center;
-  padding: var(--spacing-lg);
-  font: var(--text-body);
-  color: var(--color-ink-muted-48);
-}
-
-/* --------------------------------------------
-   Modal - Apple Design System
-   -------------------------------------------- */
-.team-view__modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--color-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-modal-backdrop);
-}
-
-.team-view__modal {
-  background: var(--color-canvas);
-  border-radius: var(--radius-lg);
-  width: 90%;
-  max-width: 600px;
-  max-height: 80vh;
-  overflow: auto;
-}
-
-.team-view__modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-lg);
-  border-bottom: 1px solid var(--color-divider-soft);
-}
-
-.team-view__modal-header h3 {
-  font: var(--text-body-strong);
-  margin: 0;
-}
-
-.team-view__modal-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: var(--color-ink-muted-48);
-}
-
-.team-view__modal-body {
-  padding: var(--spacing-lg);
-}
-
-.team-view__modal-footer {
-  display: flex;
-  gap: var(--spacing-sm);
-  justify-content: flex-end;
-  padding: var(--spacing-lg);
-  border-top: 1px solid var(--color-divider-soft);
-}
-
-/* --------------------------------------------
-   Credential List
-   -------------------------------------------- */
-.team-view__credential-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.team-view__credential-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-canvas-parchment);
-  border-radius: var(--radius-sm);
-}
-
-.team-view__credential-token {
-  font: var(--text-caption);
-  font-family: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", monospace;
-  color: var(--color-ink);
-  background: var(--color-canvas);
-  padding: var(--spacing-xxs) var(--spacing-xs);
-  border-radius: var(--radius-xs);
-}
-
-.team-view__credential-detail {
-  font: var(--text-caption);
-  color: var(--color-ink-muted-48);
-}
+.quota-bar-fill.ok { background: var(--color-green); }
+.quota-bar-fill.warn { background: var(--color-yellow); }
+.quota-bar-fill.danger { background: var(--color-red); }
 </style>
+
