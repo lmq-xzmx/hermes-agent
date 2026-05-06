@@ -141,16 +141,16 @@ RTM (Requirements Traceability Matrix) 是一种需求管理工具，用于确�
 
 > **模块状态**: ✅ 已实现
 
-| 需求ID | 描述 | 状态 | 验证方式 |
-|--------|------|------|----------|
-| REQ-M7-001 | 双层权限模型 | 已实现 | 代码审查 |
-| REQ-M7-002 | 配额分配公式 | 已实现 | 单元测试 |
-| REQ-M7-003 | 成员加入自动配额划拨 | 已实现 | 集成测试 |
-| REQ-M7-004 | 成员主动退出需审批 | 已实现 | E2E测试 |
-| REQ-M7-005 | 管理员移除成员通知 | 已实现 | 手动验证 |
-| REQ-M7-006 | 回收操作 | 已实现 | 手动验证 |
-| REQ-M7-007 | 待办任务入口 | 已实现 | UI验证 |
-| REQ-M7-008 | 通知机制 | 已实现 | 手动验证 |
+| REQ-ID | 描述 | 优先级 | 任务 | 代码位置 | 测试用例 | 状态 |
+|--------|------|--------|------|----------|----------|------|
+| REQ-M7-001 | 双层权限模型 | P1 | M7-T1 | models.py (Space/Team) | test_space_team_permission | ✅ 已实现 |
+| REQ-M7-002 | 配额分配公式 | P1 | M7-T1 | quota_service.py | test_quota_allocation_formula | ✅ 已实现 |
+| REQ-M7-003 | 成员加入自动配额划拨 | P0 | M7-T2 | space_service.py:join_team | test_auto_quota_allocation | ✅ 已实现 |
+| REQ-M7-004 | 成员主动退出需审批 | P1 | M7-T2 | space_service.py:leave_team | test_leave_team_approval | ✅ 已实现 |
+| REQ-M7-005 | 管理员移除成员通知 | P2 | M7-T3 | notification_service.py | test_remove_member_notification | ✅ 已实现 |
+| REQ-M7-006 | 回收操作 | P1 | M7-T3 | space_service.py:recycle_space | test_space_recycle_operation | ✅ 已实现 |
+| REQ-M7-007 | 待办任务入口 | P2 | M7-T3 | web/src/components/TodoEntry.vue | test_todo_entry_ui | ✅ 已实现 |
+| REQ-M7-008 | 通知机制 | P1 | M7-T3 | notification_service.py | test_notification_mechanism | ✅ 已实现 |
 
 ---
 
