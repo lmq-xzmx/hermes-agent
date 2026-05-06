@@ -8,6 +8,7 @@ T5 任务依赖 T4 审批数据模型（ApprovalRequest, ApprovalRecord, Approva
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Callable
@@ -20,6 +21,8 @@ from ..engine.models import (
     ApprovalRequest, ApprovalRecord, ApprovalType, RequestStatus,
     User, Space, SpaceMember, Team, Base
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _get_default_session_factory() -> Callable[[], Session]:
@@ -367,9 +370,8 @@ class ApprovalService:
         elif approval_type == ApprovalType.TEAM_MEMBER_EXIT.value:
             # 成员退出申请通过
             from services.space_service import SpaceService
-            import json
             space_service = SpaceService()
-            params = json.loads(request.params or "{}")
+            params = request.params or {}
             member_id = params.get("member_id", request.applicant_id)
 
             # 执行成员退出
