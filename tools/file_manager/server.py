@@ -1931,8 +1931,7 @@ async def get_team_quota_status(
     user_ctx=Depends(get_current_user_ctx)
 ):
     """获取团队配额状态"""
-    from services.team_service import TeamService, TeamNotFound
-    svc = TeamService()
+    svc = get_team_service()
     try:
         status = svc.get_team_quota_status(team_id)
         return status
@@ -1946,8 +1945,7 @@ async def request_team_exit(
     user_ctx=Depends(get_current_user_ctx)
 ):
     """成员申请退出团队（生成待办任务给管理员）"""
-    from services.space_service import SpaceService
-    svc = SpaceService()
+    svc = get_space_service()
     try:
         request = svc.create_member_exit_request(
             team_id=team_id,
@@ -1960,14 +1958,13 @@ async def request_team_exit(
 
 
 @app.post("/api/v1/teams/{team_id}/members/{member_id}/remove", tags=["teams"])
-async def remove_team_member(
+async def remove_team_member_by_admin(
     team_id: str,
     member_id: str,
     user_ctx=Depends(get_current_user_ctx)
 ):
     """管理员移除团队成员"""
-    from services.space_service import SpaceService
-    svc = SpaceService()
+    svc = get_space_service()
     try:
         result = svc.remove_member_with_notification(
             team_id=team_id,
@@ -1986,8 +1983,7 @@ async def get_pending_tasks(
     user_ctx=Depends(get_current_user_ctx)
 ):
     """获取团队待处理任务列表"""
-    from services.approval_service import ApprovalService
-    svc = ApprovalService()
+    svc = get_approval_service()
     try:
         requests = svc.get_pending_requests(approver_id=str(user_ctx.user_id))
         # 过滤出该团队的任务
