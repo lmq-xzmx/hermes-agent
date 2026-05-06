@@ -11,9 +11,12 @@ Handles:
 
 from __future__ import annotations
 
+import json
+import logging
 import os
 import secrets
 import shutil
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -23,6 +26,7 @@ from ..engine.models import (
 )
 from ..engine.storage import StorageEngine
 
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # Domain Errors
@@ -983,6 +987,116 @@ class SpaceService:
             session.add(request)
             session.commit()
             return request.to_dict()
+        finally:
+            session.close()
+
+    def create_member_exit_request(
+        self,
+        team_id: str,
+        member_id: str,
+        reason: Optional[str] = None
+    ) -> SpaceRequest:
+        """
+        创建成员退出申请（生成待办任务给管理员）
+
+        Args:
+            team_id: 团队ID
+            member_id: 成员ID
+            reason: 退出原因
+
+        Returns:
+            SpaceRequest 对象
+        """
+        from engine.models import db_session, SpaceRequest, User, Space
+
+        session = db_session()
+        try:
+            # 验证成员存在
+            member = session.query(User).filter(User.id == member_id).first()
+            if not member:
+                raise ValueError(f"Member {member_id} not found")
+
+            # 验证团队存在
+            team = session.query(Space).filter(Space.id == team_id, Space.space_type == "team").first()
+            if not team:
+                raise ValueError(f"Team {team_id} not found")
+
+            # 创建申请
+            request = SpaceRequest(
+                id=str(uuid.uuid4()),
+                space_id=team_id,
+                requester_id=member_id,
+                requested_name=f"成员退出: {member.username}",
+                status="pending",
+                reason=reason or "成员主动申请退出",
+                params_json=json.dumps({"type": "team_member_exit", "member_id": member_id})
+            )
+            session.add(request)
+            session.commit()
+
+            return request
+        finally:
+            session.close()
+
+    def remove_member_with_notification(
+        self,
+        team_id: str,
+        member_id: str,
+        operator_id: str,
+        action: str = "remove_by_admin"
+    ) -> Dict[str, Any]:
+        """
+        管理员移除成员并发送通知
+
+        Args:
+            team_id: 团队ID
+            member_id: 被移除成员ID
+            operator_id: 操作人ID
+            action: 操作类型 ("remove_by_admin", "quota_recovery", "data_clear", "data_transfer")
+
+        Returns:
+            操作结果
+        """
+        from engine.models import db_session, SpaceMember, User, Space
+        from services.notification_service import NotificationService
+
+        session = db_session()
+        try:
+            # 移除成员
+            member_record = session.query(SpaceMember).filter(
+                SpaceMember.space_id == team_id,
+                SpaceMember.user_id == member_id
+            ).first()
+
+            if not member_record:
+                raise ValueError(f"Member {member_id} not found in team {team_id}")
+
+            # 获取成员信息用于通知
+            member_user = session.query(User).filter(User.id == member_id).first()
+            member_name = member_user.username if member_user else "未知成员"
+
+            # 删除成员记录
+            session.delete(member_record)
+            session.commit()
+
+            # 发送通知（如果 NotificationService 存在）
+            try:
+                notification_service = NotificationService()
+                notification_service.create_notification(
+                    user_id=member_id,
+                    title="您已被移出团队",
+                    content=f"您已被移出团队，请联系管理员了解详情",
+                    notification_type="team_remove"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to send notification: {e}")
+
+            return {
+                "success": True,
+                "member_id": member_id,
+                "member_name": member_name,
+                "action": action
+            }
         finally:
             session.close()
 
