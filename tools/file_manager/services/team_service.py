@@ -90,6 +90,9 @@ class TeamService:
     Each user sees only their own member subdirectory, not the whole team tree.
     """
 
+    # 配额计算常量：使用 50% 作为安全余量（即每个成员配额 = 总配额 / 成员数 * 2 预留）
+    QUOTA_OVERHEAD_FACTOR = 2
+
     def __init__(self, db_factory):
         self._db = db_factory
 
@@ -718,7 +721,7 @@ class TeamService:
         # 计算单个成员配额（如果已设置）
         member_quota = 0
         if member_count > 0 and max_bytes > 0:
-            member_quota = max_bytes // (member_count * 2)  # 保守估计
+            member_quota = max_bytes // (member_count * self.QUOTA_OVERHEAD_FACTOR)  # 预留50%余量
 
         max_members = max_bytes // member_quota if member_quota > 0 else 0
 
