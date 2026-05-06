@@ -49,7 +49,7 @@ class AuditAction(PyEnum):
     LOGIN = "login"
     LOGOUT = "logout"
     LOGIN_FAILED = "login_failed"
-    
+
     # File actions
     FILE_READ = "file_read"
     FILE_WRITE = "file_write"
@@ -58,7 +58,14 @@ class AuditAction(PyEnum):
     FILE_CREATE = "file_create"
     FILE_MOVE = "file_move"
     FILE_COPY = "file_copy"
-    
+
+    # Trash actions
+    TRASH_LIST = "trash_list"
+    TRASH_RESTORE = "trash_restore"
+    TRASH_DELETE = "trash_delete"
+    TRASH_PURGE = "trash_purge"
+    TRASH_EMPTY = "trash_empty"
+
     # Admin actions
     USER_CREATE = "user_create"
     USER_UPDATE = "user_update"
@@ -69,12 +76,12 @@ class AuditAction(PyEnum):
     RULE_CREATE = "rule_create"
     RULE_UPDATE = "rule_update"
     RULE_DELETE = "rule_delete"
-    
+
     # Share actions
     SHARE_CREATE = "share_create"
     SHARE_ACCESS = "share_access"
     SHARE_DELETE = "share_delete"
-    
+
     # Catch-all for unclassified actions
     OTHER = "other"
 
@@ -1379,6 +1386,8 @@ class ApprovalType(str, PyEnum):
     QUOTA_EXTEND = "quota_extend"
     STORAGE_POOL = "storage_pool"
     TEAM_CREATE = "team_create"
+    team_join = "team_join"           # 申请加入团队（新增团队场景）
+    team_member_exit = "team_member_exit"  # 成员退出待处理
 
 
 class RequestStatus(str, PyEnum):
