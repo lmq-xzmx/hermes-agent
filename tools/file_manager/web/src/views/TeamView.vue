@@ -226,7 +226,9 @@ const pendingTasks = ref([])
 
 onMounted(() => {
   loadTeams()
-  loadPendingTasks()
+  if (isAdmin.value) {
+    loadPendingTasks()
+  }
 })
 
 async function loadTeams() {
@@ -383,9 +385,9 @@ function formatDate(str) {
   return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-async function loadPendingTasks(teamId) {
+async function loadPendingTasks() {
   try {
-    const tasks = await teamStore.fetchPendingTasks(teamId)
+    const tasks = await teamStore.fetchPendingTasks()
     pendingTasks.value = tasks || []
   } catch (err) {
     console.error('Failed to load pending tasks:', err)

@@ -275,6 +275,20 @@ export const useTeamStore = defineStore('teams', () => {
     }
   }
 
+  // 获取管理员的所有待审批任务
+  async function fetchPendingTasks() {
+    try {
+      const res = await fetch(`${API_BASE}/approvals/pending`, {
+        headers: getAuthHeaders()
+      })
+      if (!res.ok) throw new Error('Failed to fetch pending tasks')
+      return await res.json()
+    } catch (e) {
+      error.value = e.message
+      throw e
+    }
+  }
+
   async function updateTeam(teamId, data) {
     try {
       const res = await fetch(`${API_BASE}/teams/${teamId}`, {
@@ -329,6 +343,7 @@ export const useTeamStore = defineStore('teams', () => {
     getTeamCredentials,
     fetchTeamQuotaStatus,
     deleteTeamCredential,
+    fetchPendingTasks,
     updateTeam,
     setCurrentTeam,
     clearTeams
