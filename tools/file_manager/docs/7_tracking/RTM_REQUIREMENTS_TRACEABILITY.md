@@ -102,8 +102,8 @@ RTM (Requirements Traceability Matrix) 是一种需求管理工具，用于确�
 | REQ-M2-014 | SPACE_HAS_PENDING_REQUESTS 边缘 case | P1 | M2-T1 | lifecycle_engine.py:232 | test_space_pending_requests | ✅ |
 | REQ-M2-015 | 前端约束兜底 | P1 | M2-T2 | web/src/components/lifecycle/LifecycleInterceptor.vue | test_lifecycle_interceptor | ✅ 已实现 |
 | REQ-M2-016 | 边缘约束 Case 完善 | P1 | M2-T1 | lifecycle_engine.py (4个边缘case方法) | test_pool_teams_migrating, test_member_recently_removed 等 | ✅ 已实现 |
-| REQ-M2-017 | 配额超卖防护 (SELECT FOR UPDATE) | P0 | T5 | space_service.py:225 (check_quota_for_write_with_lock) + FileUpload模型 | test_concurrent_upload_quota_lock | ✅ 已实现 (5个测试用例全部通过) |
-| REQ-M2-018 | 并发邀请防护 (唯一索引) | P0 | T10 | models.py: ix_hfm_space_members_unique + space_service.py:620,719,884 | test_duplicate_invitation_unique_index (4个测试用例) | ✅ 已实现 |
+| REQ-M2-017 | 配额超卖防护 (SELECT FOR UPDATE) | P0 | T5 | space_service.py:225 (check_quota_for_write_with_lock) + FileUpload模型 | test_concurrent_upload_quota_lock (5用例) | ✅ 已实现 |
+| REQ-M2-018 | 并发邀请防护 (唯一索引) | P0 | T10 | models.py: ix_hfm_space_members_unique + space_service.py:620,719,884 | test_duplicate_invitation_unique_index (4用例) | ✅ 已实现 |
 | REQ-M2-019 | 跨团队协作 (SpaceLink) | P1 | T11 | space_service.py, server.py | test_space_link_cross_team | ✅ 已实现 |
 
 ### 3.3 模块三：新手引导 (M3)
@@ -125,16 +125,32 @@ RTM (Requirements Traceability Matrix) 是一种需求管理工具，用于确�
 ### 3.4 测试与基础设施需求 (M6)
 
 > **模块状态**: ✅ 部分实现 (T2/T5/T6集成测试已完成通过，T3前端测试已完成)
+> **更新说明 v2.7**: 前端测试扩展至60个用例全部通过；新增fileUtils.test.js(19用例)、api.contract.test.js(12用例)
 > **更新说明 v2.6**: REQ-M6-002/003/005/006 全部验证通过；T2 test_quota_block.py (6用例) 修复后全部通过
 
 | REQ-ID | 描述 | 优先级 | 任务 | 代码位置 | 测试用例 | 状态 |
 |--------|------|--------|------|----------|----------|------|
-| REQ-M6-001 | 前后端契约测试自动化 | P1 | M6-T2 | tests/contract/ | test_lifecycle_contract.py | ⚠️ 部分实现 (契约代码存在，需API服务器) |
+| REQ-M6-001 | 前后端契约测试自动化 | P1 | M6-T2 | tests/contract/ | api.test.js (12用例) | ✅ 已实现 (12/12通过) |
 | REQ-M6-002 | 集成测试框架搭建 | P0 | M6-T2 | tests/integration/ | test_lifecycle_api.py (19用例) + test_quota_block.py (6用例) | ✅ 已实现 (25/25通过) |
-| REQ-M6-003 | 前端组件单元测试 | P1 | M6-T1 | web/src/components/__tests__/ | guidanceStore.test.js (13) + AdminOverview.test.js (16) | ✅ 已实现 (29/29通过) |
+| REQ-M6-003 | 前端组件单元测试 | P1 | M6-T1 | web/src/components/__tests__/ + stores + utils + contract | AdminOverview.test.js (16) + guidanceStore.test.js (13) + fileUtils.test.js (19) + api.test.js (12) | ✅ 已实现 (60/60通过) |
 | REQ-M6-004 | E2E 测试关键路径覆盖 | P1 | M6-T3 | web/tests/e2e/ | user_journey.spec.js + guidance.spec.js + admin.spec.js | ⚠️ 前端未完成 (路由未配置，/admin返回登录页) |
 | REQ-M6-005 | 配额超卖防护集成测试 | P0 | T9 | tests/integration/ | test_concurrent_upload_quota.py (5用例) | ✅ 已实现 (5/5通过) |
 | REQ-M6-006 | 并发邀请防护集成测试 | P0 | T10 | tests/test_lifecycle_integration.py | TestDuplicateInvitationPrevention (4用例) | ✅ 已实现 (4/4通过) |
+
+### 3.5 空间管理与团队配额 (M7)
+
+> **模块状态**: ✅ 已实现
+
+| 需求ID | 描述 | 状态 | 验证方式 |
+|--------|------|------|----------|
+| REQ-M7-001 | 双层权限模型 | 已实现 | 代码审查 |
+| REQ-M7-002 | 配额分配公式 | 已实现 | 单元测试 |
+| REQ-M7-003 | 成员加入自动配额划拨 | 已实现 | 集成测试 |
+| REQ-M7-004 | 成员主动退出需审批 | 已实现 | E2E测试 |
+| REQ-M7-005 | 管理员移除成员通知 | 已实现 | 手动验证 |
+| REQ-M7-006 | 回收操作 | 已实现 | 手动验证 |
+| REQ-M7-007 | 待办任务入口 | 已实现 | UI验证 |
+| REQ-M7-008 | 通知机制 | 已实现 | 手动验证 |
 
 ---
 
