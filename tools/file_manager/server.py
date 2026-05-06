@@ -42,6 +42,7 @@ from file_manager.services import (
 )
 from file_manager.services.file_lock_service import FileLockService
 from file_manager.services.collaboration_service import CollaborationService
+from file_manager.services.trash_service import TrashService
 from file_manager.api.dto import (
     LoginRequestDTO, RegisterRequestDTO, RefreshRequestDTO,
     LoginResponseDTO, UserResponseDTO,
@@ -211,6 +212,11 @@ async def lifespan(app: FastAPI):
     # Start file lock cleanup background thread
     file_lock_service.start_cleanup_thread(interval_seconds=300)
 
+    # Start trash purge scheduler (runs every 24 hours)
+    trash_service = TrashService(db_factory, storage, storage_root)
+    TrashService.start_scheduler(db_factory, storage, interval_hours=24)
+    logger.info("TrashService scheduler started")
+
     # Ensure default pool exists
     team_service.ensure_default_pool()
 
@@ -263,7 +269,9 @@ async def lifespan(app: FastAPI):
 
     # Mount static files
     _web_dir = str(Path(__file__).parent / "web")
+    _dist_dir = str(Path(__file__).parent / "web" / "dist")
     app.mount("/static", StaticFiles(directory=_web_dir), name="static")
+    app.mount("/assets", StaticFiles(directory=_dist_dir + "/assets"), name="assets")
 
     # Initialize webhook publisher
     await init_publisher()
@@ -285,6 +293,10 @@ async def lifespan(app: FastAPI):
     await shutdown_publisher()
     if "analytics_broadcaster" in _api_instances:
         await _api_instances["analytics_broadcaster"].stop()
+
+    # Stop trash purge scheduler
+    TrashService.stop_scheduler()
+    logger.info("TrashService scheduler stopped")
 
     _api_instances.clear()
 
@@ -404,6 +416,7 @@ def _handle_space_error(e: Exception):
     )
     from file_manager.services.trash_service import (
         TrashItemNotFound, TrashAccessDenied, TrashExpired,
+        TrashPermissionDenied,
     )
     if isinstance(e, SpaceNotFound):
         raise HTTPException(status_code=404, detail=str(e))
@@ -417,7 +430,7 @@ def _handle_space_error(e: Exception):
         raise HTTPException(status_code=409, detail=str(e))
     if isinstance(e, CredentialExpired):
         raise HTTPException(status_code=410, detail=str(e))
-    if isinstance(e, TrashAccessDenied):
+    if isinstance(e, (TrashAccessDenied, TrashPermissionDenied)):
         raise HTTPException(status_code=403, detail=str(e))
     if isinstance(e, TrashExpired):
         raise HTTPException(status_code=410, detail=str(e))
@@ -502,6 +515,124 @@ async def system_status():
         "llm_wiki_api_url": "http://localhost:19827",
     }
 
+@app.get("/api/v1/knowledge/status")
+async def knowledge_status():
+    """Return knowledge base status for frontend."""
+    import httpx
+
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        try:
+            llm_api_resp = await client.get("http://localhost:1421/health")
+            llm_api_ok = llm_api_resp.status_code == 200
+        except Exception:
+            llm_api_ok = False
+
+    return {
+        "running": llm_api_ok,
+        "sync_mode": "manual"
+    }
+
+@app.post("/api/v1/knowledge/sync")
+async def sync_to_knowledge(
+    request: Request,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx)
+):
+    """同步文档到知识库
+
+    权限: 空间成员或管理员
+    """
+    from file_manager.services.knowledge_service import get_knowledge_service
+
+    body = await request.json()
+    source_path = body.get("source_path")
+    project_name = body.get("project_name", "default")
+
+    if not source_path:
+        raise HTTPException(status_code=400, detail="source_path is required")
+
+    # 检查用户是否是空间成员
+    space_service = get_space_service()
+    is_admin = user_ctx.role_name == "admin"
+    is_space_member = False
+
+    if space_service and user_ctx.active_space_id:
+        contexts = space_service.get_user_storage_context(user_id=user_ctx.user_id)
+        is_space_member = any(
+            ctx.get("space_id") == user_ctx.active_space_id
+            for ctx in contexts
+        )
+
+    # 如果没有活动的 space，检查是否有任何可访问的空间
+    if not is_space_member and not is_admin:
+        if space_service:
+            contexts = space_service.get_user_storage_context(user_id=user_ctx.user_id)
+            is_space_member = len(contexts) > 0
+
+    try:
+        svc = get_knowledge_service()
+        job = await svc.sync_to_knowledge(
+            source_path=source_path,
+            target_project=project_name,
+            user_id=user_ctx.user_id,
+            is_space_member=is_space_member,
+            is_admin=is_admin
+        )
+        return {
+            "job_id": job.id,
+            "status": job.status.value,
+            "source_path": job.source_path,
+            "target_project": job.target_project
+        }
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+@app.get("/api/v1/knowledge/search")
+async def search_knowledge(
+    q: str = "",
+    project: str = "default",
+    user_ctx: PermissionContext = Depends(get_current_user_ctx)
+):
+    """搜索知识库
+
+    权限: 空间成员或管理员
+    """
+    from file_manager.services.knowledge_service import get_knowledge_service
+
+    if not q:
+        return {"results": []}
+
+    # 检查用户是否是空间成员
+    space_service = get_space_service()
+    is_admin = user_ctx.role_name == "admin"
+    is_space_member = False
+
+    if space_service:
+        contexts = space_service.get_user_storage_context(user_id=user_ctx.user_id)
+        is_space_member = len(contexts) > 0
+
+    try:
+        svc = get_knowledge_service()
+        results = await svc.search_knowledge(
+            query=q,
+            project=project,
+            is_space_member=is_space_member,
+            is_admin=is_admin
+        )
+        return {
+            "results": [
+                {
+                    "id": r.id,
+                    "title": r.title,
+                    "snippet": r.snippet,
+                    "score": r.score,
+                    "path": r.path
+                }
+                for r in results
+            ]
+        }
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
 @app.post("/api/v1/llm_wiki/open")
 async def open_llm_wiki():
     """Open LLM Wiki GUI by spawning the process."""
@@ -522,6 +653,12 @@ async def open_llm_wiki():
             return {"status": "ok", "message": "LLM Wiki started"}
 
     return {"status": "error", "message": "LLM Wiki not found"}
+
+@app.get("/llm_wiki")
+async def llm_wiki_redirect():
+    """Redirect to LLM Wiki GUI."""
+    from starlette.responses import RedirectResponse
+    return RedirectResponse(url="http://localhost:19827", status_code=302)
 
 @app.get("/")
 async def root():
@@ -803,6 +940,68 @@ async def create_directory(
     except Exception as e:
         traceback.print_exc(file=sys.stdout)
         sys.stdout.flush()
+        return _handle_service_error(e)
+
+
+@app.post("/api/v1/files/move")
+async def move_file(
+    space_id: str,
+    request: FileMoveRequestDTO,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+    http_request: Request = None,
+):
+    """Move/rename a file or directory."""
+    file_service = get_file_service()
+    client_info = get_client_info(http_request) if http_request else {}
+    try:
+        # Set active space for permission check
+        user_ctx.active_space_id = space_id
+        result = file_service.move_file(
+            request=request,
+            user_ctx=user_ctx,
+            ip_address=client_info.get("ip_address"),
+        )
+        # Publish webhook event
+        from file_manager.api.webhook import publish_file_event, EventType
+        username = user_ctx.username
+        publish_file_event(
+            EventType.FILE_MOVED,
+            request.from_path,
+            user=username,
+        )
+        return result
+    except Exception as e:
+        return _handle_service_error(e)
+
+
+@app.post("/api/v1/files/copy")
+async def copy_file(
+    space_id: str,
+    request: FileCopyRequestDTO,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx),
+    http_request: Request = None,
+):
+    """Copy a file or directory."""
+    file_service = get_file_service()
+    client_info = get_client_info(http_request) if http_request else {}
+    try:
+        # Set active space for permission check
+        user_ctx.active_space_id = space_id
+        result = file_service.copy_file(
+            request=request,
+            user_ctx=user_ctx,
+            ip_address=client_info.get("ip_address"),
+        )
+        # Publish webhook event
+        from file_manager.api.webhook import publish_file_event, EventType
+        username = user_ctx.username
+        publish_file_event(
+            EventType.FILE_COPIED,
+            request.from_path,
+            user=username,
+        )
+        return result
+    except Exception as e:
         return _handle_service_error(e)
 
 
@@ -1487,6 +1686,9 @@ async def create_pool(
     req: CreatePoolRequest,
     user_ctx=Depends(get_current_user_ctx),
 ):
+    # Admin only
+    if user_ctx.role_name != "admin":
+        raise HTTPException(status_code=403, detail="只有管理员可以创建存储池")
     svc = get_team_service()
     try:
         pool = svc.create_pool(
@@ -1511,6 +1713,9 @@ async def refresh_pool(
     pool_id: str,
     user_ctx=Depends(get_current_user_ctx),
 ):
+    # Admin only
+    if user_ctx.role_name != "admin":
+        raise HTTPException(status_code=403, detail="只有管理员可以刷新存储池")
     svc = get_team_service()
     try:
         return svc.refresh_pool_space(pool_id)
@@ -1523,6 +1728,9 @@ async def delete_pool(
     pool_id: str,
     user_ctx=Depends(get_current_user_ctx),
 ):
+    # Admin only
+    if user_ctx.role_name != "admin":
+        raise HTTPException(status_code=403, detail="只有管理员可以删除存储池")
     svc = get_team_service()
     try:
         svc.delete_pool(pool_id)
@@ -1675,6 +1883,21 @@ async def revoke_credential(
         raise _handle_team_error(e)
 
 
+@app.post("/api/v1/teams/validate-invite", tags=["teams"])
+async def validate_invite_credential(
+    request: Request,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    """Validate an invite credential without joining the team. Used for FE-022 pre-validation."""
+    body = await request.json()
+    code = body.get("code", "")
+    svc = get_team_service()
+    try:
+        return svc.validate_credential(token=code)
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
 @app.post("/api/v1/teams/join", tags=["teams"])
 async def join_team_via_credential(
     request: Request,
@@ -1698,6 +1921,81 @@ async def my_teams(
         return svc.get_user_teams_summary(user_id=str(user_ctx.user_id))
     except Exception as e:
         raise _handle_team_error(e)
+
+
+# ========== 新增团队配额与成员管理端点 ==========
+
+@app.get("/api/v1/teams/{team_id}/quota-status", tags=["teams"])
+async def get_team_quota_status(
+    team_id: str,
+    user_ctx=Depends(get_current_user_ctx)
+):
+    """获取团队配额状态"""
+    from services.team_service import TeamService, TeamNotFound
+    svc = TeamService()
+    try:
+        status = svc.get_team_quota_status(team_id)
+        return status
+    except TeamNotFound as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.post("/api/v1/teams/{team_id}/members/request-exit", tags=["teams"])
+async def request_team_exit(
+    team_id: str,
+    user_ctx=Depends(get_current_user_ctx)
+):
+    """成员申请退出团队（生成待办任务给管理员）"""
+    from services.space_service import SpaceService
+    svc = SpaceService()
+    try:
+        request = svc.create_member_exit_request(
+            team_id=team_id,
+            member_id=str(user_ctx.user_id),
+            reason="成员主动申请退出"
+        )
+        return {"request_id": request.id, "status": "pending"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/v1/teams/{team_id}/members/{member_id}/remove", tags=["teams"])
+async def remove_team_member(
+    team_id: str,
+    member_id: str,
+    user_ctx=Depends(get_current_user_ctx)
+):
+    """管理员移除团队成员"""
+    from services.space_service import SpaceService
+    svc = SpaceService()
+    try:
+        result = svc.remove_member_with_notification(
+            team_id=team_id,
+            member_id=member_id,
+            operator_id=str(user_ctx.user_id),
+            action="remove_by_admin"
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/v1/teams/{team_id}/pending-tasks", tags=["teams"])
+async def get_pending_tasks(
+    team_id: str,
+    user_ctx=Depends(get_current_user_ctx)
+):
+    """获取团队待处理任务列表"""
+    from services.approval_service import ApprovalService
+    svc = ApprovalService()
+    try:
+        requests = svc.get_pending_requests(approver_id=str(user_ctx.user_id))
+        # 过滤出该团队的任务
+        team_requests = [r for r in requests if r.get("target_id") == team_id]
+        return {"tasks": team_requests}
+    except Exception as e:
+        logger.error(f"Error fetching pending tasks: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/v1/my/storage-context", tags=["spaces"])
@@ -2186,6 +2484,8 @@ async def create_pool(
     user_ctx=Depends(get_current_user_ctx),
 ):
     """Create a new storage pool (admin only)."""
+    if user_ctx.role_name != "admin":
+        raise HTTPException(status_code=403, detail="只有管理员可以创建存储池")
     body = await req.json()
     svc = get_space_service()
     try:
@@ -2205,7 +2505,9 @@ async def refresh_pool_space(
     pool_id: str,
     user_ctx=Depends(get_current_user_ctx),
 ):
-    """Refresh storage pool space info."""
+    """Refresh storage pool space info (admin only)."""
+    if user_ctx.role_name != "admin":
+        raise HTTPException(status_code=403, detail="只有管理员可以刷新存储池")
     svc = get_space_service()
     try:
         return svc.refresh_pool_space(pool_id)
@@ -2919,10 +3221,13 @@ async def cancel_approval(
 # ============================================================================
 
 # --- Admin Storage Pool Management (C-1) ---
+# All endpoints require admin role
 
 @app.get("/api/v1/admin/pools", tags=["admin", "storage"])
 async def get_storage_pools(user_ctx: PermissionContext = Depends(get_current_user_ctx)):
-    """Get all storage pools with statistics."""
+    """Get all storage pools with statistics (admin only)."""
+    if user_ctx.role_name != "admin":
+        raise HTTPException(status_code=403, detail="管理员权限required")
     svc = get_storage_pool_service()
     try:
         return svc.get_all_pools_stats()
@@ -2932,7 +3237,9 @@ async def get_storage_pools(user_ctx: PermissionContext = Depends(get_current_us
 
 @app.get("/api/v1/admin/pools/{pool_id}", tags=["admin", "storage"])
 async def get_storage_pool(pool_id: str, user_ctx: PermissionContext = Depends(get_current_user_ctx)):
-    """Get storage pool details."""
+    """Get storage pool details (admin only)."""
+    if user_ctx.role_name != "admin":
+        raise HTTPException(status_code=403, detail="管理员权限required")
     svc = get_storage_pool_service()
     try:
         result = svc.get_pool(pool_id)
@@ -2955,7 +3262,9 @@ async def update_pool_config(
     buffer_ratio: Optional[float] = None,
     user_ctx: PermissionContext = Depends(get_current_user_ctx),
 ):
-    """Update storage pool configuration."""
+    """Update storage pool configuration (admin only)."""
+    if user_ctx.role_name != "admin":
+        raise HTTPException(status_code=403, detail="管理员权限required")
     svc = get_storage_pool_service()
     try:
         svc.update_pool_config(
@@ -2975,7 +3284,9 @@ async def update_pool_config(
 
 @app.get("/api/v1/admin/pools/{pool_id}/stats", tags=["admin", "storage"])
 async def get_pool_stats(pool_id: str, user_ctx: PermissionContext = Depends(get_current_user_ctx)):
-    """Get storage pool statistics."""
+    """Get storage pool statistics (admin only)."""
+    if user_ctx.role_name != "admin":
+        raise HTTPException(status_code=403, detail="管理员权限required")
     svc = get_storage_pool_service()
     try:
         return svc.get_pool_stats(pool_id)
