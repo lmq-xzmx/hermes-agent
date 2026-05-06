@@ -325,14 +325,14 @@ function getQuotaClassForPanel(percent) {
   return 'ok'
 }
 
-function loadTeamQuota(team) {
+async function loadTeamQuota(team) {
   selectedTeamForQuota.value = team
-  fetch(`/api/v1/teams/${team.team_id}/quota-status`)
-    .then(res => res.json())
-    .then(data => {
-      selectedTeamQuota.value = data
-    })
-    .catch(err => console.error('Failed to load team quota:', err))
+  try {
+    const data = await teamStore.fetchTeamQuotaStatus(team.team_id)
+    selectedTeamQuota.value = data
+  } catch (err) {
+    console.error('Failed to load team quota:', err)
+  }
 }
 
 function formatSize(bytes) {

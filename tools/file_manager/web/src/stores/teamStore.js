@@ -4,6 +4,7 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useAuthStore } from './authStore'
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api/v1'
 
@@ -19,7 +20,9 @@ export const useTeamStore = defineStore('teams', () => {
   // Getters
   const hasTeams = computed(() => myTeams.value.length > 0)
   const teamCount = computed(() => myTeams.value.length)
-  const isAdmin = computed(() => localStorage.getItem('hfm_role') === 'admin')
+
+  // Admin getter: 必须通过 authStore 获取，禁止直接读取 localStorage
+  const isAdmin = computed(() => useAuthStore().isAdmin)
 
   // Helper: get auth headers
   function getAuthHeaders() {
@@ -111,6 +114,33 @@ export const useTeamStore = defineStore('teams', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  // 验证邀请码有效性（预检）- FE-022
+  async function validateInviteCode(inviteCode) {
+    try {
+      const res = await fetch(`${API_BASE}/teams/validate-invite`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ code: inviteCode })
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.message || data.detail || '邀请码无效')
+      }
+      return await res.json()
+    } catch (e) {
+      error.value = e.message
+      throw e
+    }
+  }
+
+  // 先预检再加入团队（符合 FE-022 规范）
+  async function joinTeamWithValidation(inviteCode) {
+    // 1. 预检邀请码
+    await validateInviteCode(inviteCode)
+    // 2. 预检通过，执行加入
+    return await joinTeam(inviteCode)
   }
 
   async function leaveTeam(teamId) {
@@ -205,6 +235,61 @@ export const useTeamStore = defineStore('teams', () => {
     }
   }
 
+  async function getTeamCredentials(teamId) {
+    try {
+      const res = await fetch(`${API_BASE}/teams/${teamId}/credentials`, {
+        headers: getAuthHeaders()
+      })
+      if (!res.ok) throw new Error('Failed to load credentials')
+      return await res.json()
+    } catch (e) {
+      error.value = e.message
+      throw e
+    }
+  }
+
+  async function fetchTeamQuotaStatus(teamId) {
+    try {
+      const res = await fetch(`${API_BASE}/teams/${teamId}/quota-status`, {
+        headers: getAuthHeaders()
+      })
+      if (!res.ok) throw new Error('Failed to fetch team quota status')
+      return await res.json()
+    } catch (e) {
+      error.value = e.message
+      throw e
+    }
+  }
+
+  async function deleteTeamCredential(teamId, credId) {
+    try {
+      const res = await fetch(`${API_BASE}/teams/${teamId}/credentials/${credId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      })
+      if (!res.ok) throw new Error('Failed to delete credential')
+      return await res.json()
+    } catch (e) {
+      error.value = e.message
+      throw e
+    }
+  }
+
+  async function updateTeam(teamId, data) {
+    try {
+      const res = await fetch(`${API_BASE}/teams/${teamId}`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error('Failed to update team')
+      return await res.json()
+    } catch (e) {
+      error.value = e.message
+      throw e
+    }
+  }
+
   function setCurrentTeam(team) {
     currentTeam.value = team
   }
@@ -233,12 +318,18 @@ export const useTeamStore = defineStore('teams', () => {
     loadAllTeams,
     createTeam,
     joinTeam,
+    joinTeamWithValidation,
+    validateInviteCode,
     leaveTeam,
     deleteTeam,
     loadTeamMembers,
     inviteMember,
     removeMember,
     createInviteCode,
+    getTeamCredentials,
+    fetchTeamQuotaStatus,
+    deleteTeamCredential,
+    updateTeam,
     setCurrentTeam,
     clearTeams
   }
