@@ -357,7 +357,7 @@ class ApprovalService:
 
         elif approval_type == ApprovalType.TEAM_JOIN.value:
             # 加入团队申请通过
-            from services.team_service import TeamService
+            from .team_service import TeamService
             team_service = TeamService()
             # 将成员添加到团队
             try:

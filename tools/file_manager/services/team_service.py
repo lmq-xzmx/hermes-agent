@@ -441,10 +441,7 @@ class TeamService:
         session = self._db()
         try:
             # 验证团队存在
-            team = session.query(Space).filter(
-                Space.id == team_id,
-                Space.space_type == "team"
-            ).first()
+            team = session.query(Team).filter(Team.id == team_id).first()
             if not team:
                 raise TeamNotFound(f"Team {team_id} not found")
 
