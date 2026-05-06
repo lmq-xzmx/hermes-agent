@@ -1007,9 +1007,9 @@ class SpaceService:
         Returns:
             SpaceRequest 对象
         """
-        from engine.models import db_session, SpaceRequest, User, Space
+        from engine.models import SpaceRequest, User, Space
 
-        session = db_session()
+        session = self._db()
         try:
             # 验证成员存在
             member = session.query(User).filter(User.id == member_id).first()
@@ -1057,10 +1057,10 @@ class SpaceService:
         Returns:
             操作结果
         """
-        from engine.models import db_session, SpaceMember, User, Space
+        from engine.models import SpaceMember, User, Space
         from services.notification_service import NotificationService
 
-        session = db_session()
+        session = self._db()
         try:
             # 移除成员
             member_record = session.query(SpaceMember).filter(
