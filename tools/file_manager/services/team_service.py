@@ -10,7 +10,7 @@ import secrets
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 from ..engine.models import (
     StoragePool, Team, SpaceMember, TeamCredential, User, Base
@@ -435,6 +435,44 @@ class TeamService:
         finally:
             session.close()
 
+    def validate_credential(self, token: str) -> Dict[str, Any]:
+        """
+        Validate an invite credential without joining the team.
+        Returns credential details if valid, raises appropriate error if invalid.
+        Used for FE-022 pre-validation before join.
+        """
+        session = self._db()
+        try:
+            cred = session.query(TeamCredential).filter(TeamCredential.token == token).first()
+            if not cred:
+                raise CredentialNotFound("邀请码不存在")
+
+            team = cred.space
+
+            # Check validity
+            if not cred.is_active:
+                raise CredentialExpired("邀请码已失效")
+
+            if cred.expires_at and datetime.utcnow() > cred.expires_at:
+                raise CredentialExpired("邀请码已过期")
+
+            if cred.max_uses is not None and cred.used_count >= cred.max_uses:
+                raise CredentialExpired("邀请码使用次数已用完")
+
+            if not team.is_active:
+                raise RuntimeError("该团队已停用")
+
+            return {
+                "valid": True,
+                "team_id": team.id,
+                "team_name": team.name,
+                "expires_at": cred.expires_at.isoformat() if cred.expires_at else None,
+                "max_uses": cred.max_uses,
+                "remaining_uses": (cred.max_uses - cred.used_count) if cred.max_uses else None
+            }
+        finally:
+            session.close()
+
     def create_credential(
         self,
         team_id: str,
@@ -626,6 +664,72 @@ class TeamService:
                     )
         finally:
             session.close()
+
+    def check_team_quota_for_new_member(self, team_id: str, member_quota: int) -> Tuple[bool, str]:
+        """
+        检查团队是否有足够配额接纳新成员
+
+        Args:
+            team_id: 团队ID
+            member_quota: 单个成员配额（字节）
+
+        Returns:
+            (can_join, message): 是否可以加入及原因
+        """
+        team = self.get_team(team_id)
+        if not team:
+            raise TeamNotFound(f"Team {team_id} not found")
+
+        used_bytes = team.used_bytes or 0
+        max_bytes = team.max_bytes or 0
+
+        remaining = max_bytes - used_bytes
+        if remaining >= member_quota:
+            return (True, "配额足够")
+        else:
+            return (False, f"该团队的存储空间配额不足，当前剩余 {remaining} 字节，请联系管理员添加配额")
+
+    def get_team_quota_status(self, team_id: str) -> Dict[str, Any]:
+        """
+        获取团队配额状态
+
+        Returns:
+            {
+                "max_bytes": 总配额,
+                "used_bytes": 已用,
+                "available_bytes": 可用,
+                "member_count": 成员数,
+                "max_members": 最大成员数（根据配额计算）,
+                "member_quota": 单个成员配额
+            }
+        """
+        team = self.get_team(team_id)
+        if not team:
+            raise TeamNotFound(f"Team {team_id} not found")
+
+        max_bytes = team.max_bytes or 0
+        used_bytes = team.used_bytes or 0
+        available_bytes = max(0, max_bytes - used_bytes)
+
+        # 获取成员数量
+        members = self.get_team_members(team_id)
+        member_count = len(members)
+
+        # 计算单个成员配额（如果已设置）
+        member_quota = 0
+        if member_count > 0 and max_bytes > 0:
+            member_quota = max_bytes // (member_count * 2)  # 保守估计
+
+        max_members = max_bytes // member_quota if member_quota > 0 else 0
+
+        return {
+            "max_bytes": max_bytes,
+            "used_bytes": used_bytes,
+            "available_bytes": available_bytes,
+            "member_count": member_count,
+            "max_members": max_members,
+            "member_quota": member_quota
+        }
 
     def record_write(self, team_id: str, bytes_written: int) -> None:
         """Called after a successful write to update used_bytes."""
