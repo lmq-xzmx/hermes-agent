@@ -221,10 +221,11 @@ async def lifespan(app: FastAPI):
     team_service.ensure_default_pool()
 
     # Register all existing pools in FileService
-    for pool in team_service.list_pools():
+    pools_data = team_service.list_pools()
+    for pool in pools_data.get("pools", []):
         if pool.get("is_active", True):
             pool_storage = StorageEngine(pool["base_path"])
-            file_service.register_pool(pool["id"], pool_storage)
+            file_service.register_pool(pool["pool_id"], pool_storage)
 
     # Audit subscriber (consumes events → DB writes)
     audit_subscriber = AuditEventSubscriber(db_factory=db_factory, event_bus=event_bus)
@@ -522,14 +523,173 @@ async def knowledge_status():
 
     async with httpx.AsyncClient(timeout=5.0) as client:
         try:
-            llm_api_resp = await client.get("http://localhost:1421/health")
-            llm_api_ok = llm_api_resp.status_code == 200
+            # LLM Wiki FM 提供 /status 端点在 19827 端口
+            llm_api_resp = await client.get("http://localhost:19827/status")
+            llm_api_ok = llm_api_resp.status_code == 200 and llm_api_resp.json().get("ok") == True
         except Exception:
             llm_api_ok = False
 
+    # 获取同步模式和设置（从数据库或缓存）
+    sync_mode = "manual"
+    sync_interval = 30
+    try:
+        from file_manager.services.knowledge_service import get_knowledge_service
+        svc = get_knowledge_service()
+        sync_mode = svc.get_sync_mode("default")
+        sync_interval = svc.get_sync_interval("default")
+    except Exception:
+        pass
+
     return {
         "running": llm_api_ok,
-        "sync_mode": "manual"
+        "sync_mode": sync_mode,
+        "sync_interval": sync_interval,
+        "llm_wiki_gui_url": "http://localhost:19827"
+    }
+
+@app.post("/api/v1/knowledge/start")
+async def start_knowledge_service():
+    """启动 LLM Wiki 服务（供浏览器环境调用）"""
+    import httpx
+    import asyncio
+    import subprocess
+    import sys
+
+    # 先检查是否已经在运行
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.get("http://127.0.0.1:19827/status")
+            if resp.status_code == 200:
+                return {"status": "already_running", "url": "http://127.0.0.1:19827"}
+    except Exception:
+        pass
+
+    # 未运行，尝试启动
+    try:
+        if sys.platform == "darwin":
+            # macOS: 启动 LLM Wiki 应用
+            subprocess.Popen(
+                ["open", "-a", "LLM Wiki.app"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+        elif sys.platform == "win32":
+            subprocess.Popen(
+                ["cmd", "/c", "start", "", "LLM Wiki FM.exe"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+        else:
+            return {"status": "unsupported_platform"}
+
+        # 等待服务启动（最多 10 秒）
+        for _ in range(20):
+            await asyncio.sleep(0.5)
+            try:
+                async with httpx.AsyncClient(timeout=3.0) as client:
+                    resp = await client.get("http://127.0.0.1:19827/status")
+                    if resp.status_code == 200:
+                        return {"status": "started", "url": "http://127.0.0.1:19827"}
+            except Exception:
+                continue
+
+        return {"status": "timeout", "message": "LLM Wiki 启动超时"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/v1/knowledge/open")
+async def open_knowledge_base():
+    """打开知识库（启动服务 + 返回 URL）"""
+    import httpx
+    import asyncio
+    import subprocess
+    import sys
+
+    # 先检查是否已经在运行
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.get("http://127.0.0.1:19827/status")
+            if resp.status_code == 200:
+                return {"url": "http://127.0.0.1:19827", "started": False}
+    except Exception:
+        pass
+
+    # 未运行，尝试启动
+    try:
+        if sys.platform == "darwin":
+            subprocess.Popen(
+                ["open", "-a", "LLM Wiki.app"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+        elif sys.platform == "win32":
+            subprocess.Popen(
+                ["cmd", "/c", "start", "", "LLM Wiki FM.exe"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+        else:
+            return {"error": "unsupported_platform"}
+
+        # 等待服务启动（最多 10 秒）
+        for _ in range(20):
+            await asyncio.sleep(0.5)
+            try:
+                async with httpx.AsyncClient(timeout=3.0) as client:
+                    resp = await client.get("http://127.0.0.1:19827/status")
+                    if resp.status_code == 200:
+                        return {"url": "http://127.0.0.1:19827", "started": True}
+            except Exception:
+                continue
+
+        return {"error": "LLM Wiki 启动超时"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/api/v1/knowledge/settings")
+async def get_knowledge_settings(
+    user_ctx: PermissionContext = Depends(get_current_user_ctx)
+):
+    """获取知识库同步设置"""
+    from file_manager.services.knowledge_service import get_knowledge_service
+    svc = get_knowledge_service()
+    settings = svc.get_user_settings(user_ctx.user_id)
+    return settings
+
+@app.put("/api/v1/knowledge/settings")
+async def update_knowledge_settings(
+    request: Request,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx)
+):
+    """更新知识库同步设置"""
+    from file_manager.services.knowledge_service import get_knowledge_service
+    body = await request.json()
+    svc = get_knowledge_service()
+    svc.update_user_settings(user_ctx.user_id, body)
+    return {"status": "ok"}
+
+@app.get("/api/v1/knowledge/sync/status")
+async def get_sync_status(
+    project: str = "default",
+    user_ctx: PermissionContext = Depends(get_current_user_ctx)
+):
+    """获取当前同步状态和历史"""
+    from file_manager.services.knowledge_service import get_knowledge_service
+    svc = get_knowledge_service()
+    history = svc.get_sync_history(project)
+    return {
+        "jobs": [
+            {
+                "id": job.id,
+                "source_path": job.source_path,
+                "status": job.status.value,
+                "mode": job.mode.value,
+                "created_at": job.created_at.isoformat() if job.created_at else None,
+                "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+                "error_message": job.error_message
+            }
+            for job in history[-10:]  # 最近10条
+        ]
     }
 
 @app.post("/api/v1/knowledge/sync")
@@ -1702,7 +1862,7 @@ async def create_pool(
         from file_manager.engine.storage import StorageEngine
         pool_storage = StorageEngine(req.base_path)
         file_service = get_file_service()
-        file_service.register_pool(pool["id"], pool_storage)
+        file_service.register_pool(pool["pool_id"], pool_storage)
         return pool
     except Exception as e:
         raise _handle_team_error(e)
@@ -1748,6 +1908,17 @@ async def list_teams(
     svc = get_team_service()
     try:
         return svc.list_teams(user_id=str(user_ctx.user_id))
+    except Exception as e:
+        raise _handle_team_error(e)
+
+
+@app.get("/api/v1/my/teams", tags=["teams"])
+async def my_teams(
+    user_ctx=Depends(get_current_user_ctx),
+):
+    svc = get_team_service()
+    try:
+        return svc.get_user_teams_summary(user_id=str(user_ctx.user_id))
     except Exception as e:
         raise _handle_team_error(e)
 
@@ -1908,17 +2079,6 @@ async def join_team_via_credential(
     svc = get_team_service()
     try:
         return svc.join_via_credential(token=token, user_id=str(user_ctx.user_id))
-    except Exception as e:
-        raise _handle_team_error(e)
-
-
-@app.get("/api/v1/my/teams", tags=["teams"])
-async def my_teams(
-    user_ctx=Depends(get_current_user_ctx),
-):
-    svc = get_team_service()
-    try:
-        return svc.get_user_teams_summary(user_id=str(user_ctx.user_id))
     except Exception as e:
         raise _handle_team_error(e)
 
@@ -3649,6 +3809,20 @@ async def get_config_value(key: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# SPA Fallback (must be last route)
+# ============================================================================
+
+@app.get("/{path:path}")
+async def serve_spa(path: str):
+    """Serve SPA for any non-API path (SPA fallback)."""
+    from starlette.responses import FileResponse
+    html_path = Path(__file__).parent / "web" / "app.html"
+    if html_path.exists():
+        return FileResponse(str(html_path))
+    return HTMLResponse(content="<html><body><h1>Not found</h1></body></html>", status_code=404)
 
 
 # ============================================================================

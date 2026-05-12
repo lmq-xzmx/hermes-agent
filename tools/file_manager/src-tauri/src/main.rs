@@ -127,13 +127,67 @@ async fn emit_event(app: AppHandle, name: String, payload: String) -> Result<(),
 
 #[tauri::command]
 async fn open_llm_wiki() -> Result<(), String> {
-    let url = "http://localhost:19827";
+    let url = "http://127.0.0.1:19827";
+
+    // 检查端口是否已监听（服务是否已运行）
+    let port_in_use = std::net::TcpListener::bind("127.0.0.1:19827").is_err();
+
+    if !port_in_use {
+        // 服务未运行，先启动 LLM Wiki
+        #[cfg(target_os = "macos")]
+        {
+            info!("Starting LLM Wiki service...");
+            // 使用 open -a 启动 macOS 应用
+            Command::new("open")
+                .args(["-a", "LLM Wiki"])
+                .spawn()
+                .map_err(|e| e.to_string())?;
+
+            // 等待服务启动（最多 10 秒，每 500ms 检查一次）
+            for i in 0..20 {
+                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                if std::net::TcpListener::bind("127.0.0.1:19827").is_err() {
+                    info!("LLM Wiki service started successfully");
+                    break;
+                }
+                if i == 19 {
+                    return Err("LLM Wiki 服务启动超时".to_string());
+                }
+            }
+        }
+        #[cfg(target_os = "windows")]
+        {
+            info!("Starting LLM Wiki service...");
+            // Windows: 使用 cmd start 启动应用
+            Command::new("cmd")
+                .args(["/c", "start", "", "LLM Wiki FM.exe"])
+                .spawn()
+                .map_err(|e| e.to_string())?;
+
+            // 等待服务启动
+            for i in 0..20 {
+                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                if std::net::TcpListener::bind("127.0.0.1:19827").is_err() {
+                    info!("LLM Wiki service started successfully");
+                    break;
+                }
+                if i == 19 {
+                    return Err("LLM Wiki 服务启动超时".to_string());
+                }
+            }
+        }
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+        {
+            return Err("Unsupported platform".to_string());
+        }
+    }
+
+    // 打开浏览器
     #[cfg(target_os = "macos")]
     { Command::new("open").arg(url).spawn().map_err(|e| e.to_string())?; }
     #[cfg(target_os = "windows")]
     { Command::new("cmd").args(["/c", "start", url]).spawn().map_err(|e| e.to_string())?; }
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    { return Err("Unsupported platform".to_string()); }
+
     Ok(())
 }
 
@@ -154,10 +208,11 @@ fn main() {
 
             let show_item = MenuItem::with_id(app, "show", "显示/隐藏主窗口", true, None::<&str>)?;
             let floating_item = MenuItem::with_id(app, "floating", "显示/隐藏浮窗", true, None::<&str>)?;
-            let wiki_item = MenuItem::with_id(app, "wiki", "打开知识库", true, None::<&str>)?;
-            let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+            let wiki_item = MenuItem::with_id(app, "wiki", "打开/关闭知识库", true, None::<&str>)?;
+            let quit_wiki_item = MenuItem::with_id(app, "quit_wiki", "退出知识库", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "退出Hermes File Manager", true, None::<&str>)?;
             let quit_all_item = MenuItem::with_id(app, "quit_all", "全部退出", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show_item, &floating_item, &wiki_item, &quit_item, &quit_all_item])?;
+            let menu = Menu::with_items(app, &[&show_item, &floating_item, &wiki_item, &quit_wiki_item, &quit_item, &quit_all_item])?;
             let tray_icon = app.default_window_icon().cloned().expect("窗口图标未配置，请在 tauri.conf.json 中添加 icon");
             let _tray = TrayIconBuilder::new()
                 .icon(tray_icon)
@@ -165,9 +220,53 @@ fn main() {
                 .tooltip("Hermes File Manager")
                 .on_menu_event(|app, event| {
                     match event.id.as_ref() {
+                        // 退出Hermes File Manager（仅退出 Hermes，不影响知识库）
                         "quit" => std::process::exit(0),
-                        "quit_all" => { let _ = app.get_webview_window("main").map(|w| w.close()); let _ = app.get_webview_window("floating").map(|w| w.close()); std::process::exit(0); }
-                        "wiki" => { let _ = Command::new("open").arg("http://localhost:19827").spawn(); }
+                        // 全部退出：同时退出 Hermes 和知识库
+                        "quit_all" => {
+                            let _ = app.get_webview_window("main").map(|w| w.close());
+                            let _ = app.get_webview_window("floating").map(|w| w.close());
+                            #[cfg(target_os = "macos")]
+                            { let _ = Command::new("killall").arg("llm-wiki").spawn(); }
+                            #[cfg(target_os = "windows")]
+                            { let _ = Command::new("taskkill").args(["/F", "/IM", "LLM Wiki FM.exe"]).spawn(); }
+                            std::process::exit(0);
+                        }
+                        // 打开/关闭知识库（切换显示状态）
+                        "wiki" => {
+                            #[cfg(target_os = "macos")]
+                            {
+                                // AppleScript: 如果知识库窗口可见则隐藏，否则激活
+                                let script = r#"try
+    tell application "System Events"
+        set wikiVisible to visible of process "LLM Wiki"
+    end tell
+    if wikiVisible then
+        tell application "LLM Wiki" to activate
+        delay 0.1
+        tell application "System Events" to set visible of process "LLM Wiki" to false
+    else
+        tell application "LLM Wiki" to activate
+    end if
+on error
+    tell application "LLM Wiki" to activate
+end try"#;
+                                let _ = Command::new("osascript")
+                                    .args(["-e", script])
+                                    .spawn();
+                            }
+                            #[cfg(target_os = "windows")]
+                            {
+                                let _ = Command::new("cmd").args(["/c", "start", "", "LLM Wiki FM.exe"]).spawn();
+                            }
+                        }
+                        // 退出知识库（仅退出知识库，不影响 Hermes）
+                        "quit_wiki" => {
+                            #[cfg(target_os = "macos")]
+                            { let _ = Command::new("killall").arg("llm-wiki").spawn(); }
+                            #[cfg(target_os = "windows")]
+                            { let _ = Command::new("taskkill").args(["/F", "/IM", "LLM Wiki FM.exe"]).spawn(); }
+                        }
                         "show" => if let Some(w) = app.get_webview_window("main") { if w.is_visible().unwrap_or(false) { let _ = w.hide(); } else { let _ = w.show(); let _ = w.set_focus(); } }
                         "floating" => if let Some(w) = app.get_webview_window("floating") { if w.is_visible().unwrap_or(false) { let _ = w.hide(); } else { let _ = w.show(); let _ = w.set_focus(); } }
                         _ => {}
