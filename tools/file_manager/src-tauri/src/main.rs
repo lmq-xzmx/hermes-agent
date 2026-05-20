@@ -137,9 +137,12 @@ async fn open_llm_wiki() -> Result<(), String> {
         #[cfg(target_os = "macos")]
         {
             info!("Starting LLM Wiki service...");
-            // 使用 open -a 启动 macOS 应用
+            // 统一使用 LLM Wiki FM.app（稳定版本）
+            // 注：LLM Wiki Debug.app 存在图标丢失/卡死问题，暂不使用
+            let app_name = "LLM Wiki FM.app";
+            info!("Opening LLM Wiki app: {}", app_name);
             Command::new("open")
-                .args(["-a", "LLM Wiki"])
+                .args(["-a", app_name])
                 .spawn()
                 .map_err(|e| e.to_string())?;
 
@@ -234,31 +237,10 @@ fn main() {
                         }
                         // 打开/关闭知识库（切换显示状态）
                         "wiki" => {
-                            #[cfg(target_os = "macos")]
-                            {
-                                // AppleScript: 如果知识库窗口可见则隐藏，否则激活
-                                let script = r#"try
-    tell application "System Events"
-        set wikiVisible to visible of process "LLM Wiki"
-    end tell
-    if wikiVisible then
-        tell application "LLM Wiki" to activate
-        delay 0.1
-        tell application "System Events" to set visible of process "LLM Wiki" to false
-    else
-        tell application "LLM Wiki" to activate
-    end if
-on error
-    tell application "LLM Wiki" to activate
-end try"#;
-                                let _ = Command::new("osascript")
-                                    .args(["-e", script])
-                                    .spawn();
-                            }
-                            #[cfg(target_os = "windows")]
-                            {
-                                let _ = Command::new("cmd").args(["/c", "start", "", "LLM Wiki FM.exe"]).spawn();
-                            }
+                            // 使用与前端相同的命令，确保一致的启动和 URL 打开行为
+                            tauri::async_runtime::spawn(async move {
+                                let _ = open_llm_wiki().await;
+                            });
                         }
                         // 退出知识库（仅退出知识库，不影响 Hermes）
                         "quit_wiki" => {
