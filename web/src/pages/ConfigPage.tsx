@@ -1,33 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
 import {
-  Code,
-  Download,
-  FormInput,
-  RotateCcw,
-  Save,
-  Search,
-  Upload,
-  X,
-  Settings2,
-  FileText,
-  Settings,
-  Bot,
-  Monitor,
-  Palette,
-  Users,
-  Brain,
-  Package,
-  Lock,
-  Globe,
-  Mic,
-  Volume2,
-  Ear,
-  ClipboardList,
-  MessageCircle,
-  Wrench,
-  FileQuestion,
-  Filter,
-} from "lucide-react";
+  Icon,
+  type IconName,
+} from "@/components/ui";
 import { api } from "@/lib/api";
 import { getNestedValue, setNestedValue } from "@/lib/nested";
 import { useToast } from "@/hooks/useToast";
@@ -45,25 +20,22 @@ import { PluginSlot } from "@/plugins";
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-const CATEGORY_ICONS: Record<
-  string,
-  React.ComponentType<{ className?: string }>
-> = {
-  general: Settings,
-  agent: Bot,
-  terminal: Monitor,
-  display: Palette,
-  delegation: Users,
-  memory: Brain,
-  compression: Package,
-  security: Lock,
-  browser: Globe,
-  voice: Mic,
-  tts: Volume2,
-  stt: Ear,
-  logging: ClipboardList,
-  discord: MessageCircle,
-  auxiliary: Wrench,
+const CATEGORY_ICONS: Record<string, IconName> = {
+  general: "settings",
+  agent: "bot",
+  terminal: "monitor",
+  display: "palette",
+  delegation: "users",
+  memory: "brain",
+  compression: "package",
+  security: "lock",
+  browser: "globe",
+  voice: "mic",
+  tts: "volume-2",
+  stt: "ear",
+  logging: "clipboard-list",
+  discord: "message-circle",
+  auxiliary: "wrench",
 };
 
 function CategoryIcon({
@@ -73,8 +45,8 @@ function CategoryIcon({
   category: string;
   className?: string;
 }) {
-  const Icon = CATEGORY_ICONS[category] ?? FileQuestion;
-  return <Icon className={className ?? "h-4 w-4"} />;
+  const iconName = CATEGORY_ICONS[category] ?? "file-question";
+  return <Icon name={iconName} size="sm" className={className} ariaHidden />;
 }
 
 /* ------------------------------------------------------------------ */
@@ -110,7 +82,12 @@ export default function ConfigPage() {
     }
     setEnd(
       <div className="relative w-full min-w-0 sm:max-w-xs">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+        <Icon
+          name="search"
+          size="sm"
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+          ariaHidden
+        />
         <Input
           className="h-8 pl-8 pr-7 text-xs"
           placeholder={t.common.search}
@@ -125,7 +102,7 @@ export default function ConfigPage() {
             onClick={() => setSearchQuery("")}
             aria-label={t.common.clear}
           >
-            <X />
+            <Icon name="x" size="sm" ariaHidden />
           </Button>
         )}
       </div>,
@@ -174,7 +151,7 @@ export default function ConfigPage() {
         .catch(() => showToast(t.config.failedToLoadRaw, "error"))
         .finally(() => setYamlLoading(false));
     }
-  }, [yamlMode]);
+  }, [yamlMode, showToast, t.config.failedToLoadRaw]);
 
   /* ---- Categories ---- */
   const categories = useMemo(() => {
@@ -350,7 +327,7 @@ export default function ConfigPage() {
             <div className="flex items-center gap-2 pt-4 pb-2 first:pt-0">
               <CategoryIcon
                 category={cat}
-                className="h-4 w-4 text-muted-foreground"
+                className="text-muted-foreground"
               />
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {prettyCategoryName(cat)}
@@ -386,7 +363,7 @@ export default function ConfigPage() {
 
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Settings2 className="h-4 w-4 text-muted-foreground" />
+          <Icon name="settings-2" size="sm" ariaHidden />
           <code className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5">
             {t.config.configPath}
           </code>
@@ -399,7 +376,7 @@ export default function ConfigPage() {
             title={t.config.exportConfig}
             aria-label={t.config.exportConfig}
           >
-            <Download />
+            <Icon name="download" size="sm" ariaHidden />
           </Button>
           <Button
             ghost
@@ -408,7 +385,7 @@ export default function ConfigPage() {
             title={t.config.importConfig}
             aria-label={t.config.importConfig}
           >
-            <Upload />
+            <Icon name="upload" size="sm" ariaHidden />
           </Button>
           <input
             ref={fileInputRef}
@@ -434,7 +411,7 @@ export default function ConfigPage() {
                   title={resetTitle}
                   aria-label={resetTitle}
                 >
-                  <RotateCcw />
+                  <Icon name="rotate-ccw" size="sm" ariaHidden />
                 </Button>
               );
             })()}
@@ -445,7 +422,7 @@ export default function ConfigPage() {
             size="sm"
             outlined={!yamlMode}
             onClick={() => setYamlMode(!yamlMode)}
-            prefix={yamlMode ? <FormInput /> : <Code />}
+            prefix={yamlMode ? <Icon name="settings" size="sm" ariaHidden /> : <Icon name="code" size="sm" ariaHidden />}
           >
             {yamlMode ? t.common.form : "YAML"}
           </Button>
@@ -455,7 +432,7 @@ export default function ConfigPage() {
               size="sm"
               onClick={handleYamlSave}
               disabled={yamlSaving}
-              prefix={<Save />}
+              prefix={<Icon name="save" size="sm" ariaHidden />}
             >
               {yamlSaving ? t.common.saving : t.common.save}
             </Button>
@@ -464,7 +441,7 @@ export default function ConfigPage() {
               size="sm"
               onClick={handleSave}
               disabled={saving}
-              prefix={<Save />}
+              prefix={<Icon name="save" size="sm" ariaHidden />}
             >
               {saving ? t.common.saving : t.common.save}
             </Button>
@@ -476,7 +453,7 @@ export default function ConfigPage() {
         <Card>
           <CardHeader className="py-3 px-4">
             <CardTitle className="text-sm flex items-center gap-2">
-              <FileText className="h-4 w-4" />
+              <Icon name="file-text" size="sm" ariaHidden />
               {t.config.rawYaml}
             </CardTitle>
           </CardHeader>
@@ -501,7 +478,7 @@ export default function ConfigPage() {
             <div className="sm:sticky sm:top-4">
               <div className="flex flex-col border border-border bg-muted/20">
                 <div className="hidden sm:flex items-center gap-2 px-3 py-2 border-b border-border">
-                  <Filter className="h-3 w-3 text-muted-foreground" />
+                  <Icon name="filter" size="xs" className="text-muted-foreground" ariaHidden />
                   <span className="font-mondwest text-[0.65rem] tracking-[0.12em] uppercase text-muted-foreground">
                     {t.config.filters}
                   </span>
@@ -555,7 +532,7 @@ export default function ConfigPage() {
                 <CardHeader className="py-3 px-4">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm flex items-center gap-2">
-                      <Search className="h-4 w-4" />
+                      <Icon name="search" size="sm" ariaHidden />
                       {t.config.searchResults}
                     </CardTitle>
                     <Badge tone="secondary" className="text-[10px]">
@@ -585,7 +562,7 @@ export default function ConfigPage() {
                     <CardTitle className="text-sm flex items-center gap-2">
                       <CategoryIcon
                         category={activeCategory}
-                        className="h-4 w-4"
+                        size="sm"
                       />
                       {prettyCategoryName(activeCategory)}
                     </CardTitle>

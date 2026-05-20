@@ -54,38 +54,3 @@ onMounted(renderChart)
 watch(() => props.data, renderChart, { deep: true })
 </script>
 
-<style scoped>
-.operation-trends {
-  background: var(--color-surface-tile-1);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  margin-bottom: 16px;
-}
-
-.chart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.days-selector {
-  display: flex;
-  gap: 8px;
-}
-
-.days-selector button {
-  padding: 4px 12px;
-  background: var(--color-surface-tile-3);
-  color: var(--color-ink-muted-48);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-}
-
-.days-selector button.active {
-  background: var(--color-primary);
-  color: white;
-  border-color: var(--color-primary);
-}
-</style>

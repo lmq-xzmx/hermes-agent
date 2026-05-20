@@ -5,7 +5,7 @@ import {
   useCallback,
   useRef,
 } from "react";
-import { FileText, RefreshCw } from "lucide-react";
+import { Icon } from "@/components/ui";
 import { api } from "@/lib/api";
 import {
   Badge,
@@ -113,7 +113,7 @@ export default function LogsPage() {
           outlined
           onClick={fetchLogs}
           disabled={loading}
-          prefix={loading ? <Spinner /> : <RefreshCw />}
+          prefix={loading ? <Spinner /> : <Icon name="refresh-cw" size="sm" ariaHidden />}
         >
           {t.common.refresh}
         </Button>
@@ -196,7 +196,7 @@ export default function LogsPage() {
       <Card>
         <CardHeader className="py-3 px-4">
           <CardTitle className="text-sm flex items-center gap-2">
-            <FileText className="h-4 w-4" />
+            <Icon name="file-text" size="sm" ariaHidden />
             {file}.log
           </CardTitle>
         </CardHeader>

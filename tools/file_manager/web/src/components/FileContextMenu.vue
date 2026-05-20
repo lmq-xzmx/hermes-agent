@@ -7,16 +7,16 @@
         @click.stop
       >
         <template v-for="(item, index) in displayItems" :key="item.id || 'sep-' + index">
-          <div v-if="item.separator" class="context-menu-divider"></div>
+          <div v-if="item.separator" class="divider"></div>
           <div
             v-else
-            class="context-menu-item"
-            :class="{ disabled: item.disabled || (item.id === 'paste' && !canPaste) }"
-            @click="item.disabled || (item.id === 'paste' && !canPaste) ? null : handleAction(item.id)"
+            class="item"
+            :class="getItemClass(item)"
+            @click="isItemDisabled(item) ? null : handleAction(item.id)"
           >
-            <span class="menu-icon">{{ item.icon }}</span>
-            <span class="menu-label">{{ item.label }}</span>
-            <span v-if="item.shortcut" class="menu-shortcut">{{ item.shortcut }}</span>
+            <span class="icon">{{ item.icon }}</span>
+            <span class="label">{{ item.label }}</span>
+            <span v-if="item.shortcut" class="shortcut">{{ item.shortcut }}</span>
           </div>
         </template>
       </div>
@@ -32,6 +32,18 @@ const props = defineProps({
   canPaste: {
     type: Boolean,
     default: false
+  },
+  canWrite: {
+    type: Boolean,
+    default: true
+  },
+  canDelete: {
+    type: Boolean,
+    default: true
+  },
+  canRename: {
+    type: Boolean,
+    default: true
   },
   items: {
     type: Array,
@@ -58,6 +70,42 @@ const y = ref(0)
 const displayItems = computed(() => {
   return props.items || DEFAULT_ITEMS
 })
+
+// 判断菜单项是否应被禁用
+function isItemDisabled(item) {
+  if (item.disabled) return true
+
+  switch (item.id) {
+    case 'paste':
+      return !props.canPaste
+    case 'rename':
+      return !props.canRename
+    case 'delete':
+      return !props.canDelete
+    case 'share':
+      return false // 任何成员都可以分享
+    case 'copy':
+    case 'cut':
+      return false // 任何人都可以复制/剪切
+    default:
+      return false
+  }
+}
+
+// 获取菜单项的 class
+function getItemClass(item) {
+  const classes = []
+
+  if (isItemDisabled(item)) {
+    classes.push('item--disabled')
+  }
+
+  if (item.id === 'delete' && !isItemDisabled(item)) {
+    classes.push('item--danger')
+  }
+
+  return classes.join(' ')
+}
 
 function show(event, data) {
   const menuWidth = 200
@@ -116,78 +164,81 @@ defineExpose({
 </script>
 
 <style scoped>
+/* ============================================
+   FileContextMenu — 右键菜单
+   DESIGN.md Apple Design System
+   ============================================ */
+
 .context-menu-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 9999;
+  inset: 0;
+  z-index: var(--z-dropdown, 100);
 }
 
 .context-menu {
   position: fixed;
   min-width: 200px;
-  background: var(--color-surface-tile-2);
+  background-color: var(--color-surface-tile-3);
   border: 1px solid var(--color-border-on-dark);
   border-radius: var(--radius-md);
   padding: var(--spacing-xxs) 0;
-  z-index: 10000;
+  font: 400 17px/1.47 var(--font-family-text);
+  color: var(--color-body-on-dark);
+  box-shadow: var(--shadow-md);
 }
 
-.context-menu-item {
+.item {
   display: flex;
   align-items: center;
-  padding: 10px 14px;
-  height: 36px;
-  cursor: pointer;
-  transition: background 0.15s ease;
   gap: var(--spacing-sm);
-  border-radius: var(--radius-md);
-  margin: 2px 6px;
+  height: 36px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  margin: var(--spacing-xxs) var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
 }
 
-.context-menu-item:hover {
-  background: var(--color-surface-tile-1);
+.item:hover:not(.item--disabled) {
+  background-color: var(--color-surface-tile-2);
 }
 
-.context-menu-item.disabled {
+.item--disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.context-menu-item.danger {
+.item--danger {
   color: var(--color-danger);
 }
 
-.context-menu-item.danger:hover {
-  background: var(--color-danger-subtle);
+.item--danger:hover:not(.item--disabled) {
+  background-color: var(--color-danger-subtle);
 }
 
-.menu-icon {
+.icon {
   font-size: 16px;
   width: 20px;
   text-align: center;
+  flex-shrink: 0;
 }
 
-.menu-label {
+.label {
   flex: 1;
-  font-family: var(--font-family-text);
-  font-size: 15px;
-  color: var(--color-body-on-dark);
 }
 
-.menu-shortcut {
-  font-family: var(--font-family-text);
+.shortcut {
   font-size: 12px;
+  line-height: 1.0;
+  letter-spacing: -0.12px;
   color: var(--color-body-muted);
   opacity: 0.7;
-  letter-spacing: -0.224px;
+  flex-shrink: 0;
 }
 
-.context-menu-divider {
+.divider {
   height: 1px;
-  background: var(--color-border-on-dark);
+  background-color: var(--color-border-on-dark);
   margin: var(--spacing-xxs) 0;
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <input
-    class="apple-text-input"
-    :class="{ 'has-error': error }"
+    class="text-input"
+    :class="{ 'text-input--error': error }"
     :type="type"
     :value="modelValue"
     :placeholder="placeholder"
@@ -40,43 +40,57 @@ defineEmits(['update:modelValue', 'focus', 'blur'])
 </script>
 
 <style scoped>
-.apple-text-input {
+/* ============================================
+   TextInput - Apple Design System
+   Based on DESIGN.md search-input component
+   ============================================ */
+
+.text-input {
+  /* Box Model */
   width: 100%;
   height: 44px;
   padding: var(--spacing-sm) var(--spacing-md);
-  background-color: var(--color-canvas);
+  box-sizing: border-box;
+
+  /* Visual */
+  background: var(--color-canvas);
   color: var(--color-ink);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md);
-  font-family: var(--font-family-text);
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
+  border-radius: var(--radius-pill);
+
+  /* Typography */
+  font: var(--text-body);
+
+  /* Interactive */
   outline: none;
+  cursor: text;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.apple-text-input::placeholder {
+/* Placeholder */
+.text-input::placeholder {
   color: var(--color-ink-muted-48);
 }
 
-.apple-text-input:focus {
+/* Focus State */
+.text-input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-hover);
+  box-shadow: 0 0 0 3px var(--color-primary-faint);
 }
 
-.apple-text-input:disabled {
-  background-color: var(--color-surface-pearl);
-  color: var(--color-ink-muted-48);
+/* Disabled State */
+.text-input:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
+  background: var(--color-canvas-parchment);
 }
 
-.apple-text-input.has-error {
+/* Error State */
+.text-input--error {
   border-color: var(--color-danger);
 }
 
-.apple-text-input.has-error:focus {
+.text-input--error:focus {
   box-shadow: 0 0 0 3px var(--color-danger-subtle);
 }
 </style>

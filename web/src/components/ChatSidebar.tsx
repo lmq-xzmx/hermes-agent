@@ -32,7 +32,7 @@ import { ToolCall, type ToolEntry } from "@/components/ToolCall";
 import { GatewayClient, type ConnectionState } from "@/lib/gatewayClient";
 
 import { cn } from "@/lib/utils";
-import { AlertCircle, ChevronDown, RefreshCw } from "lucide-react";
+import { Icon } from "@/components/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface SessionInfo {
@@ -320,7 +320,7 @@ export function ChatSidebar({ channel, className }: ChatSidebarProps) {
             onClick={() => setModelOpen(true)}
             suffix={
               canPickModel ? (
-                <ChevronDown className="opacity-60" />
+                <Icon name="chevron-down" size="sm" ariaHidden />
               ) : undefined
             }
             className="self-start min-w-0 px-0 py-0 normal-case tracking-normal text-sm font-medium hover:underline disabled:no-underline"
@@ -335,7 +335,12 @@ export function ChatSidebar({ channel, className }: ChatSidebarProps) {
 
       {banner && (
         <Card className="flex items-start gap-2 border-destructive/40 bg-destructive/5 px-3 py-2 text-xs">
-          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+          <Icon
+            name="alert-circle"
+            size="sm"
+            className="text-destructive shrink-0 mt-0.5"
+            ariaHidden
+          />
 
           <div className="min-w-0 flex-1">
             <div className="wrap-break-word text-destructive">{banner}</div>
@@ -346,7 +351,7 @@ export function ChatSidebar({ channel, className }: ChatSidebarProps) {
                 outlined
                 className="mt-1"
                 onClick={reconnect}
-                prefix={<RefreshCw />}
+                prefix={<Icon name="refresh-cw" size="sm" ariaHidden />}
               >
                 reconnect
               </Button>

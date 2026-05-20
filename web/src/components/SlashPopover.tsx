@@ -1,6 +1,6 @@
 import type { GatewayClient } from "@/lib/gatewayClient";
 import { ListItem } from "@nous-research/ui";
-import { ChevronRight } from "lucide-react";
+import { Icon } from "@/components/ui";
 import {
   forwardRef,
   useCallback,
@@ -149,8 +149,11 @@ export const SlashPopover = forwardRef<SlashPopoverHandle, Props>(
               onClick={() => apply(it)}
               className="px-3 py-1.5"
             >
-              <ChevronRight
-                className={`h-3 w-3 shrink-0 ${active ? "text-primary" : "text-transparent"}`}
+              <Icon
+                name="chevron-right"
+                size="xs"
+                className={active ? "text-primary" : "text-transparent"}
+                ariaHidden
               />
 
               <span className="font-mono text-xs shrink-0 truncate">

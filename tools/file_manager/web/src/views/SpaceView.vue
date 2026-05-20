@@ -4,8 +4,8 @@
     <div class="view-header">
       <h3 class="section-title">我的空间</h3>
       <div class="header-actions">
-        <button class="btn-apple-secondary" @click="showCrossTeamSpaces">跨团队协作</button>
-        <button class="btn-apple-primary" @click="showCreateSpaceModal">+ 创建空间</button>
+        <button class="btn-apple-secondary" @click="openCrossTeamModal">跨团队协作</button>
+        <button class="btn-apple-primary" @click="openCreateSpaceModal">+ 创建空间</button>
       </div>
     </div>
 
@@ -74,7 +74,7 @@
             <p>暂无成员</p>
           </div>
         </div>
-        <button class="btn-apple-secondary" style="margin-top:var(--space-md)" @click="showInviteSpaceMember">邀请成员</button>
+        <button class="btn-apple-secondary" style="margin-top:var(--space-md)" @click="openInviteMemberModal">邀请成员</button>
       </div>
 
       <!-- Workflows tab -->
@@ -302,6 +302,85 @@
         </div>
       </div>
     </div>
+
+    <!-- Create Space Modal -->
+    <div v-if="showCreateSpaceModal" class="modal-overlay" @click.self="showCreateSpaceModal = false">
+      <div class="modal-content" style="max-width:450px">
+        <div class="modal-header">
+          <h3>创建空间</h3>
+          <button class="btn-close" @click="showCreateSpaceModal = false">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">空间名称 *</label>
+            <input type="text" v-model="newSpace.name" placeholder="请输入空间名称" class="form-input" @keyup.enter="confirmCreateSpace">
+          </div>
+          <div class="form-group">
+            <label class="form-label">存储池 *</label>
+            <select v-model="newSpace.storagePoolId" class="form-select">
+              <option value="">请选择存储池</option>
+              <option v-for="pool in storagePools" :key="pool.id" :value="pool.id">{{ pool.name }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">描述（可选）</label>
+            <input type="text" v-model="newSpace.description" placeholder="简要说明用途" class="form-input">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-apple-primary" @click="confirmCreateSpace" :disabled="!newSpace.name || !newSpace.storagePoolId">创建</button>
+          <button class="btn-apple-secondary" @click="showCreateSpaceModal = false">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cross Team Invite Modal -->
+    <div v-if="showCrossTeamModal" class="modal-overlay" @click.self="showCrossTeamModal = false">
+      <div class="modal-content" style="max-width:450px">
+        <div class="modal-header">
+          <h3>跨团队协作</h3>
+          <button class="btn-close" @click="showCrossTeamModal = false">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">邀请码</label>
+            <input type="text" v-model="crossTeamToken" placeholder="请输入跨团队邀请码" class="form-input" @keyup.enter="confirmCrossTeamJoin">
+          </div>
+          <p style="color:var(--color-ink-muted-48);font-size:var(--text-caption)">输入团队邀请码加入协作</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-apple-primary" @click="confirmCrossTeamJoin" :disabled="!crossTeamToken">加入</button>
+          <button class="btn-apple-secondary" @click="showCrossTeamModal = false">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invite Member Modal -->
+    <div v-if="showInviteMemberModal" class="modal-overlay" @click.self="showInviteMemberModal = false">
+      <div class="modal-content" style="max-width:450px">
+        <div class="modal-header">
+          <h3>邀请成员</h3>
+          <button class="btn-close" @click="showInviteMemberModal = false">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">用户名 *</label>
+            <input type="text" v-model="inviteUsername" placeholder="请输入用户名" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">角色</label>
+            <select v-model="inviteRole" class="form-input">
+              <option value="member">成员 (member)</option>
+              <option value="admin">管理员 (admin)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-apple-primary" @click="confirmInviteMember" :disabled="!inviteUsername">邀请</button>
+          <button class="btn-apple-secondary" @click="showInviteMemberModal = false">取消</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -325,8 +404,16 @@ const selectedWorkflow = ref(null)
 const selectedNotebook = ref(null)
 const showCreateWorkflowModal = ref(false)
 const showCreateNotebookModal = ref(false)
+const showCreateSpaceModal = ref(false)
+const showCrossTeamModal = ref(false)
+const showInviteMemberModal = ref(false)
 const newWorkflow = ref({ name: '', description: '', tagsStr: '', steps: [] })
 const newNotebook = ref({ name: '', description: '', tagsStr: '', content: '' })
+const newSpace = ref({ name: '', storagePoolId: '', description: '' })
+const storagePools = ref([])
+const crossTeamToken = ref('')
+const inviteUsername = ref('')
+const inviteRole = ref('member')
 
 onMounted(() => {
   loadSpaces()
@@ -367,14 +454,26 @@ async function loadSpaceDetail(spaceId) {
   }
 }
 
-async function showCreateSpaceModal() {
-  const name = prompt('请输入空间名称:')
-  if (!name) return
+function openCreateSpaceModal() {
+  newSpace.value = { name: '', storagePoolId: '', description: '' }
+  loadStoragePools()
+  showCreateSpaceModal.value = true
+}
 
-  const description = prompt('请输入空间描述（可选）:', '') || ''
-
+async function loadStoragePools() {
   try {
-    await api.createSpace(name, description)
+    const data = await api.getStoragePools()
+    storagePools.value = data.pools || []
+  } catch (err) {
+    console.warn('Failed to load storage pools:', err)
+  }
+}
+
+async function confirmCreateSpace() {
+  if (!newSpace.value.name || !newSpace.value.storagePoolId) return
+  showCreateSpaceModal.value = false
+  try {
+    await api.createSpace(newSpace.value.name, newSpace.value.storagePoolId, newSpace.value.description)
     emit('show-toast', { type: 'success', title: '成功', message: '空间创建成功' })
     loadSpaces()
   } catch (err) {
@@ -382,9 +481,15 @@ async function showCreateSpaceModal() {
   }
 }
 
-function showCrossTeamSpaces() {
-  const token = prompt('请输入跨团队邀请码:')
-  if (!token) return
+function openCrossTeamModal() {
+  crossTeamToken.value = ''
+  showCrossTeamModal.value = true
+}
+
+async function confirmCrossTeamJoin() {
+  if (!crossTeamToken.value) return
+  showCrossTeamModal.value = false
+  // 跨团队协作功能开发中
   emit('show-toast', { type: 'info', title: '提示', message: '跨团队协作功能开发中' })
 }
 
@@ -406,15 +511,18 @@ async function showSpaceActivity() {
   }
 }
 
-async function showInviteSpaceMember() {
-  const username = prompt('请输入要邀请的用户名:')
-  if (!username) return
+function openInviteMemberModal() {
+  inviteUsername.value = ''
+  inviteRole.value = 'member'
+  showInviteMemberModal.value = true
+}
 
-  const role = prompt('请输入角色 (member/admin):', 'member') || 'member'
-
+async function confirmInviteMember() {
+  if (!inviteUsername.value) return
+  showInviteMemberModal.value = false
   try {
-    await api.inviteSpaceMember(selectedSpace.value.space_id, username, role)
-    emit('show-toast', { type: 'success', title: '成功', message: `已邀请 ${username}` })
+    await api.inviteSpaceMember(selectedSpace.value.space_id, inviteUsername.value, inviteRole.value)
+    emit('show-toast', { type: 'success', title: '成功', message: `已邀请 ${inviteUsername.value}` })
     loadSpaceDetail(selectedSpace.value.space_id)
   } catch (err) {
     emit('show-toast', { type: 'error', title: '错误', message: err.message })
@@ -567,7 +675,15 @@ function formatDate(str) {
 .space-view {
   flex: 1;
   overflow: auto;
+  overflow-x: hidden;
   padding: var(--space-lg);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* Ensure all child containers don't clip content */
+.space-view > * {
+  overflow: visible;
 }
 
 /* Typography */
@@ -576,6 +692,14 @@ function formatDate(str) {
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--space-md);
+  overflow: visible;
+
+  /* Constraint */
+  width: 100%;
+  max-width: var(--content-max-width-universal);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
 }
 
 .section-title {
@@ -590,6 +714,13 @@ function formatDate(str) {
 
 .section-gap {
   margin-top: var(--space-xl);
+
+  /* Constraint */
+  width: 100%;
+  max-width: var(--content-max-width-universal);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
 }
 
 /* Space Grid */
@@ -598,6 +729,34 @@ function formatDate(str) {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--space-md);
   margin-top: var(--space-md);
+
+  /* Constraint */
+  width: 100%;
+  max-width: var(--content-max-width-universal);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+/* Space List Container */
+#spacesList {
+  /* Constraint */
+  width: 100%;
+  max-width: var(--content-max-width-universal);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+/* Space Detail Container */
+#spaceDetail {
+  /* Constraint */
+  width: 100%;
+  max-width: var(--content-max-width-universal);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+  overflow: visible;
 }
 
 /* Space Card - Apple DESIGN.md store-utility-card */
@@ -710,6 +869,8 @@ function formatDate(str) {
   padding-bottom: var(--space-sm);
   margin-bottom: var(--space-md);
   border-bottom: 1px solid var(--color-hairline);
+  overflow: visible;
+  flex-wrap: wrap;
 }
 
 .tab-btn {
@@ -721,6 +882,7 @@ function formatDate(str) {
   font: var(--text-body);
   cursor: pointer;
   transition: all 0.15s;
+  flex-shrink: 0;
 }
 
 .tab-btn:hover {
@@ -738,6 +900,7 @@ function formatDate(str) {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  overflow: visible;
 }
 
 .member-item {
@@ -748,12 +911,21 @@ function formatDate(str) {
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-md);
+  overflow: visible;
+}
+
+.member-item button {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
 }
 
 .member-info {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xxs);
+  flex: 1;
+  min-width: 0;
 }
 
 .member-name {
@@ -772,6 +944,7 @@ function formatDate(str) {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  overflow: visible;
 }
 
 .workflow-item,
@@ -785,6 +958,12 @@ function formatDate(str) {
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: background 0.15s;
+  overflow: visible;
+}
+
+.workflow-item > *,
+.notebook-item > * {
+  flex-shrink: 0;
 }
 
 .workflow-item:hover,
@@ -1020,6 +1199,10 @@ function formatDate(str) {
   font-size: 48px;
   margin-bottom: var(--space-md);
   opacity: 0.5;
+}
+
+.empty-state p {
+  color: var(--color-label-secondary, #86868b);
 }
 
 /* Loading */

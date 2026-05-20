@@ -1,13 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import {
-  ShieldCheck,
-  ShieldOff,
-  ExternalLink,
-  RefreshCw,
-  LogOut,
-  Terminal,
-  LogIn,
-} from "lucide-react";
+import { Icon } from "@/components/ui";
 import { api, type OAuthProvider } from "@/lib/api";
 import { Button, CopyButton, Spinner } from "@nous-research/ui";
 import {
@@ -96,7 +88,7 @@ export function OAuthProvidersCard({ onError, onSuccess }: Props) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-muted-foreground" />
+            <Icon name="shield-check" size="md" className="text-muted-foreground" ariaHidden />
             <CardTitle className="text-base">
               {t.oauth.providerLogins}
             </CardTitle>
@@ -106,7 +98,7 @@ export function OAuthProvidersCard({ onError, onSuccess }: Props) {
             outlined
             onClick={refresh}
             disabled={loading}
-            prefix={loading ? <Spinner /> : <RefreshCw />}
+            prefix={loading ? <Spinner /> : <Icon name="refresh-cw" size="sm" ariaHidden />}
           >
             {t.common.refresh}
           </Button>
@@ -142,9 +134,9 @@ export function OAuthProvidersCard({ onError, onSuccess }: Props) {
               >
                 <div className="flex items-start gap-3 min-w-0 flex-1">
                   {p.status.logged_in ? (
-                    <ShieldCheck className="h-5 w-5 text-success shrink-0 mt-0.5" />
+                    <Icon name="shield-check" size="md" className="text-success shrink-0 mt-0.5" ariaHidden />
                   ) : (
-                    <ShieldOff className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <Icon name="shield-off" size="md" className="text-muted-foreground shrink-0 mt-0.5" ariaHidden />
                   )}
                   <div className="flex flex-col min-w-0 gap-0.5">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -210,7 +202,7 @@ export function OAuthProvidersCard({ onError, onSuccess }: Props) {
                       title={`Open ${p.name} docs`}
                     >
                       <Button ghost size="icon">
-                        <ExternalLink />
+                        <Icon name="external-link" size="sm" ariaHidden />
                       </Button>
                     </a>
                   )}
@@ -218,7 +210,7 @@ export function OAuthProvidersCard({ onError, onSuccess }: Props) {
                     <Button
                       size="sm"
                       onClick={() => setLoginFor(p)}
-                      prefix={<LogIn />}
+                      prefix={<Icon name="log-in" size="sm" ariaHidden />}
                     >
                       {t.oauth.login}
                     </Button>
@@ -236,14 +228,14 @@ export function OAuthProvidersCard({ onError, onSuccess }: Props) {
                       outlined
                       onClick={() => handleDisconnect(p)}
                       disabled={isBusy}
-                      prefix={isBusy ? <Spinner /> : <LogOut />}
+                      prefix={isBusy ? <Spinner /> : <Icon name="log-out" size="sm" ariaHidden />}
                     >
                       {t.oauth.disconnect}
                     </Button>
                   )}
                   {p.status.logged_in && p.flow === "external" && (
                     <span className="text-[11px] text-muted-foreground italic px-2">
-                      <Terminal className="h-3 w-3 inline mr-0.5" />
+                      <Icon name="terminal" size="xs" className="inline mr-0.5" ariaHidden />
                       {t.oauth.managedExternally}
                     </span>
                   )}

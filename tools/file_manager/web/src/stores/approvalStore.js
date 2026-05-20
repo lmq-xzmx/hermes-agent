@@ -42,7 +42,7 @@ export const useApprovalStore = defineStore('approval', {
     getStatusLabel: (state) => (status) => STATUS_LABELS[status] || status,
 
     // 获取状态颜色
-    getStatusColor: (state) => (status) => STATUS_COLORS[status] || '#6b7280',
+    getStatusColor: (state) => (status) => STATUS_COLORS[status] || '#8e8e93', // Apple secondary gray
 
     // 获取类型标签
     getTypeLabel: (state) => (type) => APPROVAL_TYPES[type] || type,

@@ -25,7 +25,7 @@ def run_pytest_marker(marker: str, report_suffix: str = ""):
     cmd = [
         "python", "-m", "pytest",
         str(BENCHMARK_DIR),
-        f"-m {marker}",
+        "-m", marker,
         "-v",
         "--tb=short",
         "--capture=no",

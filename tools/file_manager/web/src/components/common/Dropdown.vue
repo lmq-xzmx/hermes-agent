@@ -1,10 +1,10 @@
 <template>
   <div class="dropdown" ref="dropdownRef">
-    <div class="dropdown-trigger" @click="toggle" :aria-expanded="isOpen">
+    <div class="dropdown__trigger" @click="toggle" :aria-expanded="isOpen">
       <slot name="trigger" />
     </div>
     <Transition name="dropdown">
-      <div v-if="isOpen" class="dropdown-menu" :class="alignClass">
+      <div v-if="isOpen" class="dropdown__menu" :class="`dropdown__menu--${align}`">
         <slot :close="close" />
       </div>
     </Transition>
@@ -22,7 +22,7 @@ const props = defineProps({
 const isOpen = ref(false)
 const dropdownRef = ref(null)
 
-const alignClass = computed(() => `dropdown-menu-${props.align}`)
+const alignClass = computed(() => `dropdown__menu--${props.align}`)
 
 function toggle() {
   isOpen.value = !isOpen.value
@@ -50,36 +50,51 @@ defineExpose({ isOpen, toggle, close })
 </script>
 
 <style scoped>
+/* ============================================
+   Dropdown - Apple Design System
+   ============================================ */
+
 .dropdown {
+  /* Layout */
   position: relative;
   display: inline-block;
 }
 
-.dropdown-trigger {
-  cursor: pointer;
-}
-
-.dropdown-menu {
+/* ============================================
+   Element: dropdown__menu
+   ============================================ */
+.dropdown__menu {
+  /* Layout */
   position: absolute;
-  top: calc(100% + 4px);
-  min-width: 180px;
+  top: 100%;
+  z-index: var(--z-dropdown);
+
+  /* Box Model */
+  min-width: 160px;
+  padding: var(--spacing-xs) 0;
+  margin-top: var(--spacing-xxs);
+
+  /* Visual */
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-xs);
-  z-index: var(--z-dropdown);
-  font-family: var(--font-family-text);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+
+  /* Animation */
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
-.dropdown-menu-left {
+.dropdown__menu--left {
   left: 0;
 }
 
-.dropdown-menu-right {
+.dropdown__menu--right {
   right: 0;
 }
 
-/* Transitions */
+/* ============================================
+   Transition Animations
+   ============================================ */
 .dropdown-enter-active,
 .dropdown-leave-active {
   transition: opacity 0.15s ease, transform 0.15s ease;
@@ -88,6 +103,6 @@ defineExpose({ isOpen, toggle, close })
 .dropdown-enter-from,
 .dropdown-leave-to {
   opacity: 0;
-  transform: translateY(-4px);
+  transform: translateY(-8px);
 }
 </style>

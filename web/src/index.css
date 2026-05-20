@@ -188,6 +188,53 @@ code { font-size: 0.875rem; }
   display: none;
 }
 
+/* ------------------------------------------------------------------ */
+/* Icon system tokens — consistent sizing and hover states            */
+/* ------------------------------------------------------------------ */
+
+@theme inline {
+  /* Icon size scale (aligned with 8px base unit) */
+  --icon-size-xs: 0.75rem;   /* 12px - xs */
+  --icon-size-sm: 1rem;     /* 16px - sm */
+  --icon-size-md: 1.25rem;  /* 20px - md */
+  --icon-size-lg: 1.5rem;   /* 24px - lg */
+  --icon-size-xl: 2rem;      /* 32px - xl */
+}
+
+/* Icon base class - ensures consistent behavior */
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+/* Icon hover states - subtle scale on interactive icons */
+.icon-interactive:hover {
+  opacity: 0.8;
+  transform: scale(1.05);
+}
+
+.icon-interactive:active {
+  transform: scale(0.95);
+}
+
+/* Icon spin animation for loading states */
+.icon-spin {
+  animation: icon-spin 1s linear infinite;
+}
+
+@keyframes icon-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Platform-specific icon colors */
+.icon-connected { color: var(--color-success, #4ade80); }
+.icon-disconnected { color: var(--color-warning, #ffbd38); }
+.icon-error { color: var(--color-destructive, #fb2c36); }
+
 /* Plus-lighter blend used by logos/titles for a subtle glow. */
 .blend-lighter {
   mix-blend-mode: plus-lighter;

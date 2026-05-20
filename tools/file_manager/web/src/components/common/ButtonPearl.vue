@@ -1,7 +1,7 @@
 <template>
   <button
-    class="btn-apple-pearl"
-    :class="{ 'btn-icon-only': iconOnly }"
+    class="button-pearl"
+    :class="{ 'button-pearl--icon-only': iconOnly }"
     :disabled="disabled"
     @click="$emit('click', $event)"
   >
@@ -27,48 +27,60 @@ defineEmits(['click'])
 </script>
 
 <style scoped>
-.btn-apple-pearl {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background-color: var(--color-surface-pearl);
+/* ============================================
+   ButtonPearl - Apple Design System
+   Based on DESIGN.md button-pearl-capsule
+   ============================================ */
+
+.button-pearl {
+  /* Surface - Pearl background */
+  background: var(--color-surface-pearl);
   color: var(--color-ink-muted-80);
+
+  /* Typography */
+  font: var(--text-caption);
+
+  /* Shape - Pearl capsule with soft ring */
   border: 3px solid var(--color-divider-soft);
   border-radius: var(--radius-md);
+
+  /* Spacing */
   padding: 8px 14px;
-  font-family: var(--font-family-text);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.43;
-  letter-spacing: -0.224px;
+
+  /* Interactive */
   cursor: pointer;
-  transition: transform 0.1s ease;
-  white-space: nowrap;
+  transition: transform 0.1s ease, opacity 0.15s ease;
 }
 
-.btn-apple-pearl:hover {
-  background-color: var(--color-canvas);
-}
-
-.btn-apple-pearl:active:not(:disabled) {
+/* Active State */
+.button-pearl:active {
   transform: scale(0.95);
 }
 
-.btn-apple-pearl:focus {
+/* Focus State */
+.button-pearl:focus {
   outline: 2px solid var(--color-primary-focus);
   outline-offset: 2px;
 }
 
-.btn-apple-pearl:disabled {
+/* Disabled State */
+.button-pearl:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Icon-only: 44x44 touch target */
-.btn-apple-pearl.btn-icon-only {
-  padding: 8px;
+.button-pearl:disabled:active {
+  transform: none;
+}
+
+/* Icon Only - Circular */
+.button-pearl--icon-only {
   width: 44px;
   height: 44px;
+  padding: 0;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

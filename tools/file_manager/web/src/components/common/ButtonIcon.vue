@@ -1,6 +1,6 @@
 <template>
   <button
-    class="btn-apple-icon"
+    class="button-icon"
     :disabled="disabled"
     @click="$emit('click', $event)"
   >
@@ -21,35 +21,53 @@ defineEmits(['click'])
 </script>
 
 <style scoped>
-.btn-apple-icon {
+/* ============================================
+   ButtonIcon - Apple Design System
+   Based on DESIGN.md button-icon-circular
+   ============================================ */
+
+.button-icon {
+  /* Surface - Translucent chip over photography */
+  background: var(--color-surface-chip-translucent-bg);
+  color: var(--color-ink);
+
+  /* Shape - Circular */
+  border: none;
+  border-radius: var(--radius-full);
+
+  /* Size - 44x44 touch target */
+  width: 44px;
+  height: 44px;
+  padding: 0;
+
+  /* Layout - Center content */
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  background-color: var(--color-surface-chip-translucent-bg);
-  color: var(--color-ink);
-  border: none;
-  border-radius: var(--radius-full);
+
+  /* Interactive */
   cursor: pointer;
-  transition: transform 0.1s ease;
+  transition: transform 0.1s ease, opacity 0.15s ease;
 }
 
-.btn-apple-icon:hover {
-  background-color: var(--color-surface-chip-hover);
-}
-
-.btn-apple-icon:active:not(:disabled) {
+/* Active State */
+.button-icon:active {
   transform: scale(0.95);
 }
 
-.btn-apple-icon:focus {
+/* Focus State */
+.button-icon:focus {
   outline: 2px solid var(--color-primary-focus);
   outline-offset: 2px;
 }
 
-.btn-apple-icon:disabled {
+/* Disabled State */
+.button-icon:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.button-icon:disabled:active {
+  transform: none;
 }
 </style>

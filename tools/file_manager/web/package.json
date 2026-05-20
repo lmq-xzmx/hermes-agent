@@ -6,6 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "VITE_API_BASE=http://localhost:8080/api/v1 VITE_WS_BASE=ws://localhost:8080 vite build",
+    "sync:debug": "cp -R dist/* \"../src-tauri/target/debug/bundle/macos/Hermes File Manager.app/Contents/Resources/\" && cp -p \"../src-tauri/target/debug/hermes-file-manager\" \"../src-tauri/target/debug/bundle/macos/Hermes File Manager.app/Contents/MacOS/hermes-file-manager\"",
+    "sync:release": "cp -R dist/* \"../src-tauri/target/release/bundle/macos/Hermes File Manager.app/Contents/Resources/\" && cp -p \"../src-tauri/target/release/hermes-file-manager\" \"../src-tauri/target/release/bundle/macos/Hermes File Manager.app/Contents/MacOS/hermes-file-manager\"",
+    "dev:tauri": "npm run build && npm run sync:debug && cd ../src-tauri && cargo build && npm run sync:debug",
+    "build:tauri": "npm run build && npm run sync:release && cd ../src-tauri && cargo build --release && npm run sync:release",
+    "deploy:debug": "npm run sync:debug && rm -rf \"/Applications/Hermes File Manager Debug.app\" && cp -R \"../src-tauri/target/debug/bundle/macos/Hermes File Manager.app\" \"/Applications/Hermes File Manager Debug.app\"",
+    "deploy:release": "npm run sync:release && rm -rf \"/Applications/Hermes File Manager.app\" && cp -R \"../src-tauri/target/release/bundle/macos/Hermes File Manager.app\" \"/Applications/Hermes File Manager.app\"",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -26,8 +32,10 @@
     "vitest": "^1.6.1"
   },
   "dependencies": {
-        "echarts": "^6.0.0",
+    "@tauri-apps/plugin-shell": "^2.3.5",
+    "echarts": "^6.0.0",
     "esbuild": "0.24.0",
+    "lucide-vue-next": "^1.0.0",
     "marked": "^18.0.3",
     "pinia": "^2.3.1",
     "rollup": "^4.60.3",

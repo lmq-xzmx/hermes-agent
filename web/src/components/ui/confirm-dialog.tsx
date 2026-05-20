@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { AlertTriangle } from "lucide-react";
+import { Icon } from "@/components/ui";
 import { Button } from "@nous-research/ui";
 import { cn } from "@/lib/utils";
 
@@ -75,7 +75,7 @@ export function ConfirmDialog({
               aria-hidden
               className="mt-0.5 shrink-0 text-destructive"
             >
-              <AlertTriangle className="h-4 w-4" />
+              <Icon name="alert-triangle" size="sm" ariaHidden />
             </div>
           )}
 

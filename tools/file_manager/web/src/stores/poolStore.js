@@ -48,7 +48,24 @@ export const usePoolStore = defineStore('pools', () => {
       })
       if (!res.ok) throw new Error('Failed to load pools')
       const data = await res.json()
-      pools.value = data.pools || []
+      // Normalize response format - backend returns {pools: [...]} or [...]
+      const rawPools = Array.isArray(data) ? data : (data.pools || [])
+      // Map backend fields to frontend expected fields
+      pools.value = rawPools.map(p => ({
+        pool_id: p.id,
+        name: p.name,
+        description: p.description || '',
+        status: p.is_active ? 'active' : 'inactive',
+        type: p.protocol || 'local',
+        total_bytes: p.total_bytes || 0,
+        used_bytes: p.used_bytes || (p.total_bytes && p.free_bytes ? p.total_bytes - p.free_bytes : 0),
+        free_bytes: p.free_bytes || 0,
+        usage_ratio: p.total_bytes > 0 ? ((p.used_bytes || (p.total_bytes - p.free_bytes)) / p.total_bytes) : 0,
+        base_path: p.base_path,
+        protocol: p.protocol,
+        is_active: p.is_active,
+        created_at: p.created_at
+      }))
     } catch (e) {
       error.value = e.message
       console.error('loadPools error:', e)
@@ -68,8 +85,10 @@ export const usePoolStore = defineStore('pools', () => {
         headers: getAuthHeaders(),
         body: JSON.stringify({
           name,
-          type,
-          max_bytes: sizeBytes
+          protocol: type === 'high-performance' ? 'smb' : (type === 'archival' ? 'nfs' : 'local'),
+          total_bytes: sizeBytes,
+          base_path: `/data/pools/${name.replace(/\s+/g, '_')}`,
+          description: ''
         })
       })
       if (!res.ok) throw new Error('Failed to create pool')

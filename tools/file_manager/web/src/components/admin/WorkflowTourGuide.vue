@@ -133,8 +133,3 @@ function resetTour() {
 defineExpose({ startTour, resetTour })
 </script>
 
-<style scoped>
-.workflow-tour-wrapper {
-  /* Wrapper for scoped styles if needed */
-}
-</style>

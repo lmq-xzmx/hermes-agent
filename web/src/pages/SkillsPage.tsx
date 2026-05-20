@@ -1,20 +1,8 @@
 import { useEffect, useLayoutEffect, useState, useMemo } from "react";
 import {
-  Package,
-  Search,
-  Wrench,
-  X,
-  Cpu,
-  Globe,
-  Shield,
-  Eye,
-  Paintbrush,
-  Brain,
-  Blocks,
-  Code,
-  Zap,
-  Filter,
-} from "lucide-react";
+  Icon,
+  type IconName,
+} from "@/components/ui";
 import { api } from "@/lib/api";
 import type { SkillInfo, ToolsetInfo } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
@@ -60,29 +48,24 @@ function prettyCategory(
     .join(" ");
 }
 
-const TOOLSET_ICONS: Record<
-  string,
-  React.ComponentType<{ className?: string }>
-> = {
-  computer: Cpu,
-  web: Globe,
-  security: Shield,
-  vision: Eye,
-  design: Paintbrush,
-  ai: Brain,
-  integration: Blocks,
-  code: Code,
-  automation: Zap,
+const TOOLSET_ICONS: Record<string, IconName> = {
+  computer: "cpu",
+  web: "globe",
+  security: "shield",
+  vision: "eye",
+  design: "palette",
+  ai: "brain",
+  integration: "block",
+  code: "code",
+  automation: "zap",
 };
 
-function toolsetIcon(
-  name: string,
-): React.ComponentType<{ className?: string }> {
+function toolsetIcon(name: string): IconName {
   const lower = name.toLowerCase();
   for (const [key, icon] of Object.entries(TOOLSET_ICONS)) {
     if (lower.includes(key)) return icon;
   }
-  return Wrench;
+  return "wrench";
 }
 
 /* ------------------------------------------------------------------ */
@@ -109,7 +92,7 @@ export default function SkillsPage() {
       })
       .catch(() => showToast(t.common.loading, "error"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [showToast, t.common.loading]);
 
   /* ---- Toggle skill ---- */
   const handleToggleSkill = async (skill: SkillInfo) => {
@@ -199,7 +182,12 @@ export default function SkillsPage() {
     );
     setEnd(
       <div className="relative w-full min-w-0 sm:max-w-xs">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+        <Icon
+          name="search"
+          size="sm"
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+          ariaHidden
+        />
         <Input
           className="h-8 pl-8 pr-7 text-xs"
           placeholder={t.common.search}
@@ -214,7 +202,7 @@ export default function SkillsPage() {
             onClick={() => setSearch("")}
             aria-label={t.common.clear}
           >
-            <X />
+            <Icon name="x" size="sm" ariaHidden />
           </Button>
         )}
       </div>,
@@ -253,13 +241,13 @@ export default function SkillsPage() {
         <aside aria-label={t.skills.title} className="sm:w-56 sm:shrink-0">
           <div className="sm:sticky sm:top-0">
             <div
-              className={`
-                flex flex-col
-                border border-border bg-muted/20
-              `}
+              className={cn(
+                "flex flex-col",
+                "border border-border bg-muted/20",
+              )}
             >
               <div className="hidden sm:flex items-center gap-2 px-3 py-2 border-b border-border">
-                <Filter className="h-3 w-3 text-muted-foreground" />
+                <Icon name="filter" size="xs" className="text-muted-foreground" ariaHidden />
                 <span className="font-mondwest text-[0.65rem] tracking-[0.12em] uppercase text-muted-foreground">
                   {t.skills.filters}
                 </span>
@@ -267,7 +255,7 @@ export default function SkillsPage() {
 
               <div className="flex sm:flex-col gap-1 overflow-x-auto sm:overflow-x-visible scrollbar-none p-2">
                 <PanelItem
-                  icon={Package}
+                  iconName="package"
                   label={`${t.skills.all} (${skills.length})`}
                   active={view === "skills" && !isSearching}
                   onClick={() => {
@@ -277,7 +265,7 @@ export default function SkillsPage() {
                   }}
                 />
                 <PanelItem
-                  icon={Wrench}
+                  iconName="wrench"
                   label={`${t.skills.toolsets} (${toolsets.length})`}
                   active={view === "toolsets"}
                   onClick={() => {
@@ -309,11 +297,12 @@ export default function SkillsPage() {
                           >
                             <span className="flex-1 truncate">{name}</span>
                             <span
-                              className={`text-[10px] tabular-nums ${
+                              className={cn(
+                                "text-[10px] tabular-nums",
                                 isActive
                                   ? "text-foreground/60"
-                                  : "text-muted-foreground/50"
-                              }`}
+                                  : "text-muted-foreground/50",
+                              )}
                             >
                               {count}
                             </span>
@@ -333,7 +322,7 @@ export default function SkillsPage() {
               <CardHeader className="py-3 px-4">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <Search className="h-4 w-4" />
+                    <Icon name="search" size="sm" ariaHidden />
                     {t.skills.title}
                   </CardTitle>
                   <Badge tone="secondary" className="text-[10px]">
@@ -372,7 +361,7 @@ export default function SkillsPage() {
               <CardHeader className="py-3 px-4">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <Package className="h-4 w-4" />
+                    <Icon name="package" size="sm" ariaHidden />
                     {activeCategory
                       ? prettyCategory(
                           activeCategory === "__none__" ? null : activeCategory,
@@ -421,7 +410,7 @@ export default function SkillsPage() {
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {filteredToolsets.map((ts) => {
-                    const TsIcon = toolsetIcon(ts.name);
+                    const iconName = toolsetIcon(ts.name);
                     const labelText =
                       ts.label.replace(/^[\p{Emoji}\s]+/u, "").trim() ||
                       ts.name;
@@ -430,7 +419,12 @@ export default function SkillsPage() {
                       <Card key={ts.name} className="relative">
                         <CardContent className="py-4">
                           <div className="flex items-start gap-3">
-                            <TsIcon className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                            <Icon
+                              name={iconName}
+                              size="md"
+                              className="text-muted-foreground shrink-0 mt-0.5"
+                              ariaHidden
+                            />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="font-medium text-sm">
@@ -511,9 +505,10 @@ function SkillRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
           <span
-            className={`font-mono-ui text-sm ${
-              skill.enabled ? "text-foreground" : "text-muted-foreground"
-            }`}
+            className={cn(
+              "font-mono-ui text-sm",
+              skill.enabled ? "text-foreground" : "text-muted-foreground",
+            )}
           >
             {skill.name}
           </span>
@@ -526,7 +521,12 @@ function SkillRow({
   );
 }
 
-function PanelItem({ active, icon: Icon, label, onClick }: PanelItemProps) {
+function PanelItem({
+  active,
+  iconName,
+  label,
+  onClick,
+}: PanelItemProps) {
   return (
     <ListItem
       active={active}
@@ -537,7 +537,7 @@ function PanelItem({ active, icon: Icon, label, onClick }: PanelItemProps) {
         active && "bg-foreground/90 text-background hover:text-background",
       )}
     >
-      <Icon className="h-3.5 w-3.5 shrink-0" />
+      <Icon name={iconName} size="sm" className="shrink-0" ariaHidden />
       <span className="flex-1 truncate">{label}</span>
     </ListItem>
   );
@@ -545,7 +545,7 @@ function PanelItem({ active, icon: Icon, label, onClick }: PanelItemProps) {
 
 interface PanelItemProps {
   active: boolean;
-  icon: React.ComponentType<{ className?: string }>;
+  iconName: IconName;
   label: string;
   onClick: () => void;
 }

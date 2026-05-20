@@ -6,24 +6,7 @@ import {
   useRef,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Database,
-  MessageSquare,
-  Search,
-  Trash2,
-  Clock,
-  Terminal,
-  Globe,
-  MessageCircle,
-  Hash,
-  X,
-  Play,
-} from "lucide-react";
+import { Icon } from "@/components/ui";
 import { api } from "@/lib/api";
 import type {
   SessionInfo,
@@ -47,16 +30,16 @@ import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { PluginSlot } from "@/plugins";
 import { isDashboardEmbeddedChatEnabled } from "@/lib/dashboard-flags";
+import type { IconName } from "@/components/ui";
 
-const SOURCE_CONFIG: Record<string, { icon: typeof Terminal; color: string }> =
-  {
-    cli: { icon: Terminal, color: "text-primary" },
-    telegram: { icon: MessageCircle, color: "text-[oklch(0.65_0.15_250)]" },
-    discord: { icon: Hash, color: "text-[oklch(0.65_0.15_280)]" },
-    slack: { icon: MessageSquare, color: "text-[oklch(0.7_0.15_155)]" },
-    whatsapp: { icon: Globe, color: "text-success" },
-    cron: { icon: Clock, color: "text-warning" },
-  };
+const SOURCE_CONFIG: Record<string, { icon: IconName; color: string }> = {
+  cli: { icon: "terminal", color: "text-primary" },
+  telegram: { icon: "message-circle", color: "text-[oklch(0.65_0.15_250)]" },
+  discord: { icon: "hash", color: "text-[oklch(0.65_0.15_280)]" },
+  slack: { icon: "message-square", color: "text-[oklch(0.7_0.15_155)]" },
+  whatsapp: { icon: "globe", color: "text-success" },
+  cron: { icon: "clock", color: "text-warning" },
+};
 
 /** Render an FTS5 snippet with highlighted matches.
  *  The backend wraps matches in >>> and <<< delimiters. */
@@ -111,9 +94,9 @@ function ToolCallBlock({
         className="px-3 py-2 text-xs text-warning hover:bg-warning/10 hover:text-warning"
       >
         {open ? (
-          <ChevronDown className="h-3 w-3" />
+          <Icon name="chevron-down" size="xs" ariaHidden />
         ) : (
-          <ChevronRight className="h-3 w-3" />
+          <Icon name="chevron-right" size="xs" ariaHidden />
         )}
         <span className="font-mono-ui font-medium">
           {toolCall.function.name}
@@ -288,8 +271,7 @@ function SessionRow({
 
   const sourceInfo = (session.source
     ? SOURCE_CONFIG[session.source]
-    : null) ?? { icon: Globe, color: "text-muted-foreground" };
-  const SourceIcon = sourceInfo.icon;
+    : null) ?? { icon: "globe" as IconName, color: "text-muted-foreground" };
   const hasTitle = session.title && session.title !== "Untitled";
 
   return (
@@ -306,7 +288,7 @@ function SessionRow({
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className={`shrink-0 ${sourceInfo.color}`}>
-            <SourceIcon className="h-4 w-4" />
+            <Icon name={sourceInfo.icon} size="sm" ariaHidden />
           </div>
           <div className="flex flex-col gap-0.5 min-w-0">
             <div className="flex items-center gap-2">
@@ -365,7 +347,7 @@ function SessionRow({
                 navigate(`/chat?resume=${encodeURIComponent(session.id)}`);
               }}
             >
-              <Play />
+              <Icon name="play" size="sm" ariaHidden />
             </Button>
           )}
           <Button
@@ -378,7 +360,7 @@ function SessionRow({
               onDelete();
             }}
           >
-            <Trash2 />
+            <Icon name="trash-2" size="sm" ariaHidden />
           </Button>
         </div>
       </div>
@@ -445,7 +427,7 @@ export default function SessionsPage() {
         {searching ? (
           <Spinner className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[0.875rem] text-primary" />
         ) : (
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Icon name="search" size="sm" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" ariaHidden />
         )}
         <Input
           placeholder={t.sessions.searchPlaceholder}
@@ -461,7 +443,7 @@ export default function SessionsPage() {
             onClick={() => setSearch("")}
             aria-label={t.common.clear}
           >
-            <X />
+            <Icon name="x" size="sm" ariaHidden />
           </Button>
         )}
       </div>,
@@ -642,7 +624,7 @@ export default function SessionsPage() {
       {alerts.length > 0 && (
         <div className="border border-destructive/30 bg-destructive/[0.06] p-4">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <Icon name="alert-triangle" size="md" className="text-destructive shrink-0 mt-0.5" ariaHidden />
             <div className="flex flex-col gap-2 min-w-0">
               {alerts.map((alert, i) => (
                 <div key={i}>
@@ -668,9 +650,9 @@ export default function SessionsPage() {
               {actionStatus?.running ? (
                 <Spinner className="shrink-0 text-[0.875rem] text-warning" />
               ) : actionStatus?.exit_code === 0 ? (
-                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" />
+                <Icon name="check-circle-2" size="sm" className="shrink-0 text-success" ariaHidden />
               ) : actionStatus !== null ? (
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-destructive" />
+                <Icon name="alert-triangle" size="sm" className="shrink-0 text-destructive" ariaHidden />
               ) : (
                 <Spinner className="shrink-0 text-[0.875rem] text-muted-foreground" />
               )}
@@ -710,7 +692,7 @@ export default function SessionsPage() {
               className="shrink-0 opacity-60 hover:opacity-100"
               aria-label={t.common.close}
             >
-              <X />
+              <Icon name="x" size="sm" ariaHidden />
             </Button>
           </div>
 
@@ -733,7 +715,7 @@ export default function SessionsPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-muted-foreground" />
+              <Icon name="clock" size="md" className="text-muted-foreground" ariaHidden />
               <CardTitle className="text-base">
                 {t.status.recentSessions}
               </CardTitle>
@@ -770,7 +752,7 @@ export default function SessionsPage() {
                   tone="outline"
                   className="text-[10px] shrink-0 self-start sm:self-center"
                 >
-                  <Database className="mr-1 h-3 w-3" />
+                  <Icon name="database" size="xs" className="mr-1" ariaHidden />
                   {s.source ?? "local"}
                 </Badge>
               </div>
@@ -781,7 +763,7 @@ export default function SessionsPage() {
 
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-          <Clock className="h-8 w-8 mb-3 opacity-40" />
+          <Icon name="clock" size="lg" className="mb-3 opacity-40" ariaHidden />
           <p className="text-sm font-medium">
             {search ? t.sessions.noMatch : t.sessions.noSessions}
           </p>
@@ -824,7 +806,7 @@ export default function SessionsPage() {
                   onClick={() => setPage((p) => p - 1)}
                   aria-label={t.sessions.previousPage}
                 >
-                  <ChevronLeft />
+                  <Icon name="chevron-left" size="sm" ariaHidden />
                 </Button>
                 <span className="text-xs text-muted-foreground px-2">
                   {t.common.page} {page + 1} {t.common.of}{" "}
@@ -837,7 +819,7 @@ export default function SessionsPage() {
                   onClick={() => setPage((p) => p + 1)}
                   aria-label={t.sessions.nextPage}
                 >
-                  <ChevronRight />
+                  <Icon name="chevron-right" size="sm" ariaHidden />
                 </Button>
               </div>
             </div>

@@ -24,7 +24,7 @@ import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { Button, Typography } from "@nous-research/ui";
 import { cn } from "@/lib/utils";
-import { Copy, PanelRight, X } from "lucide-react";
+import { Icon } from "@/components/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
@@ -204,7 +204,7 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
         )}
       >
         <span className="inline-flex items-center gap-1.5">
-          <PanelRight className="h-3 w-3 shrink-0" />
+          <Icon name="panel-right" size="xs" className="shrink-0" ariaHidden />
           {modelToolsLabel}
         </span>
       </Button>,
@@ -739,7 +739,7 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
               aria-label={t.app.closeModelTools}
               className="text-midground/70 hover:text-midground"
             >
-              <X />
+              <Icon name="x" size="sm" ariaHidden />
             </Button>
           </div>
 
@@ -800,7 +800,7 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
             style={{ color: TERMINAL_THEME.foreground }}
           >
             <span className="inline-flex items-center gap-1.5">
-              <Copy className="h-3 w-3 shrink-0" />
+              <Icon name="copy" size="xs" className="shrink-0" ariaHidden />
               <span className="hidden min-[400px]:inline tracking-wide">
                 {copyState === "copied" ? "copied" : "copy last response"}
               </span>

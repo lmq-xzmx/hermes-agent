@@ -1,24 +1,24 @@
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="preview-modal-overlay" @click="close" @keydown.esc="close">
+    <div v-if="visible" class="preview-modal__overlay" @click="close" @keydown.esc="close">
       <div class="preview-modal" @click.stop>
-        <div class="preview-header">
-          <div>
-            <div class="preview-title">{{ fileName }}</div>
-            <div class="preview-info">{{ fileInfo }}</div>
+        <header class="preview-modal__header">
+          <div class="preview-modal__title-group">
+            <h2 class="preview-modal__title">{{ fileName }}</h2>
+            <span class="preview-modal__info">{{ fileInfo }}</span>
           </div>
-          <button class="preview-close" @click="close">&times;</button>
-        </div>
+          <button class="preview-modal__close" @click="close" aria-label="关闭预览">&times;</button>
+        </header>
 
-        <div class="preview-content" :class="contentClass">
-          <div v-if="loading" class="preview-placeholder">加载中...</div>
-          <div v-else-if="error" class="preview-error">{{ error }}</div>
+        <main class="preview-modal__content" :class="contentClass">
+          <div v-if="loading" class="preview-modal__placeholder">加载中...</div>
+          <div v-else-if="error" class="preview-modal__error">{{ error }}</div>
           <template v-else>
             <img
               v-if="type === 'image'"
               :src="content"
               :alt="fileName"
-              class="preview-image"
+              class="preview-modal__image"
               @keydown.arrow-left="navigatePrev"
               @keydown.arrow-right="navigateNext"
             />
@@ -26,46 +26,44 @@
               v-else-if="type === 'video'"
               :src="content"
               controls
-              class="preview-video"
+              class="preview-modal__video"
             />
             <audio
               v-else-if="type === 'audio'"
               :src="content"
               controls
-              class="preview-audio"
+              class="preview-modal__audio"
             />
             <iframe
               v-else-if="type === 'pdf'"
               :src="content"
-              class="preview-pdf"
+              class="preview-modal__pdf"
             />
-            <pre v-else-if="type === 'text' || type === 'markdown'" class="preview-text">{{ content }}</pre>
+            <pre v-else-if="type === 'text'" class="preview-modal__content--text">{{ content }}</pre>
             <div
-              v-else-if="type === 'markdown-html'"
-              class="preview-markdown"
-              v-html="content"
+              v-else-if="type === 'markdown' || type === 'markdown-html'"
+              class="preview-modal__markdown"
+              v-html="type === 'markdown' ? processedContent : content"
             />
-            <div v-else class="preview-placeholder">
+            <div v-else class="preview-modal__placeholder">
               <p>此文件类型不支持预览</p>
-              <p class="preview-hint-small">按 Esc 关闭</p>
+              <p class="preview-modal__hint-small">按 Esc 关闭</p>
             </div>
           </template>
-        </div>
+        </main>
 
-        <div class="preview-footer">
-          <div class="preview-hint">
-            <span><kbd>Space</kbd> 预览</span>
+        <footer class="preview-modal__footer">
+          <div class="preview-modal__hint">
             <span><kbd>Esc</kbd> 关闭</span>
             <span v-if="hasMultipleFiles"><kbd>←</kbd><kbd>→</kbd> 切换</span>
           </div>
-          <div class="preview-nav-info">
-            {{ navInfo }}
-          </div>
-        </div>
+          <span class="preview-modal__nav-info">{{ navInfo }}</span>
+        </footer>
       </div>
     </div>
   </Teleport>
 </template>
+
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
@@ -190,208 +188,350 @@ defineExpose({
 </script>
 
 <style scoped>
-.preview-modal-overlay {
+/* ============================================
+ * PreviewModal - 预览弹窗
+ * BEM: preview-modal__block--modifier
+ * ============================================ */
+
+/* --------------------------------------------
+ * Block: Overlay
+ * -------------------------------------------- */
+.preview-modal__overlay {
+  /* Layout */
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--color-overlay-strong);
-  z-index: 10000;
+  inset: 0;
+  z-index: var(--z-modal-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
+
+  /* Box Model */
+  padding: var(--spacing-lg);
+
+  /* Visual */
+  background: var(--color-overlay);
 }
 
+/* --------------------------------------------
+ * Block: Modal Container
+ * -------------------------------------------- */
 .preview-modal {
-  background: var(--color-canvas);
-  border-radius: var(--radius-lg);
-  width: 90vw;
-  max-width: 1200px;
-  height: 85vh;
+  /* Layout */
+  position: relative;
+  z-index: var(--z-modal);
   display: flex;
   flex-direction: column;
+
+  /* Box Model */
+  width: 100%;
+  max-width: 1000px;
+  max-height: calc(100vh - var(--spacing-xxl) * 2);
+
+  /* Visual */
+  background: var(--color-canvas);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-product);
   overflow: hidden;
 }
 
-.preview-header {
+/* --------------------------------------------
+ * Element: Header
+ * -------------------------------------------- */
+.preview-modal__header {
+  /* Layout */
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
+
+  /* Box Model */
   padding: var(--spacing-md) var(--spacing-lg);
+
+  /* Visual */
   border-bottom: 1px solid var(--color-hairline);
-  background: var(--color-canvas-parchment);
 }
 
-.preview-title {
-  font-size: 17px;
-  font-weight: 600;
+.preview-modal__title-group {
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  min-width: 0;
+}
+
+.preview-modal__title {
+  /* Typography */
+  font: var(--text-body-strong);
+  text-align: left;
   color: var(--color-ink);
-  letter-spacing: -0.374px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  /* Reset */
+  margin: 0;
 }
 
-.preview-info {
-  font-size: 14px;
+.preview-modal__info {
+  /* Typography */
+  font: var(--text-caption);
   color: var(--color-ink-muted-48);
-  margin-top: var(--spacing-xxs);
-  letter-spacing: -0.224px;
 }
 
-.preview-close {
-  width: 36px;
-  height: 36px;
-  border: none;
+.preview-modal__close {
+  /* Layout */
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Box Model */
+  width: 28px;
+  height: 28px;
+
+  /* Typography */
+  font-size: 20px;
+  line-height: 1;
+
+  /* Visual */
+  color: var(--color-ink-muted-48);
   background: transparent;
-  font-size: 24px;
+  border: none;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  border-radius: var(--radius-md);
-  color: var(--color-ink-muted-48);
-  transition: background 0.15s;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+
+  &:hover {
+    background: var(--color-gray-subtle);
+    color: var(--color-ink);
+  }
+
+  &:active {
+    background: var(--color-gray-subtle);
+  }
 }
 
-.preview-close:hover {
-  background: var(--color-hairline);
-  color: var(--color-ink);
-}
-
-.preview-content {
+/* --------------------------------------------
+ * Element: Content
+ * -------------------------------------------- */
+.preview-modal__content {
+  /* Layout */
   flex: 1;
+  min-height: 0;
   overflow: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-lg);
+
+  /* Visual */
+  background: var(--color-canvas-parchment);
 }
 
-.preview-placeholder,
-.preview-error {
-  color: var(--color-ink-muted-48);
-  font-size: 17px;
+.preview-modal__placeholder,
+.preview-modal__error {
+  /* Typography */
+  font: var(--text-body);
   text-align: center;
+  color: var(--color-ink-muted-48);
+
+  /* Box Model */
+  padding: var(--spacing-xl);
 }
 
-.preview-error {
+.preview-modal__error {
   color: var(--color-danger);
 }
 
-.preview-hint-small {
-  font-size: 12px;
-  margin-top: var(--spacing-xs);
+.preview-modal__hint-small {
+  /* Typography */
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
+
+  /* Box Model */
+  margin-top: var(--spacing-sm);
 }
 
-.preview-image {
+/* --------------------------------------------
+ * Modifier: Content Type - Image
+ * -------------------------------------------- */
+.preview-type-image.preview-modal__content {
+  /* Box Model */
+  padding: var(--spacing-md);
+}
+
+.preview-modal__image {
+  /* Box Model */
   max-width: 100%;
-  max-height: 70vh;
+  max-height: calc(100vh - 200px);
+
+  /* Visual */
   object-fit: contain;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-sm);
 }
 
-.preview-video,
-.preview-audio {
+/* --------------------------------------------
+ * Modifier: Content Type - Video
+ * -------------------------------------------- */
+.preview-modal__video {
+  /* Box Model */
   max-width: 100%;
-  max-height: 70vh;
+  max-height: calc(100vh - 200px);
+
+  /* Visual */
+  border-radius: var(--radius-sm);
 }
 
-.preview-pdf {
+/* --------------------------------------------
+ * Modifier: Content Type - Audio
+ * -------------------------------------------- */
+.preview-modal__audio {
+  /* Box Model */
   width: 100%;
-  height: 70vh;
+  max-width: 600px;
+  padding: var(--spacing-lg);
+}
+
+/* --------------------------------------------
+ * Modifier: Content Type - PDF
+ * -------------------------------------------- */
+.preview-modal__pdf {
+  /* Box Model */
+  width: 100%;
+  height: calc(100vh - 200px);
+
+  /* Visual */
   border: none;
 }
 
-.preview-text {
-  width: 100%;
-  height: 70vh;
-  overflow: auto;
-  background: var(--color-canvas-parchment);
-  padding: var(--spacing-md);
-  border-radius: var(--radius-md);
-  font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
-  font-size: 14px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-word;
-  margin: 0;
-}
+/* --------------------------------------------
+ * Modifier: Content Type - Text
+ * -------------------------------------------- */
+.preview-modal__content--text {
+  /* Typography */
+  font: var(--text-body);
+  font-family: var(--font-family-text);
+  color: var(--color-ink);
 
-.preview-markdown {
+  /* Box Model */
+  margin: 0;
+  padding: var(--spacing-lg);
   width: 100%;
   max-width: 800px;
+
+  /* Text */
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  /* Visual */
+  background: var(--color-canvas);
+}
+
+/* --------------------------------------------
+ * Modifier: Content Type - Markdown
+ * -------------------------------------------- */
+.preview-modal__markdown {
+  /* Typography */
+  font: var(--text-body);
+  color: var(--color-ink);
+
+  /* Box Model */
   padding: var(--spacing-lg);
-  overflow: auto;
+  width: 100%;
+  max-width: 800px;
+
+  /* Visual */
+  background: var(--color-canvas);
+  overflow-y: auto;
+
+  /* Nested headings */
+  :deep(h1),
+  :deep(h2),
+  :deep(h3) {
+    margin-top: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    font-weight: 600;
+  }
+
+  :deep(p) {
+    margin-bottom: var(--spacing-sm);
+  }
+
+  :deep(code) {
+    font-family: var(--font-family-text);
+    background: var(--color-gray-subtle);
+    padding: 2px 6px;
+    border-radius: var(--radius-xs);
+  }
+
+  :deep(pre) {
+    background: var(--color-canvas-parchment);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+
+    code {
+      background: transparent;
+      padding: 0;
+    }
+  }
 }
 
-.preview-markdown :deep(h1),
-.preview-markdown :deep(h2),
-.preview-markdown :deep(h3) {
-  margin-top: 1.5em;
-  margin-bottom: 0.5em;
-  font-weight: 600;
-}
-
-.preview-markdown :deep(p) {
-  margin: 1em 0;
-  line-height: 1.7;
-}
-
-.preview-markdown :deep(code) {
-  background: var(--color-canvas-parchment);
-  padding: 2px 6px;
-  border-radius: var(--radius-xs);
-  font-family: monospace;
-}
-
-.preview-markdown :deep(pre) {
-  background: var(--color-canvas-parchment);
-  padding: var(--spacing-md);
-  border-radius: var(--radius-md);
-  overflow-x: auto;
-}
-
-.preview-markdown :deep(pre code) {
-  background: none;
-  padding: 0;
-}
-
-.preview-markdown :deep(ul),
-.preview-markdown :deep(ol) {
-  padding-left: var(--spacing-lg);
-}
-
-.preview-markdown :deep(blockquote) {
-  border-left: 4px solid var(--color-primary);
-  padding-left: var(--spacing-md);
-  margin-left: 0;
-  color: var(--color-ink-muted-48);
-}
-
-.preview-footer {
+/* --------------------------------------------
+ * Element: Footer
+ * -------------------------------------------- */
+.preview-modal__footer {
+  /* Layout */
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
+
+  /* Box Model */
   padding: var(--spacing-sm) var(--spacing-lg);
+
+  /* Visual */
   border-top: 1px solid var(--color-hairline);
-  background: var(--color-canvas-parchment);
 }
 
-.preview-hint {
+.preview-modal__hint {
+  /* Layout */
   display: flex;
-  gap: var(--spacing-lg);
-  font-size: 14px;
+  align-items: center;
+  gap: var(--spacing-md);
+
+  /* Typography */
+  font: var(--text-caption);
   color: var(--color-ink-muted-48);
-  letter-spacing: -0.224px;
+
+  kbd {
+    /* Layout */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    /* Box Model */
+    min-width: 20px;
+    height: 20px;
+    padding: 0 var(--spacing-xxs);
+
+    /* Typography */
+    font-family: var(--font-family-text);
+    font-size: 11px;
+    color: var(--color-ink-muted-48);
+
+    /* Visual */
+    background: var(--color-canvas-parchment);
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-xs);
+  }
 }
 
-.preview-hint kbd {
-  background: var(--color-surface-pearl);
-  padding: 2px 6px;
-  border-radius: var(--radius-xs);
-  font-size: 12px;
-  font-family: inherit;
-}
-
-.preview-nav-info {
-  font-size: 14px;
+.preview-modal__nav-info {
+  /* Typography */
+  font: var(--text-caption);
   color: var(--color-ink-muted-48);
-  letter-spacing: -0.224px;
 }
 </style>
+

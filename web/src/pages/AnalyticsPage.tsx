@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
-import { BarChart3, Brain, Cpu, RefreshCw, TrendingUp } from "lucide-react";
+import { Icon } from "@/components/ui";
 import { api } from "@/lib/api";
 import type {
   AnalyticsResponse,
@@ -51,7 +51,7 @@ function TokenBarChart({ daily }: { daily: AnalyticsDailyEntry[] }) {
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-muted-foreground" />
+          <Icon name="bar-chart-3" size="md" className="text-muted-foreground" ariaHidden />
           <CardTitle className="text-base">
             {t.analytics.dailyTokenUsage}
           </CardTitle>
@@ -141,7 +141,7 @@ function DailyTable({ daily }: { daily: AnalyticsDailyEntry[] }) {
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-muted-foreground" />
+          <Icon name="trending-up" size="md" className="text-muted-foreground" ariaHidden />
           <CardTitle className="text-base">
             {t.analytics.dailyBreakdown}
           </CardTitle>
@@ -213,7 +213,7 @@ function ModelTable({ models }: { models: AnalyticsModelEntry[] }) {
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Cpu className="h-5 w-5 text-muted-foreground" />
+          <Icon name="cpu" size="md" className="text-muted-foreground" ariaHidden />
           <CardTitle className="text-base">
             {t.analytics.perModelBreakdown}
           </CardTitle>
@@ -274,7 +274,7 @@ function SkillTable({ skills }: { skills: AnalyticsSkillEntry[] }) {
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Brain className="h-5 w-5 text-muted-foreground" />
+          <Icon name="brain" size="md" className="text-muted-foreground" ariaHidden />
           <CardTitle className="text-base">{t.analytics.topSkills}</CardTitle>
         </div>
       </CardHeader>
@@ -379,7 +379,7 @@ export default function AnalyticsPage() {
           outlined
           onClick={load}
           disabled={loading}
-          prefix={loading ? <Spinner /> : <RefreshCw />}
+          prefix={loading ? <Spinner /> : <Icon name="refresh-cw" size="sm" ariaHidden />}
         >
           {t.common.refresh}
         </Button>
@@ -465,7 +465,7 @@ export default function AnalyticsPage() {
           <Card>
             <CardContent className="py-12">
               <div className="flex flex-col items-center text-muted-foreground">
-                <BarChart3 className="h-8 w-8 mb-3 opacity-40" />
+                <Icon name="bar-chart-3" size="lg" className="mb-3 opacity-40" ariaHidden />
                 <p className="text-sm font-medium">{t.analytics.noUsageData}</p>
                 <p className="text-xs mt-1 text-muted-foreground/60">
                   {t.analytics.startSession}

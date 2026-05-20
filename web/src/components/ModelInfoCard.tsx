@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Brain, Eye, Gauge, Lightbulb, Wrench } from "lucide-react";
+import { Icon } from "@/components/ui";
 import { Spinner } from "@nous-research/ui";
 import { api } from "@/lib/api";
 import type { ModelInfoResponse } from "@/lib/api";
@@ -52,7 +52,7 @@ export function ModelInfoCard({
     <div className="border border-border/60 bg-muted/30 px-3 py-2.5 space-y-2">
       <div className="flex items-center gap-4 text-xs">
         <div className="flex items-center gap-1.5 text-muted-foreground">
-          <Gauge className="h-3.5 w-3.5" />
+          <Icon name="gauge" size="sm" ariaHidden />
           <span className="font-medium">Context Window</span>
         </div>
         <div className="flex items-center gap-2">
@@ -74,7 +74,7 @@ export function ModelInfoCard({
       {hasCaps && caps.max_output_tokens && caps.max_output_tokens > 0 && (
         <div className="flex items-center gap-4 text-xs">
           <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Lightbulb className="h-3.5 w-3.5" />
+            <Icon name="lightbulb" size="sm" ariaHidden />
             <span className="font-medium">Max Output</span>
           </div>
           <span className="font-mono font-semibold text-foreground">
@@ -87,17 +87,17 @@ export function ModelInfoCard({
         <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
           {caps.supports_tools && (
             <span className="inline-flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-              <Wrench className="h-2.5 w-2.5" /> Tools
+              <Icon name="wrench" size="xs" ariaHidden /> Tools
             </span>
           )}
           {caps.supports_vision && (
             <span className="inline-flex items-center gap-1 bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
-              <Eye className="h-2.5 w-2.5" /> Vision
+              <Icon name="eye" size="xs" ariaHidden /> Vision
             </span>
           )}
           {caps.supports_reasoning && (
             <span className="inline-flex items-center gap-1 bg-purple-500/10 px-2 py-0.5 text-[10px] font-medium text-purple-600 dark:text-purple-400">
-              <Brain className="h-2.5 w-2.5" /> Reasoning
+              <Icon name="brain" size="xs" ariaHidden /> Reasoning
             </span>
           )}
           {caps.model_family && (

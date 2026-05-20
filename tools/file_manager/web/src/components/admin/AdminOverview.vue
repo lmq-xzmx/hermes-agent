@@ -16,7 +16,9 @@
     <div v-else class="overview-grid">
       <!-- 总用户 -->
       <div class="stat-card tile-light" @click="navigateTo('/admin/users')">
-        <div class="stat-icon">👥</div>
+        <div class="stat-icon">
+          <Icon name="users" :size="24" colored />
+        </div>
         <div class="stat-content">
           <span class="stat-value">{{ overview?.total_users || 0 }}</span>
           <span class="stat-label">总用户</span>
@@ -28,7 +30,9 @@
 
       <!-- 总团队/空间 -->
       <div class="stat-card tile-light">
-        <div class="stat-icon">📁</div>
+        <div class="stat-icon">
+          <Icon name="folder" :size="24" colored />
+        </div>
         <div class="stat-content">
           <span class="stat-value">{{ overview?.total_spaces || 0 }}</span>
           <span class="stat-label">总空间</span>
@@ -40,7 +44,9 @@
 
       <!-- 存储使用 -->
       <div class="stat-card tile-light" @click="navigateTo('/admin/storage')">
-        <div class="stat-icon">💾</div>
+        <div class="stat-icon">
+          <Icon name="database" :size="24" colored />
+        </div>
         <div class="stat-content">
           <span class="stat-value">{{ formatBytes(overview?.storage?.used_bytes) }}</span>
           <span class="stat-label">已用存储</span>
@@ -59,7 +65,9 @@
 
       <!-- 活跃告警 -->
       <div class="stat-card tile-light" :class="{ 'alert-card': criticalAlerts.length > 0 }" @click="navigateTo('/admin/alerts')">
-        <div class="stat-icon">⚠️</div>
+        <div class="stat-icon">
+          <Icon name="warning" :size="24" colored />
+        </div>
         <div class="stat-content">
           <span class="stat-value">{{ alerts.length }}</span>
           <span class="stat-label">活跃告警</span>
@@ -74,7 +82,9 @@
 
       <!-- 新增用户趋势 -->
       <div class="stat-card tile-light">
-        <div class="stat-icon">📈</div>
+        <div class="stat-icon">
+          <Icon name="trending-up" :size="24" colored />
+        </div>
         <div class="stat-content">
           <span class="stat-value">+{{ overview?.new_users_7d || 0 }}</span>
           <span class="stat-label">本周新增</span>
@@ -83,7 +93,9 @@
 
       <!-- 存储池数 -->
       <div class="stat-card tile-light">
-        <div class="stat-icon">🗄️</div>
+        <div class="stat-icon">
+          <Icon name="server" :size="24" colored />
+        </div>
         <div class="stat-content">
           <span class="stat-value">{{ overview?.total_pools || 0 }}</span>
           <span class="stat-label">存储池</span>
@@ -96,6 +108,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useAdminStore } from '@/stores/adminStore'
+import { Icon } from '@/components/common'
 
 const store = useAdminStore()
 const overview = computed(() => store.overview)
@@ -120,162 +133,3 @@ function retry() {
 }
 </script>
 
-<style scoped>
-.admin-overview {
-  position: relative;
-}
-
-/* Loading & Error States */
-.loading-state,
-.error-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 48px;
-  background: var(--color-canvas);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--rounded-lg);
-  gap: var(--space-md);
-}
-
-.loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--color-hairline);
-  border-top-color: var(--color-primary);
-  border-radius: var(--radius-full);
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.error-message {
-  color: var(--color-ink-muted-48);
-  font: var(--text-body);
-}
-
-/* Grid Layout - 6 columns on desktop */
-.overview-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: var(--space-md);
-}
-
-/* Stat Card - Apple Store Utility Card */
-.stat-card {
-  background: var(--color-canvas);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--rounded-lg);
-  padding: var(--space-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  position: relative;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-
-.stat-card:hover {
-  transform: scale(1.02);
-}
-
-.stat-card:active {
-  transform: scale(0.98);
-}
-
-.alert-card {
-  border-color: var(--color-primary);
-  background: var(--color-primary-faint);
-}
-
-.stat-icon {
-  font-size: 28px;
-  line-height: 1;
-}
-
-.stat-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.stat-value {
-  font: var(--text-display-md);
-  font-weight: 600;
-  color: var(--color-ink);
-  line-height: 1.1;
-  letter-spacing: -0.374px;
-}
-
-.stat-label {
-  font: var(--text-caption);
-  color: var(--color-ink-muted-48);
-}
-
-.stat-sub {
-  font: var(--text-caption);
-  color: var(--color-ink-muted-48);
-  margin-top: 2px;
-}
-
-.stat-sub.critical {
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-/* Storage Bar */
-.storage-bar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: var(--color-hairline);
-  border-radius: var(--radius-none) var(--radius-none) var(--rounded-lg) var(--rounded-lg);
-  overflow: hidden;
-}
-
-.storage-bar-fill {
-  height: 100%;
-  background: var(--color-primary);
-  transition: width 0.3s ease;
-}
-
-.storage-bar-fill.warning {
-  background: var(--color-warning);
-}
-
-.storage-bar-fill.critical {
-  background: var(--color-danger);
-}
-
-/* Responsive */
-@media (max-width: 1440px) {
-  .overview-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 1068px) {
-  .overview-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 734px) {
-  .overview-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .stat-card {
-    padding: var(--space-md);
-  }
-
-  .stat-value {
-    font-size: 28px;
-  }
-}
-</style>

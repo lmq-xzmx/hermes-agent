@@ -26,9 +26,11 @@ function transformStoragePools(data) {
     totalBytes: p.total_bytes,
     usedBytes: p.used_bytes,
     freeBytes: p.free_bytes,
+    effectiveFreeBytes: p.effective_free_bytes,
     usageRate: p.usage_rate,
     teamCount: p.team_count,
     spaceCount: p.space_count,
+    maxTeamsEstimate: p.max_teams_estimate,
     status: p.status
   }))
 }

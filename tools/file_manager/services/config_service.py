@@ -90,7 +90,7 @@ class ConfigService:
                 "buffer_ratio": 0.1,
             },
             quota={
-                "team_default_quota": 536870912000,  # 500GB
+                "team_default_quota": 104857600,  # 100MB
                 "team_max_quota": 10737418240000,  # 10TB
                 "personal_default_quota": 10737418240,  # 10GB
                 "personal_max_quota": 107374182400,  # 100GB

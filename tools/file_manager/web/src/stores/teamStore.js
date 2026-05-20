@@ -5,8 +5,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './authStore'
-
-const API_BASE = import.meta.env.VITE_API_BASE || '/api/v1'
+import { api } from '../services/api.js'
 
 export const useTeamStore = defineStore('teams', () => {
   // State
@@ -26,11 +25,7 @@ export const useTeamStore = defineStore('teams', () => {
 
   // Helper: get auth headers
   function getAuthHeaders() {
-    const token = localStorage.getItem('hfm_token')
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
+    return api.getHeaders()
   }
 
   // Actions
@@ -38,11 +33,7 @@ export const useTeamStore = defineStore('teams', () => {
     loading.value = true
     error.value = null
     try {
-      const res = await fetch(`${API_BASE}/teams`, {
-        headers: getAuthHeaders()
-      })
-      if (!res.ok) throw new Error('Failed to load teams')
-      const data = await res.json()
+      const data = await api.getTeams()
       myTeams.value = data.teams || []
     } catch (e) {
       error.value = e.message
@@ -57,35 +48,21 @@ export const useTeamStore = defineStore('teams', () => {
     if (!isAdmin.value) return
     loading.value = true
     try {
-      const res = await fetch(`${API_BASE}/teams/all`, {
-        headers: getAuthHeaders()
-      })
-      if (!res.ok) throw new Error('Failed to load all teams')
-      const data = await res.json()
+      const data = await api.getAllTeams()
       allTeams.value = data.teams || []
     } catch (e) {
-      error.value = e.message
+      console.warn('[teamStore] loadAllTeams failed:', e.message)
+      allTeams.value = []
     } finally {
       loading.value = false
     }
   }
 
-  async function createTeam(name, description = '', storagePoolId = 'default', maxBytes = 1073741824) {
+  async function createTeam(name, description = '', storagePoolId = null, maxBytes = null) {
     loading.value = true
     error.value = null
     try {
-      const res = await fetch(`${API_BASE}/teams`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          name,
-          description,
-          storage_pool_id: storagePoolId,
-          max_bytes: maxBytes
-        })
-      })
-      if (!res.ok) throw new Error('Failed to create team')
-      const data = await res.json()
+      const data = await api.createTeam(name, description, storagePoolId, maxBytes)
       await loadTeams()
       return data
     } catch (e) {
@@ -100,14 +77,8 @@ export const useTeamStore = defineStore('teams', () => {
     loading.value = true
     error.value = null
     try {
-      const res = await fetch(`${API_BASE}/teams/join`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ invite_code: inviteCode })
-      })
-      if (!res.ok) throw new Error('Failed to join team')
+      await api.joinTeam(inviteCode)
       await loadTeams()
-      return await res.json()
     } catch (e) {
       error.value = e.message
       throw e
@@ -119,16 +90,7 @@ export const useTeamStore = defineStore('teams', () => {
   // 验证邀请码有效性（预检）- FE-022
   async function validateInviteCode(inviteCode) {
     try {
-      const res = await fetch(`${API_BASE}/teams/validate-invite`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ code: inviteCode })
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.message || data.detail || '邀请码无效')
-      }
-      return await res.json()
+      return await api.validateInviteCodeByToken(inviteCode)
     } catch (e) {
       error.value = e.message
       throw e
@@ -146,11 +108,7 @@ export const useTeamStore = defineStore('teams', () => {
   async function leaveTeam(teamId) {
     loading.value = true
     try {
-      const res = await fetch(`${API_BASE}/teams/${teamId}/leave`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      })
-      if (!res.ok) throw new Error('Failed to leave team')
+      await api.leaveTeam(teamId)
       await loadTeams()
     } catch (e) {
       error.value = e.message
@@ -163,11 +121,7 @@ export const useTeamStore = defineStore('teams', () => {
   async function deleteTeam(teamId) {
     loading.value = true
     try {
-      const res = await fetch(`${API_BASE}/teams/${teamId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      })
-      if (!res.ok) throw new Error('Failed to delete team')
+      await api.deleteTeam(teamId)
       await loadTeams()
     } catch (e) {
       error.value = e.message
@@ -179,11 +133,7 @@ export const useTeamStore = defineStore('teams', () => {
 
   async function loadTeamMembers(teamId) {
     try {
-      const res = await fetch(`${API_BASE}/teams/${teamId}/members`, {
-        headers: getAuthHeaders()
-      })
-      if (!res.ok) throw new Error('Failed to load members')
-      const data = await res.json()
+      const data = await api.getTeamMembers(teamId)
       teamMembers.value = data.members || []
       return teamMembers.value
     } catch (e) {
@@ -194,13 +144,7 @@ export const useTeamStore = defineStore('teams', () => {
 
   async function inviteMember(teamId, username) {
     try {
-      const res = await fetch(`${API_BASE}/teams/${teamId}/invite`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ username })
-      })
-      if (!res.ok) throw new Error('Failed to invite member')
-      return await res.json()
+      return await api.addTeamMember(teamId, username)
     } catch (e) {
       error.value = e.message
       throw e
@@ -209,11 +153,7 @@ export const useTeamStore = defineStore('teams', () => {
 
   async function removeMember(teamId, userId) {
     try {
-      const res = await fetch(`${API_BASE}/teams/${teamId}/members/${userId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      })
-      if (!res.ok) throw new Error('Failed to remove member')
+      await api.removeTeamMember(teamId, userId)
       await loadTeamMembers(teamId)
     } catch (e) {
       error.value = e.message
@@ -221,14 +161,9 @@ export const useTeamStore = defineStore('teams', () => {
     }
   }
 
-  async function createInviteCode(teamId) {
+  async function createInviteCode(teamId, maxUses = 10, expiresAt = null) {
     try {
-      const res = await fetch(`${API_BASE}/teams/${teamId}/invite-code`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      })
-      if (!res.ok) throw new Error('Failed to create invite code')
-      return await res.json()
+      return await api.createTeamCredential(teamId, { max_uses: maxUses, expires_at: expiresAt })
     } catch (e) {
       error.value = e.message
       throw e
@@ -237,11 +172,7 @@ export const useTeamStore = defineStore('teams', () => {
 
   async function getTeamCredentials(teamId) {
     try {
-      const res = await fetch(`${API_BASE}/teams/${teamId}/credentials`, {
-        headers: getAuthHeaders()
-      })
-      if (!res.ok) throw new Error('Failed to load credentials')
-      return await res.json()
+      return await api.getTeamCredentials(teamId)
     } catch (e) {
       error.value = e.message
       throw e
@@ -250,11 +181,7 @@ export const useTeamStore = defineStore('teams', () => {
 
   async function fetchTeamQuotaStatus(teamId) {
     try {
-      const res = await fetch(`${API_BASE}/teams/${teamId}/quota-status`, {
-        headers: getAuthHeaders()
-      })
-      if (!res.ok) throw new Error('Failed to fetch team quota status')
-      return await res.json()
+      return await api.getTeamQuotaStatus(teamId)
     } catch (e) {
       error.value = e.message
       throw e
@@ -263,12 +190,7 @@ export const useTeamStore = defineStore('teams', () => {
 
   async function deleteTeamCredential(teamId, credId) {
     try {
-      const res = await fetch(`${API_BASE}/teams/${teamId}/credentials/${credId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      })
-      if (!res.ok) throw new Error('Failed to delete credential')
-      return await res.json()
+      return await api.deleteTeamCredential(teamId, credId)
     } catch (e) {
       error.value = e.message
       throw e
@@ -278,26 +200,17 @@ export const useTeamStore = defineStore('teams', () => {
   // 获取管理员的所有待审批任务
   async function fetchPendingTasks() {
     try {
-      const res = await fetch(`${API_BASE}/approvals/pending`, {
-        headers: getAuthHeaders()
-      })
-      if (!res.ok) throw new Error('Failed to fetch pending tasks')
-      return await res.json()
+      return await api.getPendingApprovals()
     } catch (e) {
-      error.value = e.message
-      throw e
+      console.warn('[teamStore] fetchPendingTasks failed:', e.message)
+      return { requests: [] }
     }
   }
 
   // 成员申请退出团队
   async function requestTeamExit(teamId) {
     try {
-      const res = await fetch(`${API_BASE}/teams/${teamId}/members/request-exit`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      })
-      if (!res.ok) throw new Error('Failed to request team exit')
-      return await res.json()
+      return await api.requestTeamExit(teamId)
     } catch (e) {
       error.value = e.message
       throw e
@@ -307,12 +220,7 @@ export const useTeamStore = defineStore('teams', () => {
   // 管理员移除团队成员
   async function removeTeamMember(teamId, memberId) {
     try {
-      const res = await fetch(`${API_BASE}/teams/${teamId}/members/${memberId}/remove`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      })
-      if (!res.ok) throw new Error('Failed to remove team member')
-      return await res.json()
+      return await api.removeTeamMember(teamId, memberId)
     } catch (e) {
       error.value = e.message
       throw e
@@ -322,13 +230,7 @@ export const useTeamStore = defineStore('teams', () => {
   // 处理审批（批准/拒绝）
   async function processApproval(requestId, decision, comment = null) {
     try {
-      const res = await fetch(`${API_BASE}/approvals/${requestId}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ decision, comment })
-      })
-      if (!res.ok) throw new Error('Failed to process approval')
-      return await res.json()
+      return await api.processApproval(requestId, decision, comment)
     } catch (e) {
       error.value = e.message
       throw e
@@ -337,13 +239,7 @@ export const useTeamStore = defineStore('teams', () => {
 
   async function updateTeam(teamId, data) {
     try {
-      const res = await fetch(`${API_BASE}/teams/${teamId}`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(data)
-      })
-      if (!res.ok) throw new Error('Failed to update team')
-      return await res.json()
+      return await api.updateTeam(teamId, data)
     } catch (e) {
       error.value = e.message
       throw e

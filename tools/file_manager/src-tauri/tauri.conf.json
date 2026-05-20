@@ -7,7 +7,7 @@
     "frontendDist": "../web/dist"
   },
   "app": {
-    "withGlobalTauri": false,
+    "withGlobalTauri": true,
     "security": {
       "assetProtocol": {
         "enable": true,

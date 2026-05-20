@@ -28,11 +28,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi import FastAPI, Depends, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+import time
+from collections import defaultdict
+from typing import Dict
 
 from file_manager.engine.models import init_db, create_builtin_roles, User, Role
 from file_manager.engine.storage import StorageEngine
@@ -72,6 +75,7 @@ from file_manager.services.capacity_alert_service import CapacityAlertService
 from file_manager.services.space_lifecycle_service import SpaceLifecycleService
 from file_manager.services.resource_plan_service import ResourcePlanService
 from file_manager.services.config_service import ConfigService
+from file_manager.services.sync_service import SyncService
 
 
 # ============================================================================
@@ -208,6 +212,12 @@ async def lifespan(app: FastAPI):
     space_lifecycle_service = SpaceLifecycleService(db_factory=db_factory)
     resource_plan_service = ResourcePlanService(db_factory=db_factory)
     config_service = ConfigService(db_factory=db_factory)
+    sync_service = SyncService(
+        db_factory=db_factory,
+        storage_root=storage_root,
+        conflict_strategy="manual_merge",
+        sync_interval_seconds=300,
+    )
 
     # Start file lock cleanup background thread
     file_lock_service.start_cleanup_thread(interval_seconds=300)
@@ -264,6 +274,7 @@ async def lifespan(app: FastAPI):
     _api_instances["space_lifecycle_service"] = space_lifecycle_service
     _api_instances["resource_plan_service"] = resource_plan_service
     _api_instances["config_service"] = config_service
+    _api_instances["sync_service"] = sync_service
     _api_instances["permission_checker"] = permission_checker
     _api_instances["event_bus"] = event_bus
     _api_instances["analytics_broadcaster"] = analytics_broadcaster
@@ -330,6 +341,57 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# ============================================================================
+# Rate Limiting Middleware
+# ============================================================================
+
+class RateLimitMiddleware:
+    """Simple in-memory rate limiter per IP."""
+
+    def __init__(self, requests_per_minute: int = 60):
+        self.requests_per_minute = requests_per_minute
+        self.window_ms = 60_000  # 1 minute
+        self._requests: Dict[str, list] = defaultdict(list)
+
+    def _get_client_ip(self, request: Request) -> str:
+        """Extract client IP from request."""
+        forwarded = request.headers.get("X-Forwarded-For")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+        return request.client.host if request.client else "unknown"
+
+    async def __call__(self, request: Request, call_next):
+        # Skip rate limiting for WebSocket upgrades
+        if request.headers.get("upgrade") == "websocket":
+            return await call_next(request)
+
+        client_ip = self._get_client_ip(request)
+        now = time.time() * 1000  # milliseconds
+
+        # Clean old entries outside the window
+        self._requests[client_ip] = [
+            ts for ts in self._requests[client_ip]
+            if now - ts < self.window_ms
+        ]
+
+        # Check rate limit
+        if len(self._requests[client_ip]) >= self.requests_per_minute:
+            return Response(
+                content='{"error":"RATE_LIMITED","message":"请求过于频繁，请稍后再试"}',
+                status_code=429,
+                media_type="application/json",
+                headers={"Retry-After": "60"}
+            )
+
+        # Record this request
+        self._requests[client_ip].append(now)
+
+        return await call_next(request)
+
+
+app.add_middleware(RateLimitMiddleware)
+
 # Register lifecycle violation handler
 from file_manager.api.lifecycle_handler import register_lifecycle_handlers
 register_lifecycle_handlers(app)
@@ -392,6 +454,9 @@ def get_resource_plan_service() -> ResourcePlanService:
 
 def get_config_service() -> ConfigService:
     return _api_instances.get("config_service")
+
+def get_sync_service() -> SyncService:
+    return _api_instances.get("sync_service")
 
 def get_notification_service() -> "NotificationService":
     from services.notification_service import NotificationService
@@ -666,6 +731,28 @@ async def update_knowledge_settings(
     body = await request.json()
     svc = get_knowledge_service()
     svc.update_user_settings(user_ctx.user_id, body)
+
+    # 如果是 interval 模式且有配置的路径，自动注册定时同步任务
+    if body.get("sync_mode") == "interval" and body.get("sync_path"):
+        try:
+            from cron import create_job
+            # 删除旧的同类型 interval 同步 job
+            from file_manager.services.knowledge_service import _interval_sync_jobs
+            for old_job_id in list(_interval_sync_jobs.get(user_ctx.user_id, [])):
+                from cron import remove_job
+                remove_job(old_job_id)
+
+            interval = body.get("sync_interval", 30)
+            job = create_job(
+                prompt=f"同步知识库: {body['sync_path']}",
+                schedule=f"every {interval}m",
+                name=f"知识库定时同步-{user_ctx.user_id[:8]}",
+                skill="file-manager-sync",
+            )
+            _interval_sync_jobs.setdefault(user_ctx.user_id, []).append(job["id"])
+        except Exception as e:
+            logger.warning(f"Failed to register interval sync job: {e}")
+
     return {"status": "ok"}
 
 @app.get("/api/v1/knowledge/sync/status")
@@ -741,7 +828,11 @@ async def sync_to_knowledge(
             "job_id": job.id,
             "status": job.status.value,
             "source_path": job.source_path,
-            "target_project": job.target_project
+            "target_project": job.target_project,
+            "error_message": job.error_message,
+            "files_synced": getattr(job, 'files_synced', 0),
+            "files_failed": getattr(job, 'files_failed', 0),
+            "duration_ms": job.completed_at and job.created_at and int((job.completed_at - job.created_at).total_seconds() * 1000)
         }
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
@@ -750,16 +841,24 @@ async def sync_to_knowledge(
 async def search_knowledge(
     q: str = "",
     project: str = "default",
+    file_type: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
     user_ctx: PermissionContext = Depends(get_current_user_ctx)
 ):
     """搜索知识库
 
     权限: 空间成员或管理员
+
+    分面筛选参数:
+    - file_type: 文件类型筛选 (doc/pdf/markdown/...)
+    - date_from: 开始日期 (ISO format)
+    - date_to: 结束日期 (ISO format)
     """
     from file_manager.services.knowledge_service import get_knowledge_service
 
     if not q:
-        return {"results": []}
+        return {"results": [], "facets": {}}
 
     # 检查用户是否是空间成员
     space_service = get_space_service()
@@ -778,6 +877,18 @@ async def search_knowledge(
             is_space_member=is_space_member,
             is_admin=is_admin
         )
+
+        # 应用前端分面筛选
+        if file_type:
+            results = [r for r in results if r.path.lower().endswith(f'.{file_type}')]
+
+        # 计算 facets（统计各类型的数量）
+        type_counts: dict = {}
+        for r in results:
+            ext = r.path.rsplit('.', 1)[-1].lower() if '.' in r.path else ''
+            if ext:
+                type_counts[ext] = type_counts.get(ext, 0) + 1
+
         return {
             "results": [
                 {
@@ -788,7 +899,77 @@ async def search_knowledge(
                     "path": r.path
                 }
                 for r in results
-            ]
+            ],
+            "facets": {
+                "file_types": type_counts
+            }
+        }
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+@app.get("/api/v1/knowledge/suggestions")
+async def get_search_suggestions(
+    q: str = "",
+    project: str = "default",
+    user_ctx: PermissionContext = Depends(get_current_user_ctx)
+):
+    """获取搜索建议（自动补全）
+    """
+    from file_manager.services.knowledge_service import get_knowledge_service
+
+    if not q or len(q) < 2:
+        return {"suggestions": []}
+
+    try:
+        svc = get_knowledge_service()
+        suggestions = await svc.get_search_suggestions(q, project)
+        return {"suggestions": suggestions}
+    except Exception as e:
+        logger.warning(f"Failed to get search suggestions: {e}")
+        return {"suggestions": []}
+
+@app.post("/api/v1/knowledge/webhook/sync")
+async def webhook_sync_trigger(
+    request: Request,
+    user_ctx: PermissionContext = Depends(get_current_user_ctx)
+):
+    """Webhook 端点 - 外部系统调用此端点触发同步"""
+    from file_manager.services.knowledge_service import get_knowledge_service
+
+    body = await request.json()
+    source_path = body.get("source_path")
+    project_name = body.get("project_name", "default")
+    webhook_secret = body.get("secret")
+
+    # 简单的 webhook 验证（实际生产环境应使用更安全的方式）
+    expected_secret = os.environ.get("KNOWLEDGE_WEBHOOK_SECRET", "dev-secret")
+    if webhook_secret and webhook_secret != expected_secret:
+        raise HTTPException(status_code=401, detail="Invalid webhook secret")
+
+    if not source_path:
+        raise HTTPException(status_code=400, detail="source_path is required")
+
+    space_service = get_space_service()
+    is_admin = user_ctx.role_name == "admin"
+    is_space_member = False
+
+    if space_service:
+        contexts = space_service.get_user_storage_context(user_id=user_ctx.user_id)
+        is_space_member = len(contexts) > 0
+
+    try:
+        svc = get_knowledge_service()
+        job = await svc.sync_to_knowledge(
+            source_path=source_path,
+            target_project=project_name,
+            user_id=user_ctx.user_id,
+            is_space_member=is_space_member,
+            is_admin=is_admin
+        )
+        return {
+            "job_id": job.id,
+            "status": job.status.value,
+            "source_path": job.source_path
         }
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
@@ -1815,7 +1996,7 @@ class CreatePoolRequest(BaseModel):
 
 class CreateTeamRequest(BaseModel):
     name: str
-    storage_pool_id: str
+    storage_pool_id: Optional[str] = None
     max_bytes: int = 0
 
 
@@ -1942,10 +2123,23 @@ async def create_team(
 ):
     svc = get_team_service()
     try:
+        # 如果没有指定存储池，使用默认存储池
+        storage_pool_id = req.storage_pool_id
+        if not storage_pool_id:
+            pools = svc.list_pools()
+            default_pool = next((p for p in pools.get("pools", []) if "默认" in p.get("name", "")), None)
+            if default_pool:
+                storage_pool_id = default_pool["id"]
+            else:
+                storage_pool_id = pools.get("pools", [{}])[0].get("id") if pools.get("pools") else None
+
+        if not storage_pool_id:
+            raise HTTPException(status_code=400, detail="没有可用的存储池，请先创建存储池")
+
         return svc.create_team(
             name=req.name,
             owner_id=str(user_ctx.user_id),
-            storage_pool_id=req.storage_pool_id,
+            storage_pool_id=storage_pool_id,
             max_bytes=req.max_bytes,
         )
     except Exception as e:
@@ -2288,10 +2482,154 @@ async def get_space_activity(
 
 
 # -----------------------------------------------------------------------------
-# Trash API
+# Sync API
 # -----------------------------------------------------------------------------
 
-@app.get("/api/v1/spaces/{space_id}/trash", tags=["spaces"])
+
+@app.get("/api/v1/spaces/{space_id}/sync/status", tags=["sync"])
+async def get_sync_status(
+    space_id: str,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    """Get file sync status for a space."""
+    svc = get_sync_service()
+    if not svc:
+        raise HTTPException(status_code=503, detail="Sync service not available")
+    return svc.get_sync_status(space_id, str(user_ctx.user_id))
+
+
+@app.get("/api/v1/spaces/{space_id}/sync/snapshot", tags=["sync"])
+async def get_sync_snapshot(
+    space_id: str,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    """Get current file snapshot for sync comparison."""
+    svc = get_sync_service()
+    if not svc:
+        raise HTTPException(status_code=503, detail="Sync service not available")
+
+    from pydantic import BaseModel
+    class FileEntryDTO(BaseModel):
+        path: str
+        name: str
+        is_directory: bool
+        size: int
+        checksum: str = None
+        modified_at: float
+
+    snapshot = svc.build_local_snapshot(space_id)
+    return {
+        "space_id": space_id,
+        "files": [f.to_dict() for f in snapshot.files.values()],
+        "root_checksum": snapshot.root_checksum,
+        "file_count": snapshot.file_count(),
+        "captured_at": snapshot.captured_at,
+    }
+
+
+@app.post("/api/v1/spaces/{space_id}/sync/delta", tags=["sync"])
+async def compute_sync_delta(
+    space_id: str,
+    request: Request,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    """Compute delta between local and remote snapshots."""
+    svc = get_sync_service()
+    if not svc:
+        raise HTTPException(status_code=503, detail="Sync service not available")
+
+    from pydantic import BaseModel
+    class FileEntryDTO(BaseModel):
+        path: str
+        name: str
+        is_directory: bool
+        size: int
+        checksum: str = None
+        modified_at: float
+
+    class SyncSnapshotRequest(BaseModel):
+        files: list[FileEntryDTO]
+        root_checksum: str
+
+    class SyncDeltaRequest(BaseModel):
+        local_snapshot: SyncSnapshotRequest
+        remote_checksum: str = None
+
+    body = await request.json()
+    req = SyncDeltaRequest(**body)
+
+    from file_manager.services.sync_service import SyncSnapshot, FileEntry
+    local_files = {f.path: f for f in req.local_snapshot.files}
+    local_snapshot = SyncSnapshot(
+        space_id=space_id,
+        files={
+            path: FileEntry(
+                path=f.path, name=f.name, is_directory=f.is_directory,
+                size=f.size, checksum=f.checksum, modified_at=f.modified_at,
+            )
+            for path, f in local_files.items()
+        },
+        root_checksum=req.local_snapshot.root_checksum,
+        captured_at=0,
+    )
+
+    remote_snapshot = svc.build_local_snapshot(space_id)
+    delta = svc.compute_delta(space_id, local_snapshot, remote_snapshot)
+
+    return {
+        "local_changes": [c.to_dict() for c in delta.local_changes],
+        "remote_changes": [c.to_dict() for c in delta.remote_changes],
+        "conflicts": [
+            {
+                "path": c.path,
+                "local_version": c.local_version.to_dict(),
+                "remote_version": c.remote_version.to_dict(),
+            }
+            for c in delta.conflicts
+        ],
+        "timestamp": delta.timestamp,
+    }
+
+
+@app.post("/api/v1/spaces/{space_id}/sync/resolve", tags=["sync"])
+async def resolve_conflict(
+    space_id: str,
+    request: Request,
+    user_ctx=Depends(get_current_user_ctx),
+):
+    """Resolve a sync conflict."""
+    from pydantic import BaseModel
+    class ResolveRequest(BaseModel):
+        path: str
+        resolution: str  # "local" | "remote" | "merge"
+
+    body = await request.json()
+    req = ResolveRequest(**body)
+
+    svc = get_sync_service()
+    if not svc:
+        raise HTTPException(status_code=503, detail="Sync service not available")
+
+    if req.resolution not in ("local", "remote", "merge"):
+        raise HTTPException(status_code=400, detail="Invalid resolution")
+
+    try:
+        svc.resolve_conflict(
+            space_id=space_id,
+            path=req.path,
+            resolution=req.resolution,
+            user_id=str(user_ctx.user_id),
+        )
+        return {"status": "resolved", "path": req.path, "resolution": req.resolution}
+    except NotImplementedError:
+        raise HTTPException(status_code=501, detail="Conflict resolution not fully implemented")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# -----------------------------------------------------------------------------
+# Trash API
+# -----------------------------------------------------------------------------
 async def list_trash(
     space_id: str,
     limit: int = 50,

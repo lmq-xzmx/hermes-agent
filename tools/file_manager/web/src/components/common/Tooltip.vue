@@ -1,10 +1,10 @@
 <template>
-  <div class="tooltip-wrapper" @mouseenter="show" @mouseleave="hide" @focus="show" @blur="hide">
+  <div class="tooltip" @mouseenter="show" @mouseleave="hide" @focus="show" @blur="hide">
     <slot />
     <Transition name="tooltip">
-      <div v-if="visible && content" class="tooltip" :class="position" role="tooltip">
+      <div v-if="visible && content" class="tooltip__content" :class="`tooltip__content--${position}`" role="tooltip">
         {{ content }}
-        <div class="tooltip-arrow"></div>
+        <div class="tooltip__arrow"></div>
       </div>
     </Transition>
   </div>
@@ -13,7 +13,7 @@
 <script setup>
 import { ref } from 'vue'
 
-defineProps({
+const props = defineProps({
   content: { type: String, default: '' },
   position: { type: String, default: 'top' }, // top/bottom/left/right
   delay: { type: Number, default: 200 }
@@ -25,7 +25,7 @@ let timeout = null
 function show() {
   timeout = setTimeout(() => {
     visible.value = true
-  }, delay)
+  }, props.delay)
 }
 
 function hide() {
@@ -34,88 +34,96 @@ function hide() {
 }
 </script>
 
-<script>
-const delay = 200
-</script>
-
 <style scoped>
-.tooltip-wrapper {
-  position: relative;
-  display: inline-flex;
-}
+/* ============================================
+   Tooltip - Apple Design System
+   ============================================ */
 
 .tooltip {
+  /* Layout */
+  position: relative;
+  display: inline-block;
+}
+
+/* ============================================
+   Element: tooltip__content
+   ============================================ */
+.tooltip__content {
+  /* Layout */
   position: absolute;
+  z-index: var(--z-tooltip);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  /* Box Model */
   padding: var(--spacing-xs) var(--spacing-sm);
+  white-space: nowrap;
+
+  /* Visual */
   background: var(--color-ink);
   color: var(--color-body-on-dark);
-  border-radius: var(--radius-md);
-  font: var(--text-fine-print);
-  white-space: nowrap;
-  z-index: var(--z-tooltip);
-  pointer-events: none;
+  border-radius: var(--radius-sm);
+
+  /* Animation */
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
-.tooltip.top {
-  bottom: calc(100% + 8px);
+/* Position Variants */
+.tooltip__content--top {
+  bottom: 100%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(-8px);
 }
 
-.tooltip.bottom {
-  top: calc(100% + 8px);
+.tooltip__content--bottom {
+  top: 100%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(8px);
 }
 
-.tooltip.left {
-  right: calc(100% + 8px);
+.tooltip__content--left {
+  right: 100%;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateX(-8px);
 }
 
-.tooltip.right {
-  left: calc(100% + 8px);
+.tooltip__content--right {
+  left: 100%;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateX(8px);
 }
 
-.tooltip-arrow {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background: var(--color-ink);
-  transform: rotate(45deg);
+/* ============================================
+   Element: tooltip__arrow
+   ============================================ */
+.tooltip__arrow {
+  /* Size */
+  width: 0;
+  height: 0;
+
+  /* Border */
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--color-ink);
 }
 
-.tooltip.top .tooltip-arrow {
-  bottom: -4px;
-  left: 50%;
-  margin-left: -4px;
+.tooltip__content--top .tooltip__arrow {
+  top: 100%;
 }
 
-.tooltip.bottom .tooltip-arrow {
-  top: -4px;
-  left: 50%;
-  margin-left: -4px;
+.tooltip__content--bottom .tooltip__arrow {
+  bottom: 100%;
+  border-top: none;
+  border-bottom: 5px solid var(--color-ink);
 }
 
-.tooltip.left .tooltip-arrow {
-  right: -4px;
-  top: 50%;
-  margin-top: -4px;
-}
-
-.tooltip.right .tooltip-arrow {
-  left: -4px;
-  top: 50%;
-  margin-top: -4px;
-}
-
-/* Transitions */
+/* ============================================
+   Transition Animations
+   ============================================ */
 .tooltip-enter-active,
 .tooltip-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition: opacity 0.15s ease;
 }
 
 .tooltip-enter-from,
@@ -123,13 +131,13 @@ const delay = 200
   opacity: 0;
 }
 
-.tooltip.top.tooltip-enter-from,
-.tooltip.top.tooltip-leave-to {
-  transform: translateX(-50%) translateY(4px);
+.tooltip-enter-from.tooltip__content--top,
+.tooltip-leave-to.tooltip__content--top {
+  transform: translateX(-50%) translateY(-4px);
 }
 
-.tooltip.bottom.tooltip-enter-from,
-.tooltip.bottom.tooltip-leave-to {
-  transform: translateX(-50%) translateY(-4px);
+.tooltip-enter-from.tooltip__content--bottom,
+.tooltip-leave-to.tooltip__content--bottom {
+  transform: translateX(-50%) translateY(4px);
 }
 </style>

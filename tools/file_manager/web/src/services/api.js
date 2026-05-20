@@ -114,9 +114,16 @@ class ApiService {
   }
 
   async moveFile(spaceId, fileId, sourcePath, targetPath) {
-    return this.request(`/spaces/${spaceId}/files/${fileId}/move`, {
+    return this.request(`/spaces/${spaceId}/files/move`, {
       method: 'POST',
-      body: JSON.stringify({ source_path: sourcePath, target_path: targetPath })
+      body: JSON.stringify({ from_path: sourcePath, to_path: targetPath })
+    })
+  }
+
+  async copyFile(spaceId, sourcePath, targetPath) {
+    return this.request(`/spaces/${spaceId}/files/copy`, {
+      method: 'POST',
+      body: JSON.stringify({ from_path: sourcePath, to_path: targetPath })
     })
   }
 
@@ -149,17 +156,20 @@ class ApiService {
   // ============================================================================
 
   async getTeams() {
-    return this.request('/teams/my')
+    return this.request('/my/teams')
   }
 
   async getAllTeams() {
     return this.request('/teams')
   }
 
-  async createTeam(name, description) {
-    return this.request('/teams/create', {
+  async createTeam(name, description, storagePoolId = null, maxBytes = null) {
+    const payload = { name, description }
+    if (storagePoolId) payload.storage_pool_id = storagePoolId
+    if (maxBytes !== null) payload.max_bytes = maxBytes
+    return this.request('/teams', {
       method: 'POST',
-      body: JSON.stringify({ name, description })
+      body: JSON.stringify(payload)
     })
   }
 
@@ -167,6 +177,14 @@ class ApiService {
     return this.request('/teams/join', {
       method: 'POST',
       body: JSON.stringify({ token })
+    })
+  }
+
+  // 验证邀请码有效性（预检）- 通过邀请码token
+  async validateInviteCodeByToken(code) {
+    return this.request('/teams/validate-invite', {
+      method: 'POST',
+      body: JSON.stringify({ code })
     })
   }
 
@@ -216,10 +234,22 @@ class ApiService {
     return this.request('/my/storage-context')
   }
 
-  async createSpace(name, description) {
+  async getStoragePools() {
+    return this.request('/pools')
+  }
+
+  async createSpace(name, storagePoolId, description = '', maxBytes = null) {
+    const payload = {
+      name,
+      storage_pool_id: storagePoolId,
+      description
+    }
+    if (maxBytes !== null) {
+      payload.max_bytes = maxBytes
+    }
     return this.request('/spaces', {
       method: 'POST',
-      body: JSON.stringify({ name, description })
+      body: JSON.stringify(payload)
     })
   }
 
@@ -348,6 +378,39 @@ class ApiService {
     })
   }
 
+  async leaveTeam(teamId) {
+    return this.request(`/teams/${teamId}/leave`, {
+      method: 'POST'
+    })
+  }
+
+  async getTeamQuotaStatus(teamId) {
+    return this.request(`/teams/${teamId}/quota-status`)
+  }
+
+  async requestTeamExit(teamId) {
+    return this.request(`/teams/${teamId}/members/request-exit`, {
+      method: 'POST'
+    })
+  }
+
+  async removeTeamMember(teamId, memberId) {
+    return this.request(`/teams/${teamId}/members/${memberId}/remove`, {
+      method: 'POST'
+    })
+  }
+
+  async getPendingApprovals() {
+    return this.request('/approvals/pending')
+  }
+
+  async processApproval(requestId, decision, comment = null) {
+    return this.request(`/approvals/${requestId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ decision, comment })
+    })
+  }
+
   // ============================================================================
   // Storage Pools APIs
   // ============================================================================
@@ -427,6 +490,21 @@ class ApiService {
     return this.request('/knowledge/status')
   }
 
+  async getKnowledgeSettings() {
+    return this.request('/knowledge/settings')
+  }
+
+  async updateKnowledgeSettings(settings) {
+    return this.request('/knowledge/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings)
+    })
+  }
+
+  async getSyncHistory(project = 'default') {
+    return this.request(`/knowledge/sync/status?project=${project}`)
+  }
+
   async syncToKnowledge(sourcePath, project = 'default') {
     return this.request('/knowledge/sync', {
       method: 'POST',
@@ -434,8 +512,44 @@ class ApiService {
     })
   }
 
-  async searchKnowledge(query, project = 'default') {
-    return this.request(`/knowledge/search?q=${encodeURIComponent(query)}&project=${project}`)
+  async searchKnowledge(query, project = 'default', sort = 'relevance', fileType = '') {
+    const params = new URLSearchParams({
+      q: query,
+      project,
+      sort
+    })
+    if (fileType) params.append('file_type', fileType)
+    return this.request(`/knowledge/search?${params}`)
+  }
+
+  async getSearchSuggestions(query, project = 'default') {
+    return this.request(`/knowledge/suggestions?q=${encodeURIComponent(query)}&project=${project}`)
+  }
+
+  // ============================================================================
+  // Sync APIs
+  // ============================================================================
+
+  async getSyncStatus(spaceId) {
+    return this.request(`/spaces/${spaceId}/sync/status`)
+  }
+
+  async getSyncSnapshot(spaceId) {
+    return this.request(`/spaces/${spaceId}/sync/snapshot`)
+  }
+
+  async computeSyncDelta(spaceId, localSnapshot) {
+    return this.request(`/spaces/${spaceId}/sync/delta`, {
+      method: 'POST',
+      body: JSON.stringify(localSnapshot)
+    })
+  }
+
+  async resolveConflict(spaceId, path, resolution) {
+    return this.request(`/spaces/${spaceId}/sync/resolve`, {
+      method: 'POST',
+      body: JSON.stringify({ path, resolution })
+    })
   }
 }
 

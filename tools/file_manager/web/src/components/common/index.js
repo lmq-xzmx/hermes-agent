@@ -4,6 +4,10 @@
  * 按 DESIGN.md 规范构建的 Apple 风格组件
  */
 
+// Icon
+export { default as Icon } from './Icon.vue'
+export { default as ColorIcon } from './ColorIcon.vue'
+
 // Buttons
 export { default as ButtonPrimary } from './ButtonPrimary.vue'
 export { default as ButtonSecondary } from './ButtonSecondary.vue'
@@ -46,3 +50,7 @@ export { default as GuidanceModal } from './GuidanceModal.vue'
 
 // Status
 export { default as WsStatus } from './WsStatus.vue'
+
+// Theme
+export { default as ColorPicker } from './ColorPicker.vue'
+export { default as ThemePanel } from './ThemePanel.vue'

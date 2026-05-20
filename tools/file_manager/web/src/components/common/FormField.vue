@@ -1,15 +1,15 @@
 <template>
   <div class="form-field">
-    <label v-if="label" class="field-label" :for="inputId">
+    <label v-if="label" class="form-field__label" :for="inputId">
       {{ label }}
-      <span v-if="required" class="required-mark">*</span>
+      <span v-if="required" class="form-field__required">*</span>
     </label>
-    <div class="field-body">
+    <div class="form-field__body">
       <slot>
         <input
           :id="inputId"
-          class="apple-text-input"
-          :class="{ 'has-error': error }"
+          class="form-field__input"
+          :class="{ 'form-field__input--error': error }"
           :type="type"
           :value="modelValue"
           :placeholder="placeholder"
@@ -20,8 +20,8 @@
         >
       </slot>
     </div>
-    <p v-if="hint && !error" class="field-hint">{{ hint }}</p>
-    <p v-if="error" class="field-error">{{ error }}</p>
+    <p v-if="hint && !error" class="form-field__hint">{{ hint }}</p>
+    <p v-if="error" class="form-field__error">{{ error }}</p>
   </div>
 </template>
 
@@ -73,83 +73,108 @@ const inputId = computed(() => props.id || `field-${Math.random().toString(36).s
 </script>
 
 <style scoped>
+/* ============================================
+   FormField - Apple Design System
+   ============================================ */
+
 .form-field {
+  /* Layout */
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--spacing-xxs);
+
+  /* Spacing */
+  margin-bottom: var(--spacing-md);
 }
 
-.field-label {
-  font-family: var(--font-family-text);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.43;
-  letter-spacing: -0.224px;
-  color: var(--color-ink);
+/* ============================================
+   Element: form-field__label
+   ============================================ */
+.form-field__label {
+  /* Typography */
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
+
+  /* Layout */
+  display: block;
 }
 
-.required-mark {
+/* ============================================
+   Element: form-field__required
+   ============================================ */
+.form-field__required {
   color: var(--color-danger);
-  margin-left: 2px;
 }
 
-.field-body {
-  width: 100%;
-}
-
-.apple-text-input {
+/* ============================================
+   Element: form-field__input
+   ============================================ */
+.form-field__input {
+  /* Box Model */
   width: 100%;
   height: 44px;
-  padding: 11px 15px;
-  background-color: var(--color-canvas);
+  padding: var(--spacing-sm) var(--spacing-md);
+  box-sizing: border-box;
+
+  /* Visual */
+  background: var(--color-canvas);
   color: var(--color-ink);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md);
-  font-family: var(--font-family-text);
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
+  border-radius: var(--radius-pill);
+
+  /* Typography */
+  font: var(--text-body);
+
+  /* Interactive */
   outline: none;
+  cursor: text;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.apple-text-input::placeholder {
+.form-field__input::placeholder {
   color: var(--color-ink-muted-48);
 }
 
-.apple-text-input:focus {
+.form-field__input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-hover);
+  box-shadow: 0 0 0 3px var(--color-primary-faint);
 }
 
-.apple-text-input:disabled {
-  background-color: var(--color-surface-pearl);
-  color: var(--color-ink-muted-48);
+.form-field__input:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
+  background: var(--color-canvas-parchment);
 }
 
-.apple-text-input.has-error {
+.form-field__input--error {
   border-color: var(--color-danger);
 }
 
-.field-hint {
-  font-family: var(--font-family-text);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.43;
-  letter-spacing: -0.224px;
+.form-field__input--error:focus {
+  box-shadow: 0 0 0 3px var(--color-danger-subtle);
+}
+
+/* ============================================
+   Element: form-field__hint
+   ============================================ */
+.form-field__hint {
+  /* Typography */
+  font: var(--text-caption);
   color: var(--color-ink-muted-48);
+
+  /* Layout */
   margin: 0;
 }
 
-.field-error {
-  font-family: var(--font-family-text);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.43;
-  letter-spacing: -0.224px;
+/* ============================================
+   Element: form-field__error
+   ============================================ */
+.form-field__error {
+  /* Typography */
+  font: var(--text-caption);
   color: var(--color-danger);
+
+  /* Layout */
   margin: 0;
 }
 </style>

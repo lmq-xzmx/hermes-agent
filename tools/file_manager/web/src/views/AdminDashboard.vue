@@ -2,10 +2,10 @@
   <LifecycleProvider>
   <div class="admin-dashboard">
     <!-- Dark Tile Header -->
-    <header class="dashboard-header tile-dark">
-      <div class="header-content">
-        <h1>管理控制台</h1>
-        <div class="header-actions">
+    <header class="admin-dashboard__header tile-dark">
+      <div class="admin-dashboard__header-content">
+        <h1 class="admin-dashboard__header-title">管理控制台</h1>
+        <div class="admin-dashboard__header-actions">
           <button @click="refresh" class="btn-dark-utility">🔄 刷新</button>
           <select v-model="refreshInterval" @change="setupAutoRefresh" class="select-apple">
             <option :value="0">手动刷新</option>
@@ -18,27 +18,27 @@
     </header>
 
     <!-- Main Content -->
-    <div v-if="loading" class="loading-state">
-      <div class="loading-spinner"></div>
+    <div v-if="loading" class="admin-dashboard__loading">
+      <div class="admin-dashboard__spinner"></div>
       <span>加载中...</span>
     </div>
 
-    <div v-else class="dashboard-content">
+    <div v-else class="admin-dashboard__content">
       <!-- Overview Cards - Light Tile -->
-      <div class="overview-section">
+      <div class="admin-dashboard__overview">
         <AdminOverview />
       </div>
 
       <!-- Charts Grid -->
-      <div class="charts-grid">
-        <StoragePoolChart :pools="storagePools" class="card-utility" />
-        <UserSpaceSankey :data="userSpaces" class="card-utility" />
-        <QuotaHeatmap :data="quotaHeatmap" class="card-utility" />
-        <OperationTrends :data="operationTrends" class="card-utility" />
+      <div class="admin-dashboard__charts">
+        <StoragePoolChart :pools="storagePools" class="admin-dashboard__chart" />
+        <UserSpaceSankey :data="userSpaces" class="admin-dashboard__chart" />
+        <QuotaHeatmap :data="quotaHeatmap" class="admin-dashboard__chart" />
+        <OperationTrends :data="operationTrends" class="admin-dashboard__chart" />
       </div>
 
       <!-- Alert List - Dark Tile -->
-      <div class="alerts-section tile-dark">
+      <div class="admin-dashboard__alerts">
         <AlertList :alerts="alerts" />
       </div>
     </div>
@@ -100,114 +100,108 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.admin-dashboard {
-  min-height: 100vh;
-  background: var(--color-canvas-parchment);
-}
+/* === Admin Dashboard Styles === */
 
-/* Dark Header */
-.dashboard-header {
-  background: var(--color-surface-black);
-  color: var(--color-body-on-dark);
-  padding: var(--spacing-section);
-  padding-bottom: var(--spacing-xxl);
-}
-
-.header-content {
-  max-width: var(--content-max-width-universal);
-  margin: 0 auto;
+/* --- Dashboard Header --- */
+.admin-dashboard__header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg);
+  background: var(--color-surface-tile-1);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-lg);
 }
 
-.dashboard-header h1 {
+.admin-dashboard__header-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.admin-dashboard__header-title {
   font: var(--text-display-md);
+  color: var(--color-body-on-dark);
   margin: 0;
 }
 
-/* Main Content */
-.dashboard-content {
-  max-width: var(--content-max-width-universal);
-  margin: 0 auto;
-  padding: var(--space-xl);
+.admin-dashboard__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
-.overview-section {
-  margin-bottom: var(--space-lg);
-}
-
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-lg);
-  margin-bottom: var(--space-lg);
-}
-
-.alerts-section {
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-
-/* Loading State */
-.loading-state {
+/* --- Loading State --- */
+.admin-dashboard__loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-section);
-  color: var(--color-ink-muted-48);
-  gap: var(--space-md);
+  padding: var(--spacing-xxl);
+  gap: var(--spacing-md);
+  font: var(--text-body);
+  color: var(--color-body-muted);
 }
 
-.loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--color-hairline);
+.admin-dashboard__spinner {
+  width: var(--spacing-lg);
+  height: var(--spacing-lg);
+  border: 2px solid var(--color-border-on-dark-soft);
   border-top-color: var(--color-primary);
   border-radius: var(--radius-full);
-  animation: spin 1s linear infinite;
+  animation: admin-dashboard__spin 0.8s linear infinite;
 }
 
-@keyframes spin {
+@keyframes admin-dashboard__spin {
   to { transform: rotate(360deg); }
 }
 
-/* Select - Apple Design System */
-.select-apple {
-  background: var(--color-surface-tile-1);
-  color: var(--color-body-on-dark);
-  font-family: var(--font-family-text);
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
+/* --- Dashboard Content --- */
+.admin-dashboard__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+/* --- Overview Section --- */
+.admin-dashboard__overview {
+  /* AdminOverview component container */
+}
+
+/* --- Charts Grid --- */
+.admin-dashboard__charts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-lg);
+}
+
+.admin-dashboard__chart {
+  background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  cursor: pointer;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
 }
 
-/* Responsive */
-@media (max-width: 1068px) {
-  .charts-grid {
-    grid-template-columns: 1fr;
-  }
+/* ECharts dark theme adaptation */
+.admin-dashboard__chart :deep(.echarts) {
+  background: transparent !important;
 }
 
-@media (max-width: 734px) {
-  .dashboard-header {
-    padding: var(--space-lg);
-  }
+.admin-dashboard__chart :deep(text) {
+  fill: var(--color-body-muted) !important;
+}
 
-  .header-content {
-    flex-direction: column;
-    gap: var(--space-md);
-    align-items: flex-start;
-  }
+/* --- Alerts Section --- */
+.admin-dashboard__alerts {
+  background: var(--color-surface-tile-1);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+}
 
-  .dashboard-content {
-    padding: var(--space-md);
-  }
+/* Alert items use Action Blue highlight */
+.admin-dashboard__alerts :deep(.alert-item) {
+  border-left: 3px solid var(--color-primary);
+  background: var(--color-surface-tile-2);
 }
 </style>
+

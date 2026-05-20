@@ -19,7 +19,10 @@ export const useAuthStore = defineStore('auth', () => {
   // Getters
   const isAuthenticated = computed(() => !!token.value)
   const username = computed(() => user.value?.username || '-')
-  const userRole = computed(() => user.value?.role || 'member')
+  const userRole = computed(() => user.value?.role_name || user.value?.role || 'member')
+  const isAdmin = computed(() => userRole.value === 'admin')
+  const isMember = computed(() => userRole.value === 'member')
+  const isGuest = computed(() => userRole.value === 'guest')
 
   // Actions
   async function login(username, password) {
@@ -132,6 +135,9 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     username,
     userRole,
+    isAdmin,
+    isMember,
+    isGuest,
     // Actions
     login,
     register,

@@ -1,11 +1,5 @@
 import { ListItem } from "@nous-research/ui";
-import {
-  AlertCircle,
-  Check,
-  ChevronDown,
-  ChevronRight,
-  Zap,
-} from "lucide-react";
+import { Icon } from "@/components/ui";
 import { useEffect, useState } from "react";
 
 /**
@@ -82,7 +76,7 @@ export function ToolCall({ tool }: { tool: ToolEntry }) {
     tool.inline_diff
   );
 
-  const Chevron = open ? ChevronDown : ChevronRight;
+  const ChevronIcon = open ? "chevron-down" : "chevron-right";
 
   return (
     <div
@@ -95,12 +89,22 @@ export function ToolCall({ tool }: { tool: ToolEntry }) {
         className="px-2.5 py-1.5 text-xs hover:bg-foreground/2 disabled:cursor-default"
       >
         {hasBody ? (
-          <Chevron className="h-3 w-3 shrink-0 text-muted-foreground" />
+          <Icon
+            name={ChevronIcon}
+            size="xs"
+            className="text-muted-foreground"
+            ariaHidden
+          />
         ) : (
           <span className="w-3 shrink-0" />
         )}
 
-        <Zap className={`h-3 w-3 shrink-0 ${BULLET_TONE[tool.status]}`} />
+        <Icon
+          name="zap"
+          size="xs"
+          className={BULLET_TONE[tool.status]}
+          ariaHidden
+        />
 
         <span className="font-mono font-medium shrink-0">{tool.name}</span>
 
@@ -115,15 +119,19 @@ export function ToolCall({ tool }: { tool: ToolEntry }) {
           />
         )}
         {tool.status === "error" && (
-          <AlertCircle
-            className="h-3 w-3 shrink-0 text-destructive"
-            aria-label="error"
+          <Icon
+            name="alert-circle"
+            size="xs"
+            className="text-destructive shrink-0"
+            label="error"
           />
         )}
         {tool.status === "done" && (
-          <Check
-            className="h-3 w-3 shrink-0 text-primary/80"
-            aria-label="done"
+          <Icon
+            name="check"
+            size="xs"
+            className="text-primary/80 shrink-0"
+            label="done"
           />
         )}
 
@@ -213,7 +221,7 @@ function fmtElapsed(ms: number): string {
 function colorizeDiff(diff: string): React.ReactNode {
   return diff.split("\n").map((line, i) => (
     <div key={i} className={diffLineClass(line)}>
-      {line || "\u00A0"}
+      {line || " "}
     </div>
   ));
 }

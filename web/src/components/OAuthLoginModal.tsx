@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { ExternalLink, X, Check } from "lucide-react";
 import { Button, CopyButton, H2, Spinner } from "@nous-research/ui";
 import { api, type OAuthProvider, type OAuthStartResponse } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/i18n";
+import { Icon } from "@/components/ui";
 
 interface Props {
   provider: OAuthProvider;
@@ -101,7 +101,8 @@ export function OAuthLoginModal({ provider, onClose, onSuccess }: Props) {
         if (!isMounted.current) return;
         setPhase("error");
         setErrorMsg(`Polling failed: ${e}`);
-        if (pollTimer.current !== null) window.clearInterval(pollTimer.current);
+        if (pollTimer.current !== null)
+          window.clearInterval(pollTimer.current);
       }
     }, 2000);
     return () => {
@@ -174,7 +175,7 @@ export function OAuthLoginModal({ provider, onClose, onSuccess }: Props) {
           className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
           aria-label={t.common.close}
         >
-          <X />
+          <Icon name="x" />
         </Button>
         <div className="p-6 flex flex-col gap-4">
           <div>
@@ -230,7 +231,7 @@ export function OAuthLoginModal({ provider, onClose, onSuccess }: Props) {
                     rel="noopener noreferrer"
                     className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
                   >
-                    <ExternalLink className="h-3 w-3" />
+                    <Icon name="external-link" size="xs" ariaHidden />
                     {t.oauth.reOpenAuth}
                   </a>
                   <Button
@@ -291,7 +292,7 @@ export function OAuthLoginModal({ provider, onClose, onSuccess }: Props) {
                 rel="noopener noreferrer"
                 className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
               >
-                <ExternalLink className="h-3 w-3" />
+                <Icon name="external-link" size="xs" ariaHidden />
                 {t.oauth.reOpenVerification}
               </a>
               <div className="flex items-center gap-2 text-xs text-muted-foreground border-t border-border pt-3">
@@ -303,7 +304,7 @@ export function OAuthLoginModal({ provider, onClose, onSuccess }: Props) {
 
           {phase === "approved" && (
             <div className="flex items-center gap-3 py-6 text-sm text-success">
-              <Check className="h-5 w-5" />
+              <Icon name="check" size="md" label="Success" />
               {t.oauth.connectedClosing}
             </div>
           )}

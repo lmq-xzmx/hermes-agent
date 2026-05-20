@@ -91,3 +91,4 @@ tools/file_manager/web/node_modules/
 .coverage.*
 *.coverage
 htmlcov/
+.gstack/

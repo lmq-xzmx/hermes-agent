@@ -1,37 +1,56 @@
 <template>
   <Teleport to="body">
     <Transition name="modal">
-      <div v-if="visible" class="guidance-modal-overlay" @click.self="handleClose">
-        <div class="guidance-modal-dialog" role="dialog" aria-modal="true">
-          <div class="guidance-modal-header">
-            <span class="guidance-icon">{{ icon }}</span>
-            <h3 class="guidance-title">{{ title }}</h3>
-            <button class="guidance-close" @click="handleClose" aria-label="关闭">×</button>
+      <div
+        v-if="visible"
+        class="guidance-modal__overlay"
+        @click.self="handleClose"
+      >
+        <div
+          class="guidance-modal__dialog"
+          role="dialog"
+          aria-modal="true"
+        >
+          <!-- Header -->
+          <div class="guidance-modal__header">
+            <span class="guidance-modal__icon">{{ icon }}</span>
+            <h3 class="guidance-modal__title">{{ title }}</h3>
+            <button
+              class="guidance-modal__close"
+              @click="handleClose"
+              aria-label="关闭"
+            >×</button>
           </div>
 
-          <div class="guidance-modal-body">
+          <!-- Body -->
+          <div class="guidance-modal__body">
             <p class="guidance-message">{{ message }}</p>
             <div v-if="details" class="guidance-details">
               <code>{{ details }}</code>
             </div>
           </div>
 
-          <div class="guidance-modal-footer">
+          <!-- Footer -->
+          <div class="guidance-modal__footer">
             <!-- 多个 actions -->
             <template v-if="displayActions.length > 1">
               <button
                 v-for="(action, index) in displayActions"
                 :key="action.label"
-                :class="['guidance-action', index === 0 ? 'primary' : 'secondary']"
+                :class="['guidance-action', index === 0 ? 'guidance-action--primary' : 'guidance-action--secondary']"
                 @click="handleAction(action)"
               >
                 <span v-if="action.icon" class="action-icon">{{ action.icon }}</span>
                 <span class="action-label">{{ action.label }}</span>
               </button>
             </template>
+
             <!-- 单个 action -->
             <template v-else-if="displayActions.length === 1">
-              <button class="guidance-action primary" @click="handleAction(displayActions[0])">
+              <button
+                class="guidance-action guidance-action--primary"
+                @click="handleAction(displayActions[0])"
+              >
                 <span v-if="displayActions[0].icon" class="action-icon">{{ displayActions[0].icon }}</span>
                 <span class="action-label">{{ displayActions[0].label }}</span>
               </button>
@@ -44,7 +63,11 @@
             </label>
 
             <!-- 取消按钮（多个 actions 时显示） -->
-            <button v-if="displayActions.length > 1" class="guidance-action secondary" @click="handleClose">
+            <button
+              v-if="displayActions.length > 1"
+              class="guidance-action guidance-action--secondary"
+              @click="handleClose"
+            >
               取消
             </button>
           </div>
@@ -225,197 +248,205 @@ if (typeof window !== 'undefined') {
 </script>
 
 <style scoped>
-.guidance-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--color-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
+/* ================================================
+   GuidanceModal - 引导弹窗
+   Apple Design System + BEM
+   ================================================ */
+
+/* Block: guidance-modal */
+.guidance-modal {
+  /* Overlay */
+  &__overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-overlay);
+    z-index: var(--z-index-modal, 10000);
+  }
+
+  /* Dialog */
+  &__dialog {
+    width: 90%;
+    max-width: 420px;
+    background: var(--color-canvas);
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-modal, 0 8px 32px rgba(0, 0, 0, 0.12));
+  }
+
+  /* Header */
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--color-divider-soft);
+  }
+
+  /* Icon */
+  &__icon {
+    font-size: 32px;
+    line-height: 1;
+  }
+
+  /* Title */
+  &__title {
+    flex: 1;
+    margin: 0;
+    font: var(--text-display-md);
+    color: var(--color-ink);
+  }
+
+  /* Close button */
+  &__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--color-ink-muted-48);
+    font-size: 20px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      background: var(--color-surface-pearl);
+      color: var(--color-ink);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  /* Body */
+  &__body {
+    padding: var(--spacing-lg);
+  }
+
+  /* Footer */
+  &__footer {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-top: 1px solid var(--color-divider-soft);
+    flex-wrap: wrap;
+    align-items: center;
+  }
 }
 
-.guidance-modal-dialog {
-  background: var(--color-canvas);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-lg);
-  width: 90%;
-  max-width: 420px;
-  box-shadow: none;
-}
-
-.guidance-modal-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-lg);
-  border-bottom: 1px solid var(--color-divider-soft);
-}
-
-.guidance-icon {
-  font-size: 28px;
-  line-height: 1;
-}
-
-.guidance-title {
-  flex: 1;
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--text-display-md);
-  font-weight: 600;
-  letter-spacing: -0.374px;
-  color: var(--color-ink);
-}
-
-.guidance-close {
-  background: none;
-  border: none;
-  color: var(--color-ink-muted-48);
-  font-size: 24px;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: var(--radius-md);
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-}
-
-.guidance-close:hover {
-  background: var(--color-surface-pearl);
-  color: var(--color-ink);
-}
-
-.guidance-close:active {
-  transform: scale(0.95);
-}
-
-.guidance-modal-body {
-  padding: var(--space-lg);
-}
-
+/* Element: guidance-message */
 .guidance-message {
   margin: 0;
-  font-family: var(--font-family-text);
-  font-size: var(--text-body);
-  line-height: 1.6;
+  font: var(--text-body);
   color: var(--color-ink-muted-48);
+  line-height: 1.6;
 }
 
+/* Element: guidance-details */
 .guidance-details {
-  margin-top: var(--space-md);
-  padding: var(--space-sm) var(--space-md);
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-canvas-parchment);
   border-radius: var(--radius-md);
+
+  code {
+    font: var(--text-caption);
+    color: var(--color-ink-muted-48);
+  }
 }
 
-.guidance-details code {
-  font-family: 'SF Mono', 'Monaco', monospace;
-  font-size: var(--text-caption);
-  color: var(--color-ink-muted-48);
-}
-
-.guidance-modal-footer {
-  display: flex;
-  gap: var(--space-sm);
-  padding: var(--space-md) var(--space-lg);
-  border-top: 1px solid var(--color-divider-soft);
-  flex-wrap: wrap;
-  align-items: center;
-}
-
+/* Element: guidance-action */
 .guidance-action {
   flex: 1;
   min-width: 100px;
-  padding: 11px 22px;
-  border-radius: var(--radius-pill);
-  font-family: var(--font-family-text);
-  font-size: var(--text-body);
-  font-weight: 400;
-  cursor: pointer;
-  transition: all 0.2s;
+  padding: var(--spacing-sm) var(--spacing-lg);
   border: none;
+  border-radius: var(--radius-pill);
+  font: var(--text-body);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--spacing-xs);
+  transition: all 0.15s ease;
+
+  &--primary {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+
+    &:hover {
+      background: var(--color-primary-focus);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  &--secondary {
+    background: transparent;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+
+    &:hover {
+      background: var(--color-primary);
+      color: var(--color-on-primary);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
 }
 
-.guidance-action.primary {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-.guidance-action.primary:hover {
-  background: var(--color-primary-focus);
-}
-
-.guidance-action.primary:active {
-  transform: scale(0.95);
-}
-
-.guidance-action.secondary {
-  background: transparent;
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
-}
-
-.guidance-action.secondary:hover {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-.guidance-action.secondary:active {
-  transform: scale(0.95);
-}
-
+/* Element: action-icon */
 .action-icon {
   font-size: 16px;
 }
 
+/* Element: guidance-dismiss-checkbox */
 .guidance-dismiss-checkbox {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-family: var(--font-family-text);
-  font-size: var(--text-caption);
+  gap: var(--spacing-xxs);
+  padding: 0 var(--spacing-xs);
+  font: var(--text-caption);
   color: var(--color-ink-muted-48);
   cursor: pointer;
-  padding: 0 var(--space-xs);
   white-space: nowrap;
+
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--color-primary);
+  }
 }
 
-.guidance-dismiss-checkbox input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: var(--color-primary);
-}
-
-/* Transition */
+/* Transition: modal */
 .modal-enter-active,
 .modal-leave-active {
   transition: opacity 0.2s ease;
-}
 
-.modal-enter-active .guidance-modal-dialog,
-.modal-leave-active .guidance-modal-dialog {
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  .guidance-modal__dialog {
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
 }
 
 .modal-enter-from,
 .modal-leave-to {
   opacity: 0;
-}
 
-.modal-enter-from .guidance-modal-dialog,
-.modal-leave-to .guidance-modal-dialog {
-  transform: scale(0.95);
-  opacity: 0;
+  .guidance-modal__dialog {
+    transform: scale(0.95);
+    opacity: 0;
+  }
 }
 </style>

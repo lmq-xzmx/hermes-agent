@@ -33,8 +33,9 @@
    * 调用 Tauri 命令
    */
   function tauriInvoke(command, args) {
-    if (typeof tauri !== 'undefined' && typeof tauri.invoke === 'function') {
-      return tauri.invoke(command, args);
+    // 使用 window.__TAURI__ 检测真正的 Tauri 运行时
+    if (typeof window.__TAURI__ !== 'undefined' && typeof window.__TAURI__.invoke === 'function') {
+      return window.__TAURI__.invoke(command, args);
     }
     throw new Error('Tauri command "' + command + '" not available in ' + TAURI_MODE + ' mode');
   }
@@ -104,8 +105,11 @@
   global.platform = platform;
   global.API_BASE = API_BASE;
   global.WS_BASE = WS_BASE;
-  global.tauri = { invoke: tauriInvoke, listen: tauriListen, emit: tauriEmit };
-  global.__TAURI_INVOKE__ = tauriInvoke;  // 兼容 useTauri.js
+  // 注意：不设置 global.tauri，避免与 Tauri 运行时的 window.__TAURI__ 冲突
+  // 如果 Tauri 运行时将 window.__TAURI__ 指向我们的 tauri 对象，
+  // 会导致 tauriInvoke 调用 window.__TAURI__.invoke 时递归调用自己
+  // __TAURI_INVOKE__ 总是设置，因为我们的 tauriInvoke 有 Fallback 逻辑
+  global.__TAURI_INVOKE__ = tauriInvoke;
 
   console.log('[Platform Adapter] Initialized in ' + (isTauriRuntime ? 'TAURI' : TAURI_MODE) + ' mode, API_BASE=' + API_BASE);
 })(window);

@@ -151,11 +151,12 @@ export const STATUS_LABELS = {
 }
 
 /**
- * Status colors
+ * Status colors - Apple System Colors
+ * Note: These are used in JS context; in Vue templates, prefer CSS variables
  */
 export const STATUS_COLORS = {
-  pending: '#f59e0b',
-  approved: '#10b981',
-  rejected: '#ef4444',
-  cancelled: '#6b7280'
+  pending: '#ff9500',   // Apple warning orange
+  approved: '#34c759',  // Apple success green
+  rejected: '#ff3b30',  // Apple danger red
+  cancelled: '#8e8e93'   // Apple secondary gray
 }

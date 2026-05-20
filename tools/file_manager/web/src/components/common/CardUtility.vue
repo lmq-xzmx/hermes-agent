@@ -1,5 +1,5 @@
 <template>
-  <div class="card-apple-utility" :class="{ 'card-clickable': clickable }">
+  <div class="card-utility" :class="{ 'card-clickable': clickable }">
     <slot />
   </div>
 </template>
@@ -15,23 +15,20 @@ defineProps({
 </script>
 
 <style scoped>
-.card-apple-utility {
-  background-color: var(--color-canvas);
+.card-utility {
+  background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.card-apple-utility img {
-  border-radius: var(--radius-md);
-}
-
-.card-apple-utility.card-clickable {
+.card-clickable {
   cursor: pointer;
+  transition: box-shadow var(--transition-fast);
 }
 
-.card-apple-utility.card-clickable:hover {
-  border-color: var(--color-primary);
+.card-clickable:hover {
+  box-shadow: var(--shadow-md);
 }
 </style>
+

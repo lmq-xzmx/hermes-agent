@@ -1,0 +1,44 @@
+/**
+ * Apple Design System - Icon Tokens
+ *
+ * 使用 Lucide Icons
+ * 参考: https://lucide.dev/icons
+ *
+ * 图标命名规范:
+ * - 导航类: file, team, space, pool, knowledge, trash
+ * - 操作类: plus, minus, close, check, search, refresh, upload, download, share, copy, edit, delete, folder
+ * - 状态类: warning, info, success, error, loading
+ * - 杂项: theme, logout, avatar, moon, sun
+ */
+
+/* ============================================
+   Icon CSS Variables
+   ============================================ */
+
+:root {
+  /* Icon Sizes */
+  --icon-size-xs: 12px;
+  --icon-size-sm: 14px;
+  --icon-size-md: 16px;
+  --icon-size-lg: 18px;
+  --icon-size-xl: 24px;
+  --icon-size-2xl: 32px;
+  --icon-size-3xl: 48px;
+
+  /* Icon Colors */
+  --icon-color-primary: var(--color-primary);
+  --icon-color-secondary: var(--color-secondary);
+  --icon-color-success: var(--color-success);
+  --icon-color-warning: var(--color-warning);
+  --icon-color-danger: var(--color-danger);
+  --icon-color-muted: var(--color-ink-muted-48);
+
+  /* Icon Stroke */
+  --icon-stroke-width: 2;
+  --icon-stroke-width-thin: 1.5;
+  --icon-stroke-width-bold: 2.5;
+
+  /* Nav Icon Sizes */
+  --icon-nav: 18px;
+  --icon-nav-active: 20px;
+}

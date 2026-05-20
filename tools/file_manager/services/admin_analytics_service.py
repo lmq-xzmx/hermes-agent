@@ -20,8 +20,12 @@ from typing import List, Dict, Any, Optional, Callable
 
 from .permission_context import PermissionContext
 from .event_bus import EventBus, EventType, Event, get_event_bus
+from .config_service import get_config_service
 from ..engine.models import User, Space, StoragePool, SpaceMember, AuditLog
 from ..engine.audit import AuditLogger
+
+# Default team quota if config not available
+DEFAULT_TEAM_QUOTA = 104857600  # 100MB
 
 
 # Cache configuration
@@ -151,6 +155,18 @@ class AdminAnalyticsService:
                 usage_rate = used_bytes / pool.total_bytes if pool.total_bytes > 0 else 0
                 status = "critical" if usage_rate > 0.9 else "warning" if usage_rate > 0.7 else "normal"
 
+                # Calculate effective free space considering reserved_bytes and buffer_ratio
+                effective_free = pool.free_bytes
+                if pool.reserved_bytes and pool.reserved_bytes > 0:
+                    effective_free = max(0, effective_free - pool.reserved_bytes)
+                if pool.buffer_ratio and pool.buffer_ratio > 0:
+                    effective_free = int(effective_free * (1 - float(pool.buffer_ratio)))
+
+                # Calculate max teams that can be created with default quota
+                config_svc = get_config_service()
+                team_default_quota = config_svc.get("quota.team_default_quota", DEFAULT_TEAM_QUOTA)
+                max_teams_estimate = max(0, effective_free // team_default_quota) if team_default_quota > 0 else 0
+
                 pool_list.append({
                     "id": pool.id,
                     "name": pool.name,
@@ -159,9 +175,11 @@ class AdminAnalyticsService:
                     "total_bytes": pool.total_bytes,
                     "used_bytes": used_bytes,
                     "free_bytes": pool.free_bytes,
+                    "effective_free_bytes": effective_free,
                     "usage_rate": round(usage_rate, 4),
                     "team_count": team_count,
                     "space_count": space_count,
+                    "max_teams_estimate": max_teams_estimate,
                     "status": status,
                 })
 

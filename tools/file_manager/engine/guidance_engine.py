@@ -162,7 +162,7 @@ class GuidanceEngine:
 
     def _map_event_type(self, guidance_event: GuidanceEvent):
         """Map GuidanceEvent to EventType."""
-        from .event_bus import EventType
+        from ..services.event_bus import EventType
         mapping = {
             GuidanceEvent.USER_REGISTER: EventType.AUTH_REGISTER,
             GuidanceEvent.USER_LOGIN: EventType.AUTH_LOGIN_SUCCESS,
@@ -283,7 +283,7 @@ def get_guidance_engine() -> GuidanceEngine:
     """Get the global GuidanceEngine instance."""
     global _guidance_engine
     if _guidance_engine is None:
-        from .event_bus import get_event_bus
+        from ..services.event_bus import get_event_bus
         from .lifecycle_engine import get_lifecycle_engine
         _guidance_engine = GuidanceEngine(get_event_bus(), get_lifecycle_engine())
     return _guidance_engine

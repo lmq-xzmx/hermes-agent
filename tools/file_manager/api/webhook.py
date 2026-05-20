@@ -29,6 +29,8 @@ class EventType(str, Enum):
     FILE_UPDATED = "file.updated"
     FILE_DELETED = "file.deleted"
     FILE_SHARED = "file.shared"
+    FILE_MOVED = "file.moved"
+    FILE_COPIED = "file.copied"
 
 
 class WebhookEvent:

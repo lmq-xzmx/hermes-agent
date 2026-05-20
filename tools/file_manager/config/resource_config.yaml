@@ -18,8 +18,8 @@ storage_pool:
 
 # 配额配置
 quota:
-  # 团队默认配额 (500GB)
-  team_default_quota: 536870912000
+  # 团队默认配额 (100MB)
+  team_default_quota: 104857600
   # 团队最大配额 (10TB)
   team_max_quota: 10737418240000
   # 个人默认配额 (10GB)

@@ -570,12 +570,13 @@ class StoragePool(Base):
 
     def to_dict(self) -> dict:
         return {
-            "id": self.id,
+            "pool_id": self.id,
             "name": self.name,
             "base_path": self.base_path,
-            "protocol": self.protocol,
+            "type": self.protocol,
             "total_bytes": self.total_bytes,
             "free_bytes": self.free_bytes,
+            "status": "active" if self.is_active else "inactive",
             "is_active": self.is_active,
             "description": self.description,
             "reserved_bytes": self.reserved_bytes,
@@ -1233,7 +1234,14 @@ def init_db(database_url: str = "sqlite:///hfm.db") -> sessionmaker:
             poolclass=pool_class,
         )
     else:
-        engine = create_engine(database_url)
+        # Production databases (PostgreSQL, MySQL) use QueuePool with sensible defaults
+        engine = create_engine(
+            database_url,
+            pool_size=10,
+            max_overflow=20,
+            pool_pre_ping=True,  # Verify connections before use
+            pool_recycle=3600,   # Recycle connections after 1 hour
+        )
     Base.metadata.create_all(engine)
     return sessionmaker(bind=engine)
 

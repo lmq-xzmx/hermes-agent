@@ -1,7 +1,11 @@
 <template>
   <button
-    class="btn-apple-primary"
-    :class="{ 'btn-icon-only': iconOnly, 'btn-sm': size === 'sm', 'btn-lg': size === 'lg' }"
+    class="button-primary"
+    :class="{
+      'button-primary--icon-only': iconOnly,
+      'button-primary--sm': size === 'sm',
+      'button-primary--lg': size === 'lg'
+    }"
     :disabled="disabled"
     @click="$emit('click', $event)"
   >
@@ -11,18 +15,15 @@
 
 <script setup>
 defineProps({
-  /** 图标模式：44x44 圆形/方形 */
   iconOnly: {
     type: Boolean,
     default: false
   },
-  /** 尺寸: sm / md / lg */
   size: {
     type: String,
     default: 'md',
     validator: (v) => ['sm', 'md', 'lg'].includes(v)
   },
-  /** 禁用状态 */
   disabled: {
     type: Boolean,
     default: false
@@ -33,66 +34,71 @@ defineEmits(['click'])
 </script>
 
 <style scoped>
-.btn-apple-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background-color: var(--color-primary);
-  color: var(--color-body-on-dark);
+/* ============================================
+   ButtonPrimary - Apple Design System
+   Based on DESIGN.md button-primary component
+   ============================================ */
+
+.button-primary {
+  /* Brand & Accent */
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+
+  /* Typography */
+  font: var(--text-body);
+
+  /* Shape */
   border: none;
   border-radius: var(--radius-pill);
-  padding: 11px 22px;
-  font-family: var(--font-family-text);
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
+
+  /* Spacing */
+  padding: var(--spacing-sm) var(--spacing-md);
+
+  /* Interactive */
   cursor: pointer;
-  transition: transform 0.1s ease;
-  white-space: nowrap;
+  transition: transform 0.1s ease, opacity 0.15s ease;
 }
 
-.btn-apple-primary:hover {
-  background-color: var(--color-primary-focus);
-}
-
-.btn-apple-primary:active:not(:disabled) {
+/* Active State - Apple micro-interaction */
+.button-primary:active {
   transform: scale(0.95);
 }
 
-.btn-apple-primary:focus {
+/* Focus State - Apple focus ring */
+.button-primary:focus {
   outline: 2px solid var(--color-primary-focus);
   outline-offset: 2px;
 }
 
-.btn-apple-primary:disabled {
+/* Disabled State */
+.button-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Icon-only: 44x44 touch target */
-.btn-apple-primary.btn-icon-only {
-  padding: 11px;
+.button-primary:disabled:active {
+  transform: none;
+}
+
+/* Size Variants */
+.button-primary--sm {
+  font: var(--text-caption);
+  padding: var(--spacing-xxs) var(--spacing-sm);
+}
+
+.button-primary--lg {
+  font: var(--text-button-large);
+  padding: 14px 28px;
+}
+
+/* Icon Only - Circular */
+.button-primary--icon-only {
   width: 44px;
   height: 44px;
-}
-
-/* Sizes */
-.btn-apple-primary.btn-sm {
-  padding: var(--space-xxs) var(--space-sm);
-  font-size: 14px;
-}
-
-.btn-apple-primary.btn-sm.btn-icon-only {
-  padding: var(--space-xxs);
-  width: 32px;
-  height: 32px;
-}
-
-.btn-apple-primary.btn-lg {
-  padding: 14px 28px;
-  font-size: 18px;
-  font-weight: 300;
+  padding: 0;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

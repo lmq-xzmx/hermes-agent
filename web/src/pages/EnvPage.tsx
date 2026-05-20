@@ -1,19 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Eye,
-  EyeOff,
-  ExternalLink,
-  KeyRound,
-  MessageSquare,
-  Pencil,
-  Save,
-  Settings,
-  Trash2,
-  X,
-  Zap,
-  ChevronDown,
-  ChevronRight,
-} from "lucide-react";
+  Icon,
+  type IconName,
+} from "@/components/ui";
+import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import type { EnvVarInfo } from "@/lib/api";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
@@ -82,11 +72,11 @@ interface ProviderGroup {
   hasAnySet: boolean;
 }
 
-const CATEGORY_META_ICONS: Record<string, typeof KeyRound> = {
-  provider: Zap,
-  tool: KeyRound,
-  messaging: MessageSquare,
-  setting: Settings,
+const CATEGORY_META_ICONS: Record<string, IconName> = {
+  provider: "zap",
+  tool: "key-round",
+  messaging: "message-square",
+  setting: "settings",
 };
 
 /* ------------------------------------------------------------------ */
@@ -147,13 +137,13 @@ function EnvVarRow({
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-[0.65rem] text-primary hover:underline"
             >
-              {t.env.getKey} <ExternalLink className="h-2.5 w-2.5" />
+              {t.env.getKey} <Icon name="external-link" size="xs" ariaHidden />
             </a>
           )}
           <Button
             size="sm"
             outlined
-            prefix={<Pencil />}
+            prefix={<Icon name="pencil" size="sm" ariaHidden />}
             onClick={() => setEdits((prev) => ({ ...prev, [varKey]: "" }))}
           >
             {t.common.set}
@@ -183,13 +173,13 @@ function EnvVarRow({
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-[0.65rem] text-primary hover:underline"
             >
-              {t.env.getKey} <ExternalLink className="h-2.5 w-2.5" />
+              {t.env.getKey} <Icon name="external-link" size="xs" ariaHidden />
             </a>
           )}
           <Button
             size="sm"
             outlined
-            prefix={<Pencil />}
+            prefix={<Icon name="pencil" size="sm" ariaHidden />}
             onClick={() => setEdits((prev) => ({ ...prev, [varKey]: "" }))}
           >
             {t.common.set}
@@ -216,7 +206,7 @@ function EnvVarRow({
             rel="noreferrer"
             className="inline-flex items-center gap-1 text-[0.65rem] text-primary hover:underline"
           >
-            {t.env.getKey} <ExternalLink className="h-2.5 w-2.5" />
+            {t.env.getKey} <Icon name="external-link" size="xs" ariaHidden />
           </a>
         )}
       </div>
@@ -240,11 +230,12 @@ function EnvVarRow({
       {!isEditing && (
         <div className="flex items-center gap-2">
           <div
-            className={`flex-1 border border-border px-3 py-2 font-mono-ui text-xs ${
+            className={cn(
+              "flex-1 border border-border px-3 py-2 font-mono-ui text-xs",
               isRevealed
                 ? "bg-background text-foreground select-all"
-                : "bg-muted/30 text-muted-foreground"
-            }`}
+                : "bg-muted/30 text-muted-foreground",
+            )}
           >
             {info.is_set ? displayValue : "---"}
           </div>
@@ -257,14 +248,14 @@ function EnvVarRow({
               title={isRevealed ? t.env.hideValue : t.env.showValue}
               aria-label={isRevealed ? `Hide ${varKey}` : `Reveal ${varKey}`}
             >
-              {isRevealed ? <EyeOff /> : <Eye />}
+              <Icon name={isRevealed ? "eye-off" : "eye"} size="sm" ariaHidden />
             </Button>
           )}
 
           <Button
             size="sm"
             outlined
-            prefix={<Pencil />}
+            prefix={<Icon name="pencil" size="sm" ariaHidden />}
             onClick={() => setEdits((prev) => ({ ...prev, [varKey]: "" }))}
           >
             {info.is_set ? t.common.replace : t.common.set}
@@ -275,7 +266,7 @@ function EnvVarRow({
               size="sm"
               outlined
               destructive
-              prefix={<Trash2 />}
+              prefix={<Icon name="trash-2" size="sm" ariaHidden />}
               onClick={() => onClear(varKey)}
               disabled={saving === varKey || clearDialogOpen}
             >
@@ -307,7 +298,7 @@ function EnvVarRow({
           <Button
             size="sm"
             onClick={() => onSave(varKey)}
-            prefix={<Save />}
+            prefix={<Icon name="save" size="sm" ariaHidden />}
             disabled={saving === varKey || !edits[varKey]}
           >
             {saving === varKey ? "..." : t.common.save}
@@ -315,7 +306,7 @@ function EnvVarRow({
           <Button
             size="sm"
             outlined
-            prefix={<X />}
+            prefix={<Icon name="x" size="sm" ariaHidden />}
             onClick={() => onCancelEdit(varKey)}
           >
             {t.common.cancel}
@@ -384,11 +375,12 @@ function ProviderGroupCard({
         className="justify-between gap-3 px-4 py-3 hover:bg-primary/5"
       >
         <div className="flex items-center gap-3 min-w-0">
-          {expanded ? (
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          ) : (
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          )}
+          <Icon
+            name={expanded ? "chevron-down" : "chevron-right"}
+            size="sm"
+            className="text-muted-foreground shrink-0"
+            ariaHidden
+          />
           <span className="font-semibold text-sm tracking-wide">
             {group.name === "Other" ? t.common.other : group.name}
           </span>
@@ -407,7 +399,7 @@ function ProviderGroupCard({
               className="inline-flex items-center gap-1 text-[0.65rem] text-primary hover:underline"
               onClick={(e) => e.stopPropagation()}
             >
-              {t.env.getKey} <ExternalLink className="h-2.5 w-2.5" />
+              {t.env.getKey} <Icon name="external-link" size="xs" ariaHidden />
             </a>
           )}
           <span className="text-[0.65rem] text-muted-foreground/60">
@@ -637,7 +629,7 @@ export default function EnvPage() {
       const unsetEntries = entries.filter(([, info]) => !info.is_set);
       return {
         label: CATEGORY_META_LABELS[cat] ?? cat,
-        icon: CATEGORY_META_ICONS[cat] ?? KeyRound,
+        icon: CATEGORY_META_ICONS[cat] ?? "key-round",
         category: cat,
         setEntries,
         unsetEntries,
@@ -707,7 +699,7 @@ export default function EnvPage() {
       <Card>
         <CardHeader className="border-b border-border bg-card">
           <div className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-muted-foreground" />
+            <Icon name="zap" size="sm" className="text-muted-foreground" ariaHidden />
             <CardTitle className="text-base">{t.env.llmProviders}</CardTitle>
           </div>
           <CardDescription>
@@ -739,7 +731,7 @@ export default function EnvPage() {
       {nonProviderGrouped.map(
         ({
           label,
-          icon: Icon,
+          icon,
           setEntries,
           unsetEntries,
           totalEntries,
@@ -751,7 +743,7 @@ export default function EnvPage() {
             <Card key={category}>
               <CardHeader className="border-b border-border bg-card">
                 <div className="flex items-center gap-2">
-                  <Icon className="h-5 w-5 text-muted-foreground" />
+                  <Icon name={icon} size="sm" className="text-muted-foreground" ariaHidden />
                   <CardTitle className="text-base">{label}</CardTitle>
                 </div>
                 <CardDescription>
@@ -840,7 +832,13 @@ function CollapsibleUnset({
       <Button
         ghost
         size="sm"
-        prefix={collapsed ? <ChevronRight /> : <ChevronDown />}
+        prefix={
+          <Icon
+            name={collapsed ? "chevron-right" : "chevron-down"}
+            size="sm"
+            ariaHidden
+          />
+        }
         onClick={() => setCollapsed(!collapsed)}
         aria-expanded={!collapsed}
         className="self-start mt-1 normal-case tracking-normal text-xs text-muted-foreground hover:text-foreground"

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Clock, Pause, Play, Plus, Trash2, Zap } from "lucide-react";
+import { Icon } from "@/components/ui";
 import { Badge, Button, H2, Select, SelectOption, Spinner } from "@nous-research/ui";
 import { api } from "@/lib/api";
 import type { CronJob } from "@/lib/api";
@@ -166,7 +166,7 @@ export default function CronPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Plus className="h-4 w-4" />
+            <Icon name="plus" size="sm" ariaHidden />
             {t.cron.newJob}
           </CardTitle>
         </CardHeader>
@@ -233,7 +233,7 @@ export default function CronPage() {
                 <Button
                   onClick={handleCreate}
                   disabled={creating}
-                  prefix={<Plus />}
+                  prefix={<Icon name="plus" size="sm" ariaHidden />}
                   className="w-full"
                 >
                   {creating ? t.common.creating : t.common.create}
@@ -249,7 +249,7 @@ export default function CronPage() {
           variant="sm"
           className="flex items-center gap-2 text-muted-foreground"
         >
-          <Clock className="h-4 w-4" />
+          <Icon name="clock" size="sm" ariaHidden />
           {t.cron.scheduledJobs} ({jobs.length})
         </H2>
 
@@ -313,7 +313,11 @@ export default function CronPage() {
                     job.state === "paused" ? "text-success" : "text-warning"
                   }
                 >
-                  {job.state === "paused" ? <Play /> : <Pause />}
+                  <Icon
+                    name={job.state === "paused" ? "play" : "pause"}
+                    size="sm"
+                    ariaHidden
+                  />
                 </Button>
 
                 <Button
@@ -323,7 +327,7 @@ export default function CronPage() {
                   aria-label={t.cron.triggerNow}
                   onClick={() => handleTrigger(job)}
                 >
-                  <Zap />
+                  <Icon name="zap" size="sm" ariaHidden />
                 </Button>
 
                 <Button
@@ -334,7 +338,7 @@ export default function CronPage() {
                   aria-label={t.common.delete}
                   onClick={() => jobDelete.requestDelete(job.id)}
                 >
-                  <Trash2 />
+                  <Icon name="trash-2" size="sm" ariaHidden />
                 </Button>
               </div>
             </CardContent>

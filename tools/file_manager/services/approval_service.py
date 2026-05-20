@@ -14,7 +14,7 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional, Callable
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, joinedload
 from pathlib import Path
 
 from ..engine.models import (
@@ -188,8 +188,11 @@ class ApprovalService:
         session = self._get_session()
         try:
             # 验证审批人是否是管理员
-            approver = session.query(User).filter(User.id == approver_id).first()
-            if not approver or approver.role_name != "admin":
+            approver = session.query(User).options(joinedload(User.role)).filter(User.id == approver_id).first()
+            if not approver:
+                raise NotAuthorized("用户不存在")
+            # role_name 是 to_dict() 中的计算属性，直接访问 role.name
+            if not approver.role or approver.role.name != "admin":
                 raise NotAuthorized("只有管理员可以审批")
 
             requests = session.query(ApprovalRequest).filter(

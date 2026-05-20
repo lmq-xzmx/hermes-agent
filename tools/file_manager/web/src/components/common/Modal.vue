@@ -2,13 +2,13 @@
   <Teleport to="body">
     <Transition name="modal">
       <div v-if="modelValue" class="modal-overlay" @click.self="handleOverlayClick">
-        <div class="modal-content" :class="sizeClass" role="dialog" aria-modal="true">
+        <div class="modal" :class="`modal--${size}`" role="dialog" aria-modal="true">
           <!-- Header -->
-          <div class="modal-header" v-if="title || $slots.header">
+          <div v-if="title || $slots.header" class="modal__header">
             <slot name="header">
-              <h3 class="modal-title">{{ title }}</h3>
+              <h3 class="modal__title">{{ title }}</h3>
             </slot>
-            <button v-if="closable" class="modal-close" @click="close" aria-label="关闭">
+            <button v-if="closable" class="modal__close" @click="close" aria-label="关闭">
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <path d="M13.5 4.5L4.5 13.5M4.5 4.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
@@ -16,12 +16,12 @@
           </div>
 
           <!-- Body -->
-          <div class="modal-body">
+          <div class="modal__body">
             <slot />
           </div>
 
           <!-- Footer -->
-          <div class="modal-footer" v-if="$slots.footer">
+          <div v-if="$slots.footer" class="modal__footer">
             <slot name="footer" />
           </div>
         </div>
@@ -43,7 +43,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'close'])
 
-const sizeClass = computed(() => `modal-${props.size}`)
+const sizeClass = computed(() => `modal--${props.size}`)
 
 function close() {
   emit('update:modelValue', false)
@@ -58,92 +58,142 @@ function handleOverlayClick() {
 </script>
 
 <style scoped>
+/* ============================================
+   Modal - Apple Design System
+   ============================================ */
+
+/* Overlay */
 .modal-overlay {
+  /* Layout */
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: var(--z-modal);
-  padding: 20px;
+
+  /* Visual */
+  background: var(--color-overlay);
+  z-index: var(--z-modal-backdrop);
 }
 
-.modal-content {
-  background: var(--color-canvas);
-  border-radius: var(--radius-lg);
-  width: 100%;
-  max-height: calc(100vh - 40px);
-  overflow: hidden;
+/* Modal Container */
+.modal {
+  /* Layout */
   display: flex;
   flex-direction: column;
+
+  /* Visual */
+  background: var(--color-canvas);
+  border-radius: var(--radius-lg);
+
+  /* Box Model */
+  max-height: 80vh;
+  overflow: hidden;
+
+  /* Animation */
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
-.modal-sm { max-width: 360px; }
-.modal-md { max-width: 500px; }
-.modal-lg { max-width: 700px; }
-.modal-xl { max-width: 900px; }
+/* Size Variants */
+.modal--sm { width: 90%; max-width: 400px; }
+.modal--md { width: 90%; max-width: 500px; }
+.modal--lg { width: 90%; max-width: 700px; }
+.modal--xl { width: 90%; max-width: 900px; }
 
-.modal-header {
+/* ============================================
+   Element: modal__header
+   ============================================ */
+.modal__header {
+  /* Layout */
   display: flex;
   align-items: center;
   justify-content: space-between;
+
+  /* Box Model */
   padding: var(--spacing-lg);
-  border-bottom: 1px solid var(--color-hairline);
+  border-bottom: 1px solid var(--color-divider-soft);
   flex-shrink: 0;
 }
 
-.modal-title {
-  font: var(--text-tagline);
+/* ============================================
+   Element: modal__title
+   ============================================ */
+.modal__title {
+  /* Typography */
+  font: var(--text-body-strong);
   color: var(--color-ink);
+
+  /* Layout */
   margin: 0;
 }
 
-.modal-close {
+/* ============================================
+   Element: modal__close
+   ============================================ */
+.modal__close {
+  /* Visual */
   background: none;
   border: none;
   color: var(--color-ink-muted-48);
   cursor: pointer;
-  padding: 8px;
-  margin: -8px;
-  border-radius: var(--radius-sm);
-  transition: background-color 0.15s ease, color 0.15s ease;
+
+  /* Layout */
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: var(--spacing-xxs);
+
+  /* Animation */
+  transition: color 0.15s ease, transform 0.1s ease;
 }
 
-.modal-close:hover {
-  background: var(--color-surface-pearl);
+.modal__close:hover {
   color: var(--color-ink);
 }
 
-.modal-close:active {
+.modal__close:active {
   transform: scale(0.95);
 }
 
-.modal-body {
+/* ============================================
+   Element: modal__body
+   ============================================ */
+.modal__body {
+  /* Layout */
   padding: var(--spacing-lg);
   overflow-y: auto;
   flex: 1;
 }
 
-.modal-footer {
+/* ============================================
+   Element: modal__footer
+   ============================================ */
+.modal__footer {
+  /* Layout */
   display: flex;
   gap: var(--spacing-sm);
   justify-content: flex-end;
+
+  /* Box Model */
   padding: var(--spacing-lg);
-  border-top: 1px solid var(--color-hairline);
+  border-top: 1px solid var(--color-divider-soft);
   flex-shrink: 0;
 }
 
-/* Transitions */
+/* ============================================
+   Transition Animations
+   ============================================ */
 .modal-enter-active,
 .modal-leave-active {
-  transition: all 0.25s ease;
+  transition: opacity 0.2s ease;
+}
+
+.modal-enter-active .modal,
+.modal-leave-active .modal {
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 .modal-enter-from,
@@ -151,8 +201,9 @@ function handleOverlayClick() {
   opacity: 0;
 }
 
-.modal-enter-from .modal-content,
-.modal-leave-to .modal-content {
-  transform: scale(0.95) translateY(10px);
+.modal-enter-from .modal,
+.modal-leave-to .modal {
+  transform: scale(0.95);
+  opacity: 0;
 }
 </style>

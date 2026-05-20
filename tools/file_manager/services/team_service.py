@@ -110,7 +110,7 @@ class TeamService:
         session = self._db()
         try:
             pools = session.query(StoragePool).all()
-            return [p.to_dict() for p in pools]
+            return {"pools": [p.to_dict() for p in pools]}
         finally:
             session.close()
 
@@ -261,17 +261,27 @@ class TeamService:
         """
         Create a new team and make the owner its first member.
 
-        - max_bytes: 0 means unlimited (bounded only by pool free space)
+        - max_bytes: 0 means use default quota (100MB)
         """
         from file_manager.engine import get_lifecycle_engine
+        from file_manager.services.config_service import get_config_service
+
+        # 获取默认配额（100MB）
+        if max_bytes == 0:
+            config_svc = get_config_service()
+            max_bytes = config_svc.get("quota.team_default_quota", 104857600)
 
         engine = get_lifecycle_engine()
         available_pools = engine.get_available_pool_count(self._db)
 
-        # Check constraint: must have available pool
-        context = {"available_pools": available_pools}
+        # 检查存储池是否有足够容量
+        context = {
+            "available_pools": available_pools,
+            "requested_quota": max_bytes
+        }
         engine.raise_if_violated("create_team", context)
 
+        # 查询存储池并验证容量
         session = self._db()
         try:
             pool = session.query(StoragePool).filter(StoragePool.id == storage_pool_id).first()
@@ -279,6 +289,16 @@ class TeamService:
                 raise StoragePoolNotFound(f"存储池 {storage_pool_id} 不存在")
             if not pool.is_active:
                 raise RuntimeError("该存储池已停用")
+
+            # 计算存储池的可用空间（考虑预留和缓冲）
+            effective_free = pool.free_bytes
+            if pool.reserved_bytes > 0:
+                effective_free = max(0, effective_free - pool.reserved_bytes)
+            if pool.buffer_ratio and pool.buffer_ratio > 0:
+                effective_free = int(effective_free * (1 - float(pool.buffer_ratio)))
+
+            if effective_free < max_bytes:
+                raise PoolOutOfSpace(required=max_bytes, available=effective_free)
 
             team = Team(
                 name=name,
@@ -740,8 +760,8 @@ class TeamService:
         if not team:
             raise TeamNotFound(f"Team {team_id} not found")
 
-        used_bytes = team.used_bytes or 0
-        max_bytes = team.max_bytes or 0
+        used_bytes = team.get("used_bytes") or 0
+        max_bytes = team.get("max_bytes") or 0
 
         remaining = max_bytes - used_bytes
         if remaining >= member_quota:
@@ -767,12 +787,12 @@ class TeamService:
         if not team:
             raise TeamNotFound(f"Team {team_id} not found")
 
-        max_bytes = team.max_bytes or 0
-        used_bytes = team.used_bytes or 0
+        max_bytes = team.get("max_bytes") or 0
+        used_bytes = team.get("used_bytes") or 0
         available_bytes = max(0, max_bytes - used_bytes)
 
         # 获取成员数量
-        members = self.get_team_members(team_id)
+        members = self.list_members(team_id)
         member_count = len(members)
 
         # 计算单个成员配额（如果已设置）

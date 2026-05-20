@@ -9,6 +9,8 @@
  * 1. 在 Vue 入口文件中 import: @import './assets/tokens.css';
  * 2. CSS 中使用 var(--token-name) 引用
  * 3. 禁止硬编码颜色值
+ *
+ * TODO: 重写所有组件样式
  */
 
 :root {
@@ -16,263 +18,153 @@
    * Brand & Accent - 品牌与强调色
    * ============================================ */
 
-  /** 主色 - Action Blue #0066cc */
-  /** 用于: 所有交互元素、链接、蓝色胶囊按钮 */
+  /* 主色 - Action Blue #0066cc */
   --color-primary: #0066cc;
 
-  /** 焦点蓝 - Focus Blue #0071e3 */
-  /** 用于: 键盘焦点环 (outline: 2px solid) */
+  /* 焦点蓝 - Focus Blue #0071e3 */
   --color-primary-focus: #0071e3;
 
-  /** 深色表面链接蓝 - Sky Link Blue #2997ff */
-  /** 用于: 深色 tile 上的内联链接 */
+  /* 深色表面链接蓝 - Sky Link Blue #2997ff */
   --color-primary-on-dark: #2997ff;
 
-  /** 次要强调色 - Secondary Action */
+  /* 次要强调色 - Secondary Action */
   --color-secondary: #86868b;
   --color-secondary-hover: #6e6e73;
 
-  /** 成功/警告/危险 */
+  /* 成功/警告/危险 */
   --color-success: #34c759;
   --color-warning: #ff9500;
   --color-danger: #ff3b30;
 
-  /** Primary 透明度变体 (用于 hover/focus states) */
+  /* Primary 透明度变体 */
   --color-primary-hover: rgba(0, 102, 204, 0.15);
   --color-primary-focus: rgba(0, 102, 204, 0.2);
   --color-primary-subtle: rgba(0, 102, 204, 0.1);
   --color-primary-faint: rgba(0, 102, 204, 0.05);
 
-  /** Success 透明度变体 */
+  /* Success 透明度变体 */
   --color-success-subtle: rgba(52, 199, 89, 0.15);
   --color-success-bar: rgba(63, 185, 80, 0.3);
 
-  /** Warning 透明度变体 */
+  /* Warning 透明度变体 */
   --color-warning-subtle: rgba(255, 149, 0, 0.15);
   --color-warning-strong: #9e6a03;
   --color-warning-bar: rgba(210, 153, 34, 0.3);
 
-  /** Gray 透明度变体 - inactive badge */
+  /* Gray 透明度变体 */
   --color-gray-subtle: rgba(120, 120, 128, 0.15);
 
-  /** Danger 透明度变体 */
+  /* Danger 透明度变体 */
   --color-danger-subtle: rgba(255, 59, 48, 0.15);
   --color-danger-hover: rgba(255, 59, 48, 0.1);
   --color-danger-strong: #f85149;
   --color-danger-bar: rgba(248, 81, 73, 0.3);
 
-  /** On Primary - 主色上的文字 */
+  /* On Primary */
   --color-on-primary: #ffffff;
 
-  /** On Dark - 深色上的文字 (与 body-on-dark 相同) */
+  /* On Dark */
   --color-on-dark: #ffffff;
 
   /* ============================================
    * Surface - 表面色
    * ============================================ */
 
-  /** 纯白 - 主画布色 */
+  /* 纯白 */
   --color-canvas: #ffffff;
 
-  /** 羊皮纸色 - Apple 标志性的米白 */
-  /** 用于: 交替浅色 tile、页脚区域 */
+  /* 羊皮纸色 */
   --color-canvas-parchment: #f5f5f7;
 
-  /** 珍珠色 - 次要按钮填充 */
+  /* 珍珠色 */
   --color-surface-pearl: #fafafc;
 
-  /** 深色 Tile 1 - 主深色 tile 背景 */
+  /* 深色 Tile 1 */
   --color-surface-tile-1: #272729;
 
-  /** 深色 Tile 2 - 略浅于 Tile 1 */
+  /* 深色 Tile 2 */
   --color-surface-tile-2: #2a2a2c;
 
-  /** 深色 Tile 3 - 略深于 Tile 1 */
+  /* 深色 Tile 3 */
   --color-surface-tile-3: #252527;
 
-  /** 纯黑 - 用于全局导航栏 */
+  /* 纯黑 */
   --color-surface-black: #000000;
 
-  /** Overlay 遮罩 (50% 黑) */
-  /** 用于: Modal/Dialog 背景遮罩 */
+  /* Overlay 遮罩 */
   --color-overlay: rgba(0, 0, 0, 0.5);
-
-  /** Overlay 强遮罩 (85% 黑) */
-  /** 用于: PreviewModal 等需要更强遮罩的场景 */
   --color-overlay-strong: rgba(0, 0, 0, 0.85);
-
-  /** Overlay TourGuide 遮罩 (70% 黑) */
   --color-overlay-tour: rgba(0, 0, 0, 0.7);
-
-  /** Overlay ShortcutHints 遮罩 (70% 黑) */
   --color-overlay-hint: rgba(0, 0, 0, 0.7);
 
-  /** 半透明芯片灰 */
-  /** 用于: 照片上的圆形控制按钮 (约 64% alpha) */
+  /* 半透明芯片灰 */
   --color-surface-chip-translucent: #d2d2d7;
-
-  /** 半透明芯片灰悬停态 (80% alpha) */
   --color-surface-chip-hover: rgba(210, 210, 215, 0.8);
-
-  /** 半透明芯片灰按下态 (64% alpha) */
   --color-surface-chip-translucent-bg: rgba(210, 210, 215, 0.64);
 
   /* ============================================
    * Text - 文字颜色
    * ============================================ */
 
-  /** 近黑 - 所有标题和正文 */
-  /** Apple 选这个而不是纯黑，保持照片感 */
   --color-ink: #1d1d1f;
   --color-body: #1d1d1f;
-
-  /** 深色表面上的文字 */
   --color-body-on-dark: #ffffff;
-
-  /** 深色 tile 上的次要文字 */
-  /** 比纯白更柔和 */
   --color-body-muted: #cccccc;
-
-  /** 次要文字 (灰) */
   --color-ink-muted-80: #333333;
   --color-ink-muted-48: #7a7a7a;
 
   /* ============================================
-   * Borders & Dividers - 边框与分割线
+   * Borders & Dividers
    * ============================================ */
 
-  /** 柔和分割线 */
-  /** 用于: 次要按钮边框环 (作为 ring 而非 line) */
   --color-divider-soft: #f0f0f0;
-
-  /** 细线边框 */
-  /** 用于: Store utility cards、configurator chips 的 1px 边框 */
   --color-hairline: #e0e0e0;
-
-  /** 深色表面边框 (10% 白) */
-  /** 用于: 深色 tile 上的边框 */
   --color-border-on-dark: rgba(255, 255, 255, 0.1);
-
-  /** 深色表面边框 (8% 白) */
   --color-border-on-dark-soft: rgba(255, 255, 255, 0.08);
-
-  /** 深色表面边框 (6% 白) */
   --color-border-on-dark-subtle: rgba(255, 255, 255, 0.06);
-
-  /** 深色表面边框 (15% 白) */
   --color-border-on-dark-strong: rgba(255, 255, 255, 0.15);
-
-  /** 深色表面边框 (20% 白) */
   --color-border-on-dark-stronger: rgba(255, 255, 255, 0.2);
 
   /* ============================================
-   * Typography - 字体
+   * Typography
    * ============================================ */
 
-  /** Display 字体 - SF Pro Display */
-  /** 用于: 标题 (19px 及以上) */
   --font-family-display: "SF Pro Display", "SF Pro Text", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-
-  /** Body/UI 字体 - SF Pro Text */
-  /** 用于: 正文、按钮、链接 (19px 以下) */
   --font-family-text: "SF Pro Text", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-
-  /** Fallback 字体 */
   --font-family-fallback: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
 
-  /* ============================================
-   * Typography Aliases - 字体别名 (兼容旧版)
-   * ============================================ */
-
-  --font-display: var(--font-family-display);
-  --font-body: var(--font-family-text);
-  --font-fallback: var(--font-family-fallback);
-
-  /* ============================================
-   * Typography Scale - 字体排版等级
-   * CSS shorthand: font-weight font-size/line-height letter-spacing
-   * ============================================ */
-
-  /** Hero Display - 56px 标题 */
+  /* Typography Scale */
   --text-hero-display: 600 56px/1.07 -0.28px;
-
-  /** Display Large - 40px 标题 */
   --text-display-lg: 600 40px/1.10 0;
-
-  /** Display Medium - 34px 标题 */
   --text-display-md: 600 34px/1.47 -0.374px;
-
-  /** Lead - 28px 副标题 */
   --text-lead: 400 28px/1.14 0.196px;
-
-  /** Lead Airy - 24px 轻盈副标题 (稀有 weight 300) */
   --text-lead-airy: 300 24px/1.5 0;
-
-  /** Tagline - 21px 标签 */
   --text-tagline: 600 21px/1.19 0.231px;
-
-  /** Body Strong - 17px 强调 */
   --text-body-strong: 600 17px/1.24 -0.374px;
-
-  /** Body - 17px 正文 */
   --text-body: 400 17px/1.47 -0.374px;
-
-  /** Dense Link - 17px 密集链接 (footer/store 链接列表) */
   --text-dense-link: 400 17px/2.41 0;
-
-  /** Caption - 14px 注释 */
   --text-caption: 400 14px/1.43 -0.224px;
-
-  /** Caption Strong - 14px 强调注释 */
   --text-caption-strong: 600 14px/1.29 -0.224px;
-
-  /** Button Large - 18px 大按钮 (稀有 weight 300) */
   --text-button-large: 300 18px/1.0 0;
-
-  /** Button Utility - 14px 按钮 */
   --text-button-utility: 400 14px/1.29 -0.224px;
-
-  /** Fine Print - 12px 脚注 */
   --text-fine-print: 400 12px/1.0 -0.12px;
-
-  /** Micro Legal - 10px 最小法律文字 */
   --text-micro-legal: 400 10px/1.3 -0.08px;
-
-  /** Nav Link - 12px 导航 */
   --text-nav-link: 400 12px/1.0 -0.12px;
 
   /* ============================================
-   * Spacing - 间距 (8px 网格系统)
+   * Spacing (8px grid)
    * ============================================ */
 
-  /** 4px - 微调 */
   --spacing-xxs: 4px;
-
-  /** 8px - 紧凑间距 */
   --spacing-xs: 8px;
-
-  /** 12px - 组件内间距 */
   --spacing-sm: 12px;
-
-  /** 17px - Body 行高倍数 (约 25px line) */
   --spacing-md: 17px;
-
-  /** 24px - 卡片内边距 */
   --spacing-lg: 24px;
-
-  /** 32px - 区块间距 */
   --spacing-xl: 32px;
-
-  /** 48px - 大区块 */
   --spacing-xxl: 48px;
-
-  /** 80px - Product tile 垂直 padding */
   --spacing-section: 80px;
 
-  /* ============================================
-   * Spacing Aliases - 间距别名 (兼容旧版)
-   * ============================================ */
-
+  /* Spacing Aliases */
   --space-xxs: var(--spacing-xxs);
   --space-xs: var(--spacing-xs);
   --space-sm: var(--spacing-sm);
@@ -283,60 +175,36 @@
   --space-section: var(--spacing-section);
 
   /* ============================================
-   * Border Radius - 圆角
+   * Border Radius
    * ============================================ */
 
-  /** 0px - 全出血 product tiles (无圆角) */
   --radius-none: 0px;
-
-  /** 5px - 内联链接 chip (罕见) */
   --radius-xs: 5px;
-
-  /** 8px - 深色 utility 按钮 (Sign In, Bag)、内联卡片图片 */
   --radius-sm: 8px;
-
-  /** 11px - 白色 Pearl Button 胶囊 */
   --radius-md: 11px;
-
-  /** 18px - Store utility cards、accessories grid cards */
   --radius-lg: 18px;
-
-  /** 9999px - 胶囊形状 - Apple 标志性圆角 */
-  /** 用于: 主蓝色 CTA、sub-nav buy button、configurator option chips、search input */
   --radius-pill: 9999px;
-
-  /** 9999px - 圆形按钮 (照片上的圆形控制按钮) */
   --radius-full: 9999px;
 
   /* ============================================
-   * Shadows - 阴影 (Apple 仅使用一个 shadow)
+   * Shadows
    * ============================================ */
 
-  /**
-   * 产品阴影 - Apple 唯一使用的阴影
-   * 用于: 放置在表面上的产品渲染图
-   * 禁止: 卡片、按钮、文字
-   */
   --shadow-product: rgba(0, 0, 0, 0.22) 3px 5px 30px 0;
-
-  /** 组件阴影 (仅在必要时使用) */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
 
   /* ============================================
-   * Transitions - 过渡动画
+   * Transitions
    * ============================================ */
 
-  /** Apple 微交互: 所有按钮的 active 状态 */
   --transition-active: transform 0.1s ease;
-
-  /** 标准过渡 */
   --transition-base: 0.2s ease;
   --transition-fast: 0.15s ease;
 
   /* ============================================
-   * Z-Index 层级
+   * Z-Index
    * ============================================ */
 
   --z-dropdown: 100;
@@ -347,441 +215,1018 @@
   --z-global-nav: 600;
 
   /* ============================================
-   * Layout - 布局
+   * Layout
    * ============================================ */
 
-  /** Sidebar 宽度 - Apple Store 风格侧边栏 */
   --sidebar-width: 180px;
-
-  /** 内容区域最大宽度 - DESIGN.md 合规 */
-  /** text-heavy sections: ~980px */
   --content-max-width-text: 980px;
-  /** product grids: ~1440px */
   --content-max-width-grid: 1440px;
-  /** universal content lock */
   --content-max-width-universal: 1440px;
 }
 
 /* ============================================
- * Component Styles - 组件样式
+ * Global Utility Classes
  * ============================================ */
 
-/**
- * Button Primary - Apple 标志性主按钮
- * 背景: Action Blue
- * 形状: 胶囊 (pill)
- * 状态: active 时 scale(0.95)
- */
-.btn-primary {
-  background-color: var(--color-primary);
-  color: var(--color-body-on-dark);
-  border-radius: var(--radius-pill);
-  padding: 11px 22px;
-  font-family: var(--font-family-text);
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
-  cursor: pointer;
-  transition: var(--transition-active);
-  border: none;
-}
-
-.btn-primary:active {
-  transform: scale(0.95);
-}
-
-.btn-primary:focus {
-  outline: 2px solid var(--color-primary-focus);
-  outline-offset: 2px;
-}
-
-/**
- * Button Secondary Pill - 次要胶囊按钮
- * 背景: 透明
- * 边框: 1px solid Action Blue
- */
-.btn-secondary-pill {
-  background-color: transparent;
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-pill);
-  padding: 11px 22px;
-  font-family: var(--font-family-text);
-  font-size: 17px;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
-  cursor: pointer;
-  transition: var(--transition-active);
-}
-
-.btn-secondary-pill:active {
-  transform: scale(0.95);
-}
-
-/**
- * Button Dark Utility - 全局导航操作按钮
- * 背景: 近黑 ink
- * 形状: 8px 圆角
- */
-.btn-dark-utility {
-  background-color: var(--color-ink);
-  color: var(--color-body-on-dark);
-  border-radius: var(--radius-sm);
-  padding: 8px 15px;
-  font-family: var(--font-family-text);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.29;
-  letter-spacing: -0.224px;
-  cursor: pointer;
-  transition: var(--transition-active);
-  border: none;
-}
-
-.btn-dark-utility:active {
-  transform: scale(0.95);
-}
-
-/**
- * Button Pearl Capsule - Pearl 胶囊按钮
- * 背景: surface-pearl
- * 边框: 3px solid divider-soft ring
- */
-.btn-pearl-capsule {
-  background-color: var(--color-surface-pearl);
-  color: var(--color-ink-muted-80);
-  border: 3px solid var(--color-divider-soft);
-  border-radius: var(--radius-md);
-  padding: 8px 14px;
-  font-family: var(--font-family-text);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.43;
-  letter-spacing: -0.224px;
-  cursor: pointer;
-  transition: var(--transition-active);
-}
-
-.btn-pearl-capsule:active {
-  transform: scale(0.95);
-}
-
-/**
- * Search Input - 搜索输入框
- * 形状: 胶囊 (pill) - 与 CTA 语法一致
- * 高度: 44px (Apple 触摸目标最小值)
- */
-.search-input {
-  background-color: var(--color-canvas);
-  color: var(--color-ink);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: var(--radius-pill);
-  padding: 12px 20px;
-  height: 44px;
-  font-family: var(--font-family-text);
-  font-size: 17px;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
-  outline: none;
-}
-
-.search-input:focus {
-  outline: 2px solid var(--color-primary-focus);
-  outline-offset: 0;
-}
-
-/**
- * Store Utility Card - Store 卡片
- * 背景: canvas
- * 边框: 1px hairline
- * 圆角: 18px (rounded-lg)
- * 阴影: 无 (产品图自带 shadow)
- */
-.store-utility-card {
-  background-color: var(--color-canvas);
-  color: var(--color-ink);
+/* ---- Card Utilities ---- */
+.card-utility {
+  background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
 }
 
-.store-utility-card img {
-  border-radius: var(--radius-sm);
+.tile-dark {
+  background: var(--color-surface-tile-1);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
 }
 
-/**
- * Global Navigation Bar - 全局导航栏
- * 背景: 纯黑 (surface-black)
- * 高度: 44px
- * 文字: 12px / 400 / -0.12px tracking
- */
-.global-nav {
-  background-color: var(--color-surface-black);
+.tile-light {
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+}
+
+/* ---- Button Utilities ---- */
+.btn-dark-utility {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xxs);
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--color-surface-tile-2);
+  border: 1px solid var(--color-border-on-dark);
+  border-radius: var(--radius-md);
   color: var(--color-body-on-dark);
-  height: 44px;
-  font-family: var(--font-family-text);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.0;
-  letter-spacing: -0.12px;
+  font: var(--text-button-utility);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
 
-/**
- * Sub-Nav Frosted - 毛玻璃子导航
- * 背景: canvas-parchment 80% opacity + backdrop-filter blur
- */
-.sub-nav-frosted {
-  background-color: rgba(245, 245, 247, 0.8);
-  backdrop-filter: saturate(180%) blur(20px);
-  color: var(--color-ink);
-  height: 52px;
-  font-family: var(--font-family-display);
-  font-size: 21px;
-  font-weight: 600;
-  line-height: 1.19;
-  letter-spacing: 0.231px;
+.btn-dark-utility:hover {
+  background: var(--color-surface-tile-3);
+  border-color: var(--color-border-on-dark-strong);
 }
 
-/**
- * Floating Sticky Bar - 浮动粘性栏
- * 用于: 产品购买页面滚动时底部
- */
-.floating-sticky-bar {
-  background-color: rgba(245, 245, 247, 0.8);
-  backdrop-filter: saturate(180%) blur(20px);
-  color: var(--color-ink);
-  height: 64px;
-  padding: 12px 32px;
-  font-family: var(--font-family-text);
-  font-size: 17px;
-}
-
-/**
- * Footer - 页脚
- * 背景: canvas-parchment
- * 文字: ink-muted-80
- * 链接列: 17px / 400 / 2.41 line-height (宽松行高便于扫描)
- */
-.footer {
-  background-color: var(--color-canvas-parchment);
-  color: var(--color-ink-muted-80);
-  padding: 64px;
-  font-family: var(--font-family-text);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.0;
-  letter-spacing: -0.12px;
-}
-
-.footer-links {
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 2.41;
-  letter-spacing: 0;
-}
-
-/* ============================================
- * Utility Classes - 工具类
- * ============================================ */
-
-/** 文字颜色 */
-.text-primary { color: var(--color-primary); }
-.text-on-dark { color: var(--color-body-on-dark); }
-.text-muted { color: var(--color-ink-muted-48); }
-
-/** 背景颜色 */
-.bg-canvas { background-color: var(--color-canvas); }
-.bg-parchment { background-color: var(--color-canvas-parchment); }
-.bg-tile-dark { background-color: var(--color-surface-tile-1); }
-
-/** 字体 */
-.font-display { font-family: var(--font-family-display); }
-.font-text { font-family: var(--font-family-text); }
-
-/** 圆角 */
-.rounded-pill { border-radius: var(--radius-pill); }
-.rounded-lg { border-radius: var(--radius-lg); }
-.rounded-sm { border-radius: var(--radius-sm); }
-
-/** 间距 */
-.p-xs { padding: var(--spacing-xs); }
-.p-sm { padding: var(--spacing-sm); }
-.p-md { padding: var(--spacing-md); }
-.p-lg { padding: var(--spacing-lg); }
-
-/** Apple 单一边影 - 仅用于产品图片 */
-.shadow-product {
-  box-shadow: var(--shadow-product);
-}
-
-/* ============================================
- * Button Utilities - 按钮工具类
- * Apple Design System 按钮样式
- * 形状: 胶囊 (pill/rounded-pill)
- * 触摸目标: 44px 最小高度
- * ============================================ */
-
-/** Primary Button - 主要操作按钮 */
 .btn-apple-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  background-color: var(--color-primary);
-  color: var(--color-body-on-dark);
+  gap: var(--spacing-xxs);
+  padding: 11px 22px;
+  background: var(--color-primary);
   border: none;
   border-radius: var(--radius-pill);
-  padding: 11px 22px;
-  font-family: var(--font-family-text);
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
+  color: var(--color-body-on-dark);
+  font: var(--text-body);
   cursor: pointer;
-  transition: transform 0.1s ease, background-color 0.2s ease;
-  white-space: nowrap;
-  text-decoration: none;
+  transition: background-color var(--transition-fast), transform var(--transition-active);
 }
 
 .btn-apple-primary:hover {
-  background-color: var(--color-primary-focus);
+  background: var(--color-primary-focus);
 }
 
-.btn-apple-primary:active:not(:disabled) {
+.btn-apple-primary:active {
   transform: scale(0.95);
 }
 
-.btn-apple-primary:focus {
-  outline: 2px solid var(--color-primary-focus);
-  outline-offset: 2px;
-}
-
-.btn-apple-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/** Secondary Button - 次要操作按钮 */
 .btn-apple-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  background-color: transparent;
-  color: var(--color-primary);
+  gap: var(--spacing-xxs);
+  padding: 11px 22px;
+  background: transparent;
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-pill);
-  padding: 11px 22px;
-  font-family: var(--font-family-text);
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
+  color: var(--color-primary);
+  font: var(--text-body);
   cursor: pointer;
-  transition: transform 0.1s ease, background-color 0.2s ease, color 0.2s ease;
-  white-space: nowrap;
-  text-decoration: none;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
 .btn-apple-secondary:hover {
-  background-color: var(--color-primary);
+  background: var(--color-primary);
   color: var(--color-body-on-dark);
 }
 
-.btn-apple-secondary:active:not(:disabled) {
-  transform: scale(0.95);
+/* ---- Select Utility ---- */
+.select-apple {
+  appearance: none;
+  padding: var(--spacing-xs) 36px var(--spacing-xs) var(--spacing-sm);
+  height: 36px;
+  min-width: 120px;
+  background: var(--color-surface-tile-2);
+  border: 1px solid var(--color-border-on-dark);
+  border-radius: var(--radius-md);
+  color: var(--color-body-on-dark);
+  font: var(--text-body);
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
 }
 
-.btn-apple-secondary:focus {
+.select-apple:focus {
   outline: 2px solid var(--color-primary-focus);
   outline-offset: 2px;
 }
 
-.btn-apple-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/** Danger Button - 危险操作按钮 */
-.btn-apple-danger {
-  display: inline-flex;
+/* ---- Loading State ---- */
+.loading-state {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  background-color: var(--color-danger);
+  padding: var(--spacing-xxl);
+  gap: var(--spacing-md);
+  font: var(--text-body);
+  color: var(--color-ink-muted-48);
+}
+
+.loading-spinner {
+  width: var(--spacing-lg);
+  height: var(--spacing-lg);
+  border: 2px solid var(--color-hairline);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Error State ---- */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xxl);
+  gap: var(--spacing-md);
+}
+
+.error-message {
+  font: var(--text-body);
+  color: var(--color-danger);
+}
+
+/* ---- Dashboard Layout ---- */
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.dashboard-header h1 {
+  font: var(--text-display-md);
   color: var(--color-body-on-dark);
-  border: none;
-  border-radius: var(--radius-pill);
-  padding: 11px 22px;
-  font-family: var(--font-family-text);
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
+  margin: 0;
+}
+
+.header-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.dashboard-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.overview-section {
+  /* Overview cards section */
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-lg);
+}
+
+.alerts-section {
+  /* Alert list section */
+}
+
+/* ---- Overview Grid ---- */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+}
+
+/* ---- Stat Card ---- */
+.stat-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
   cursor: pointer;
-  transition: transform 0.1s ease, background-color 0.2s ease;
-  white-space: nowrap;
-  text-decoration: none;
+  transition: border-color var(--transition-fast);
 }
 
-.btn-apple-danger:hover {
-  background-color: #e6352b;
+.stat-card:hover {
+  border-color: var(--color-primary);
 }
 
-.btn-apple-danger:active:not(:disabled) {
-  transform: scale(0.95);
+.stat-icon {
+  font-size: 32px;
+  line-height: 1;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.btn-apple-danger:focus {
-  outline: 2px solid var(--color-danger);
-  outline-offset: 2px;
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  flex: 1;
+  min-width: 0;
 }
 
-.btn-apple-danger:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.stat-value {
+  font: var(--text-display-md);
+  color: var(--color-ink);
+  line-height: 1.1;
 }
 
-/** Button Sizes */
-.btn-sm {
-  padding: 6px 14px;
-  font-size: 14px;
+.stat-label {
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
 }
 
-.btn-lg {
-  padding: 14px 28px;
-  font-size: 18px;
-  font-weight: 300;
+.stat-sub {
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
 }
 
-/** Icon-only Button (44x44 touch target) */
-.btn-icon-only {
-  padding: 11px;
-  width: 44px;
-  height: 44px;
+.stat-sub.critical {
+  color: var(--color-danger);
 }
 
-.btn-icon-only.btn-sm {
-  padding: 6px;
-  width: 32px;
-  height: 32px;
+.stat-sub.warning {
+  color: var(--color-warning);
+}
+
+/* ---- Storage Bar ---- */
+.storage-bar {
+  height: var(--spacing-xxs);
+  background: var(--color-canvas-parchment);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  margin-top: var(--spacing-xs);
+}
+
+.storage-bar-fill {
+  height: 100%;
+  background: var(--color-success);
+  border-radius: var(--radius-xs);
+  transition: width 0.3s ease;
+}
+
+.storage-bar-fill.warning {
+  background: var(--color-warning);
+}
+
+.storage-bar-fill.critical {
+  background: var(--color-danger);
+}
+
+/* ---- Alert Card ---- */
+.alert-card {
+  border-color: var(--color-danger);
+  background: var(--color-danger-subtle);
+}
+
+/* ---- Usage Badge ---- */
+.usage-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-xxs) var(--spacing-sm);
+  border-radius: var(--radius-pill);
+  font: var(--text-caption);
+}
+
+.usage-badge.normal {
+  background: var(--color-success-subtle);
+  color: var(--color-success);
+}
+
+.usage-badge.warning {
+  background: var(--color-warning-subtle);
+  color: var(--color-warning-strong);
+}
+
+.usage-badge.critical {
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
 }
 
 /* ============================================
- * Light Mode Support
+ * Login View Styles
  * ============================================ */
 
-@media (prefers-color-scheme: light) {
-  :root {
-    /* Surface colors - Light mode uses canvas and parchment */
-    --color-surface-tile-1: var(--color-canvas-parchment);
-    --color-surface-tile-2: var(--color-canvas);
-    --color-surface-tile-3: var(--color-surface-pearl);
-    --color-surface-black: var(--color-ink);
-
-    /* Body text on dark surfaces */
-    --color-body-on-dark: var(--color-ink);
-    --color-body-muted: var(--color-ink-muted-48);
-  }
+.login-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--color-canvas-parchment);
 }
+
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: var(--spacing-lg);
+}
+
+.login-tile {
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--spacing-sm);
+}
+
+.brand-icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.login-title {
+  font: var(--text-display-md);
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.login-subtitle {
+  font: var(--text-body);
+  color: var(--color-ink-muted-48);
+  margin: 0;
+}
+
+.error-msg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xxs);
+  padding: var(--spacing-sm);
+  background: var(--color-danger-subtle);
+  border-radius: var(--radius-md);
+  font: var(--text-body);
+  color: var(--color-danger);
+}
+
+.error-icon {
+  font-size: 16px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+
+.form-label {
+  font: var(--text-caption-strong);
+  color: var(--color-ink);
+}
+
+.apple-input {
+  padding: var(--spacing-sm);
+  height: 44px;
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  font: var(--text-body);
+  color: var(--color-ink);
+  transition: border-color var(--transition-fast);
+}
+
+.apple-input:focus {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+  border-color: transparent;
+}
+
+.full-width {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrapper .apple-input {
+  padding-right: 44px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.password-toggle:hover {
+  background: var(--color-surface-pearl);
+}
+
+.toggle-icon {
+  font-size: 16px;
+}
+
+.checkbox-field {
+  flex-direction: row;
+  align-items: center;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+}
+
+.checkbox-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.checkbox-custom {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-hairline);
+  border-radius: var(--radius-xs);
+  background: var(--color-canvas);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.checkbox-input:checked + .checkbox-custom {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.checkbox-input:checked + .checkbox-custom::after {
+  content: '✓';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--color-body-on-dark);
+  font-size: 12px;
+}
+
+.checkbox-text {
+  font: var(--text-body);
+  color: var(--color-ink);
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.login-footer {
+  text-align: center;
+  font: var(--text-body);
+  color: var(--color-ink-muted-48);
+  margin: 0;
+}
+
+.text-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
+/* ============================================
+ * Admin Teams Styles
+ * ============================================ */
+
+.admin-teams {
+  padding: var(--spacing-lg);
+  background: var(--color-canvas-parchment);
+  min-height: 100vh;
+}
+
+.admin-teams__page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-xl);
+}
+
+.admin-teams__page-header h1 {
+  font: var(--text-display-md);
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.admin-teams__header-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.admin-teams__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xxl);
+  font: var(--text-body);
+  color: var(--color-ink-muted-48);
+}
+
+.admin-teams__empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xxl);
+  text-align: center;
+}
+
+.admin-teams__empty-state p {
+  font: var(--text-body);
+  color: var(--color-ink-muted-48);
+  margin: 0;
+}
+
+.admin-teams__teams-table-container {
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.admin-teams__teams-summary {
+  font: var(--text-body);
+  color: var(--color-ink-muted-48);
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin: 0;
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.teams-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.teams-table th {
+  font: var(--text-caption-strong);
+  text-transform: uppercase;
+  color: var(--color-ink-muted-48);
+  text-align: left;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-canvas-parchment);
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.teams-table td {
+  font: var(--text-body);
+  color: var(--color-ink);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--color-divider-soft);
+}
+
+.teams-table tr:last-child td {
+  border-bottom: none;
+}
+
+.teams-table tr:hover td {
+  background: var(--color-surface-pearl);
+}
+
+.team-name {
+  font-weight: 600;
+}
+
+/* ============================================
+ * Team View Styles
+ * ============================================ */
+
+.team-view {
+  flex: 1;
+  overflow: auto;
+  padding: var(--spacing-lg);
+  background: var(--color-canvas-parchment);
+}
+
+.team-view__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  position: relative;
+  z-index: 1;
+
+  /* Box Model */
+  padding: var(--spacing-md) var(--spacing-lg);
+
+  /* Visual - White card like FileView */
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+
+  /* Constraint */
+  max-width: var(--content-max-width-universal);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+.team-view__spacer {
+  flex: 1;
+}
+
+.team-view__header {
+  margin-bottom: var(--spacing-md);
+  position: relative;
+  z-index: 1;
+
+  /* Visual - White card like FileView */
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+
+  /* Constraint */
+  max-width: var(--content-max-width-universal);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+.team-view__title {
+  font: var(--text-tagline);
+  color: var(--color-ink);
+  margin: 0 0 var(--spacing-md);
+}
+
+.team-view__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 22px;
+  font: var(--text-body);
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.2s ease;
+  white-space: nowrap;
+  max-width: none;
+  overflow: visible;
+}
+
+.team-view__btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.team-view__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.team-view__btn--primary {
+  background-color: var(--color-primary);
+  color: var(--color-body-on-dark);
+}
+
+.team-view__btn--primary:hover {
+  background-color: var(--color-primary-focus);
+}
+
+.team-view__btn--secondary {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+
+.team-view__btn--secondary:hover {
+  background-color: var(--color-primary);
+  color: var(--color-body-on-dark);
+}
+
+.team-view__btn--danger {
+  background-color: var(--color-danger);
+  color: var(--color-body-on-dark);
+}
+
+.team-view__btn--danger:hover {
+  background-color: #e6352b;
+}
+
+.team-view__btn--sm {
+  padding: 6px 14px;
+  font: var(--text-caption);
+}
+
+.team-view__loading,
+.team-view__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xxl);
+  text-align: center;
+}
+
+.team-view__empty-icon {
+  font-size: 48px;
+  margin-bottom: var(--spacing-md);
+  opacity: 0.5;
+}
+
+.team-view__empty p {
+  font: var(--text-body);
+  color: var(--color-ink-muted-48);
+  margin: 0;
+}
+
+.team-view__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  position: relative;
+  z-index: 1;
+}
+
+.team-view__section-gap {
+  margin-top: var(--spacing-xl);
+}
+
+.team-view__join-form {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.team-view__search-input {
+  flex: 1;
+  padding: var(--spacing-sm);
+  height: 44px;
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-pill);
+  font: var(--text-body);
+  color: var(--color-ink);
+}
+
+.team-view__search-input:focus {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+}
+
+.team-view__modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-overlay);
+  z-index: 1000;
+}
+
+.team-view__modal {
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-canvas);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.team-view__modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.team-view__modal-header h3 {
+  font: var(--text-body-strong);
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.team-view__modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: 24px;
+  color: var(--color-ink-muted-48);
+  cursor: pointer;
+}
+
+.team-view__modal-close:hover {
+  background: var(--color-surface-pearl);
+  color: var(--color-ink);
+}
+
+.team-view__modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-lg);
+  position: relative;
+  z-index: 1;
+}
+
+.team-view__modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--color-hairline);
+}
+
+.team-view__credential-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.team-view__credential-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--color-canvas-parchment);
+  border-radius: var(--radius-md);
+}
+
+.team-view__credential-token {
+  font: var(--text-body);
+  color: var(--color-primary);
+  flex: 1;
+}
+
+.team-view__credential-detail {
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
+}
+
+/* ---- Block: team-card ---- */
+.team-card {
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  position: relative;
+  z-index: 1;
+}
+
+.team-card__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.team-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+
+.team-card__name {
+  font: var(--text-body-strong);
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.team-card__desc {
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
+}
+
+.team-card__stats {
+  display: flex;
+  gap: var(--spacing-lg);
+}
+
+.team-card__stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.team-card__stat-value {
+  font: var(--text-body-strong);
+  color: var(--color-ink);
+}
+
+.team-card__stat-label {
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
+}
+
+.team-card__stat--quota .team-card__stat-value {
+  font-weight: 400;
+}
+
+.team-card__quota-bar {
+  height: var(--spacing-xxs);
+  background: var(--color-canvas-parchment);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+}
+
+.team-card__quota-fill {
+  height: 100%;
+  border-radius: var(--radius-xs);
+  transition: width 0.3s ease;
+}
+
+.team-card__quota-fill--ok { background: var(--color-success); }
+.team-card__quota-fill--warn { background: var(--color-warning); }
+.team-card__quota-fill--danger { background: var(--color-danger); }
+
+.team-card__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-xxs) var(--spacing-sm);
+  border-radius: var(--radius-pill);
+  font: var(--text-caption);
+}
+
+.team-card__badge--active {
+  background: var(--color-success-subtle);
+  color: var(--color-success);
+}
+
+.team-card__badge--inactive {
+  background: var(--color-surface-pearl);
+  color: var(--color-ink-muted-48);
+}
+
+.team-card__owner {
+  font: var(--text-caption);
+  color: var(--color-ink-muted-48);
+}
+
+.team-card__actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  position: relative;
+  z-index: 1;
+}
+
+/* TODO: 重写所有组件样式 */

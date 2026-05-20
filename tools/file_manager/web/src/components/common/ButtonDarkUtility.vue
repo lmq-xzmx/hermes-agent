@@ -1,7 +1,7 @@
 <template>
   <button
-    class="btn-apple-dark-utility"
-    :class="{ 'btn-icon-only': iconOnly }"
+    class="button-dark-utility"
+    :class="{ 'button-dark-utility--icon-only': iconOnly }"
     :disabled="disabled"
     @click="$emit('click', $event)"
   >
@@ -27,48 +27,60 @@ defineEmits(['click'])
 </script>
 
 <style scoped>
-.btn-apple-dark-utility {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background-color: var(--color-ink);
-  color: var(--color-body-on-dark);
+/* ============================================
+   ButtonDarkUtility - Apple Design System
+   Based on DESIGN.md button-dark-utility
+   ============================================ */
+
+.button-dark-utility {
+  /* Surface - Ink background */
+  background: var(--color-ink);
+  color: var(--color-on-dark);
+
+  /* Typography */
+  font: var(--text-button-utility);
+
+  /* Shape */
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
+
+  /* Spacing */
   padding: 8px 15px;
-  font-family: var(--font-family-text);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.29;
-  letter-spacing: -0.224px;
+
+  /* Interactive */
   cursor: pointer;
-  transition: transform 0.1s ease;
-  white-space: nowrap;
+  transition: transform 0.1s ease, opacity 0.15s ease;
 }
 
-.btn-apple-dark-utility:hover {
-  background-color: var(--color-ink-muted-80);
-}
-
-.btn-apple-dark-utility:active:not(:disabled) {
+/* Active State */
+.button-dark-utility:active {
   transform: scale(0.95);
 }
 
-.btn-apple-dark-utility:focus {
+/* Focus State */
+.button-dark-utility:focus {
   outline: 2px solid var(--color-primary-focus);
   outline-offset: 2px;
 }
 
-.btn-apple-dark-utility:disabled {
+/* Disabled State */
+.button-dark-utility:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Icon-only: 44x44 touch target */
-.btn-apple-dark-utility.btn-icon-only {
-  padding: 8px;
+.button-dark-utility:disabled:active {
+  transform: none;
+}
+
+/* Icon Only - Circular */
+.button-dark-utility--icon-only {
   width: 44px;
   height: 44px;
+  padding: 0;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

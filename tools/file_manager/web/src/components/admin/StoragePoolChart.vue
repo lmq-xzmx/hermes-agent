@@ -15,6 +15,10 @@
             <span class="used">{{ formatBytes(pool.usedBytes) }} 已用</span>
             <span class="free">{{ formatBytes(pool.freeBytes) }} 可用</span>
           </div>
+          <div class="pool-meta">
+            <span class="meta-item">有效可用: {{ formatBytes(pool.effectiveFreeBytes) }}</span>
+            <span class="meta-item highlight">可创建团队: {{ pool.maxTeamsEstimate }} 个</span>
+          </div>
           <div class="pool-status" :class="pool.status">
             {{ pool.status === 'critical' ? '⚠ 告警' : pool.status === 'warning' ? '⚡ 注意' : '✓ 正常' }}
           </div>
@@ -178,182 +182,24 @@ watch(() => props.pools, () => {
 </script>
 
 <style scoped>
-.storage-pool-chart {
-  padding: var(--space-lg);
-}
-
-.chart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-lg);
-}
-
-.chart-header h3 {
-  font: var(--text-body-strong);
-  font-weight: 600;
-  color: var(--color-ink);
-  margin: 0;
-}
-
-.total {
-  font: var(--text-caption);
-  color: var(--color-ink-muted-48);
-}
-
-.pools-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--space-md);
-}
-
-.pool-card {
-  display: flex;
-  gap: var(--space-md);
-  padding: var(--space-md);
-}
-
-.pool-ring {
-  flex-shrink: 0;
-}
-
-.pool-info {
-  flex: 1;
-  min-width: 0;
+.pool-meta {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xxs);
+  gap: 4px;
+  margin: 8px 0;
+  padding: 8px;
+  background: var(--bg-tertiary, rgba(255,255,255,0.03));
+  border-radius: 6px;
 }
 
-.pool-info h4 {
-  font: var(--text-body-strong);
+.meta-item {
+  font-size: 11px;
+  color: var(--text-secondary, #8b949e);
+}
+
+.meta-item.highlight {
+  color: var(--accent-color, #58a6ff);
   font-weight: 600;
-  color: var(--color-ink);
-  margin: 0;
-}
-
-.pool-stats {
-  display: flex;
-  gap: var(--space-sm);
-  font: var(--text-caption);
-  color: var(--color-ink-muted-48);
-}
-
-.pool-status {
-  font: var(--text-caption);
-  padding: 2px 10px;
-  border-radius: var(--rounded-pill);
-  display: inline-block;
-  width: fit-content;
-}
-
-.pool-status.normal { background: var(--color-primary-subtle); color: var(--color-primary); }
-.pool-status.warning { background: var(--color-warning-subtle); color: var(--color-warning-strong); }
-.pool-status.critical { background: var(--color-danger-subtle); color: var(--color-danger); }
-
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--color-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: var(--color-canvas);
-  border-radius: var(--rounded-lg);
-  width: 90%;
-  max-width: 700px;
-  max-height: 80vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-lg);
-  border-bottom: 1px solid var(--color-hairline);
-}
-
-.modal-header h3 {
-  font: var(--text-body-strong);
-  font-weight: 600;
-  color: var(--color-ink);
-  margin: 0;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  color: var(--color-ink-muted-48);
-  font-size: 24px;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-}
-
-.modal-close:hover {
-  color: var(--color-ink);
-}
-
-.modal-loading,
-.modal-error,
-.modal-empty {
-  padding: var(--space-xl);
-  text-align: center;
-  font: var(--text-body);
-  color: var(--color-ink-muted-48);
-}
-
-.modal-error {
-  color: var(--color-danger);
-}
-
-.modal-teams {
-  overflow-y: auto;
-  padding: var(--space-md);
-}
-
-.teams-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.teams-table th,
-.teams-table td {
-  padding: var(--space-sm) var(--space-md);
-  text-align: left;
-  border-bottom: 1px solid var(--color-hairline);
-}
-
-.teams-table th {
-  font: var(--text-caption);
-  font-weight: 600;
-  color: var(--color-ink-muted-48);
-}
-
-.usage-bar {
-  width: 80px;
-  height: 6px;
-  background: var(--color-hairline);
-  border-radius: var(--radius-xs);
-  display: inline-block;
-  vertical-align: middle;
-  margin-right: 8px;
-}
-
-.usage-fill {
-  height: 100%;
-  background: var(--color-primary);
-  border-radius: var(--radius-xs);
 }
 </style>
+

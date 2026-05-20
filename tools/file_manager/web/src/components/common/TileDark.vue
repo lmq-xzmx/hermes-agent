@@ -15,25 +15,3 @@ defineProps({
 })
 </script>
 
-<style scoped>
-.tile-apple-dark {
-  background-color: var(--color-surface-tile-1);
-  color: var(--color-body-on-dark);
-  padding: var(--spacing-section) var(--spacing-lg);
-  width: 100%;
-}
-
-.tile-apple-dark.tile-2 {
-  background-color: var(--color-surface-tile-2);
-}
-
-.tile-apple-dark.tile-3 {
-  background-color: var(--color-surface-tile-3);
-}
-
-@media (max-width: 640px) {
-  .tile-apple-dark {
-    padding: var(--spacing-xxl) var(--spacing-md);
-  }
-}
-</style>

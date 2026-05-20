@@ -1,7 +1,7 @@
 import { Button, ListItem, Spinner } from "@nous-research/ui";
 import { Input } from "@/components/ui/input";
 import type { GatewayClient } from "@/lib/gatewayClient";
-import { Check, Search, X } from "lucide-react";
+import { Icon } from "@/components/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 /**
@@ -152,7 +152,7 @@ export function ModelPickerDialog({ gw, sessionId, onClose, onSubmit }: Props) {
           className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
           aria-label="Close"
         >
-          <X />
+          <Icon name="x" />
         </Button>
 
         <header className="p-5 pb-3 border-b border-border">
@@ -170,7 +170,12 @@ export function ModelPickerDialog({ gw, sessionId, onClose, onSubmit }: Props) {
 
         <div className="px-5 pt-3 pb-2 border-b border-border">
           <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Icon
+              name="search"
+              size="sm"
+              className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+              ariaHidden
+            />
             <Input
               autoFocus
               placeholder="Filter providers and models…"
@@ -365,8 +370,11 @@ function ModelColumn({
               onDoubleClick={() => onConfirm(m)}
               className="px-3 py-1.5 text-xs font-mono"
             >
-              <Check
-                className={`h-3 w-3 shrink-0 ${active ? "text-primary" : "text-transparent"}`}
+              <Icon
+                name="check"
+                size="xs"
+                className={active ? "text-primary" : "text-transparent"}
+                ariaHidden
               />
               <span className="flex-1 truncate">{m}</span>
               {isCurrent && <CurrentTag />}

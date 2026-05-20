@@ -1,7 +1,10 @@
 <template>
   <button
-    class="btn-apple-secondary"
-    :class="{ 'btn-icon-only': iconOnly, 'btn-sm': size === 'sm' }"
+    class="button-secondary"
+    :class="[
+      `button-secondary--${size}`,
+      { 'button-secondary--icon-only': iconOnly }
+    ]"
     :disabled="disabled"
     @click="$emit('click', $event)"
   >
@@ -10,84 +13,100 @@
 </template>
 
 <script setup>
+/**
+ * ButtonSecondary - 次要操作按钮 (Ghost Pill)
+ *
+ * @see DESIGN.md - button-secondary-pill
+ * @example
+ * <ButtonSecondary @click="handleClick">取消</ButtonSecondary>
+ * <ButtonSecondary size="sm">小按钮</ButtonSecondary>
+ */
 defineProps({
-  /** 图标模式：44x44 触摸目标 */
-  iconOnly: {
-    type: Boolean,
-    default: false
-  },
-  /** 尺寸: sm / md */
+  iconOnly: Boolean,
   size: {
     type: String,
     default: 'md',
     validator: (v) => ['sm', 'md'].includes(v)
   },
-  /** 禁用状态 */
-  disabled: {
-    type: Boolean,
-    default: false
-  }
+  disabled: Boolean
 })
 
 defineEmits(['click'])
 </script>
 
 <style scoped>
-.btn-apple-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background-color: transparent;
+/* ============================================
+   ButtonSecondary - Apple Design System
+   Based on DESIGN.md button-secondary-pill
+   ============================================ */
+
+.button-secondary {
+  /* Surface - transparent background */
+  background: transparent;
+
+  /* Primary color for text and border */
   color: var(--color-primary);
+
+  /* Typography */
+  font: var(--text-body);
+
+  /* Shape - Ghost pill */
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-pill);
-  padding: 11px 22px;
-  font-family: var(--font-family-text);
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
+
+  /* Spacing */
+  padding: var(--spacing-sm) var(--spacing-md);
+
+  /* Interactive */
   cursor: pointer;
-  transition: transform 0.1s ease;
-  white-space: nowrap;
+  transition: transform 0.1s ease, background 0.15s ease;
 }
 
-.btn-apple-secondary:hover {
-  background-color: var(--color-primary);
-  color: var(--color-body-on-dark);
-}
-
-.btn-apple-secondary:active:not(:disabled) {
+/* Active State */
+.button-secondary:active {
   transform: scale(0.95);
 }
 
-.btn-apple-secondary:focus {
+/* Focus State */
+.button-secondary:focus {
   outline: 2px solid var(--color-primary-focus);
   outline-offset: 2px;
 }
 
-.btn-apple-secondary:disabled {
+/* Hover State - Parchment background */
+.button-secondary:hover {
+  background: var(--color-canvas-parchment);
+}
+
+/* Disabled State */
+.button-secondary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Icon-only: 44x44 touch target */
-.btn-apple-secondary.btn-icon-only {
-  padding: 11px;
+.button-secondary:disabled:active {
+  transform: none;
+}
+
+/* Size Variants */
+.button-secondary--sm {
+  font: var(--text-caption);
+  padding: var(--spacing-xxs) var(--spacing-sm);
+}
+
+.button-secondary--md {
+  font: var(--text-body);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+/* Icon Only - Circular */
+.button-secondary--icon-only {
   width: 44px;
   height: 44px;
-}
-
-/* Sizes */
-.btn-apple-secondary.btn-sm {
-  padding: var(--space-xxs) var(--space-sm);
-  font-size: 14px;
-}
-
-.btn-apple-secondary.btn-sm.btn-icon-only {
-  padding: var(--space-xxs);
-  width: 32px;
-  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

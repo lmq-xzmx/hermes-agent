@@ -3,6 +3,8 @@
  */
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { useAuthStore } from './authStore'
+import { useSpaceStore } from './spaceStore'
 
 export const useLifecycleStore = defineStore('lifecycle', () => {
   // 状态
@@ -210,6 +212,82 @@ export const useLifecycleStore = defineStore('lifecycle', () => {
     }
   }
 
+  /**
+   * 自动构建当前用户的操作上下文
+   * 从 authStore, spaceStore 等获取当前状态
+   * @param {Object} overrides - 可覆盖的上下文属性
+   * @returns {Object} 完整的操作上下文
+   */
+  function buildContext(overrides = {}) {
+    const authStore = useAuthStore()
+    const spaceStore = useSpaceStore()
+
+    const currentSpace = spaceStore.currentSpace
+    const isAdmin = authStore.userRole === 'admin'
+
+    // 判断是否为空间成员
+    const isMember = currentSpace
+      ? currentSpace.my_role && currentSpace.my_role !== 'guest'
+      : false
+
+    // 判断是否为所有者 (admin 或 space owner)
+    const isOwner = isAdmin || currentSpace?.my_role === 'owner'
+
+    return {
+      // 基础信息
+      isAuthenticated: authStore.isAuthenticated,
+      userRole: authStore.userRole,
+      isAdmin,
+      // 空间信息
+      currentSpaceId: currentSpace?.space_id || null,
+      currentSpaceName: currentSpace?.space_name || null,
+      myRole: currentSpace?.my_role || null,
+      // 权限状态
+      isMember,
+      isOwner,
+      isTeamMember: isMember, // 兼容旧名称
+      // 配额状态 (需要 API 调用获取，这里提供基础判断)
+      hasQuota: true, // 默认有配额，具体检查由 API 完成
+      sufficientQuota: true,
+      // 存储池状态
+      hasAvailablePool: spaceStore.pools?.length > 0,
+      // 统计信息 (需要调用方或 API 填充)
+      teamCount: spaceStore.teams?.length || 0,
+      memberCount: currentSpace?.member_count || 0,
+      // 覆盖值
+      ...overrides
+    }
+  }
+
+  /**
+   * 快捷方法：检查文件操作权限
+   * @param {string} action - 操作类型: 'upload_file', 'delete_file', 'move_file', 'create_folder'
+   * @param {Object} context - 可选的上下文覆盖
+   * @returns {Promise<{allowed: boolean, error?: Object}>}
+   */
+  async function checkFileOperation(action, context = {}) {
+    const fullContext = buildContext(context)
+    return beforeAction(action, fullContext)
+  }
+
+  /**
+   * 获取当前用户对指定空间的角色
+   * @param {string} spaceId - 空间 ID
+   * @returns {string} 角色: 'owner', 'member', 'viewer', 'guest', null(未加入)
+   */
+  function getSpaceRole(spaceId) {
+    const spaceStore = useSpaceStore()
+    if (!spaceId) return null
+
+    const space = spaceStore.spaces?.find(s => s.space_id === spaceId)
+    if (!space) return null
+
+    const authStore = useAuthStore()
+    if (authStore.userRole === 'admin') return 'owner' // admin 拥有所有权限
+
+    return space.my_role || null
+  }
+
   // 关闭弹窗
   function closeModal() {
     modalVisible.value = false
@@ -235,6 +313,10 @@ export const useLifecycleStore = defineStore('lifecycle', () => {
     showGuidanceModal,  // 兼容旧方法
     closeModal,
     dismissGuidance,
-    executeGuidance
+    executeGuidance,
+    // 新增：上下文和权限检查
+    buildContext,
+    checkFileOperation,
+    getSpaceRole
   }
 })

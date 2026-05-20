@@ -14,33 +14,8 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import {
-  Activity,
-  BarChart3,
-  BookOpen,
-  Clock,
-  Code,
-  Database,
-  Download,
-  Eye,
-  FileText,
-  Globe,
-  Heart,
-  KeyRound,
-  Menu,
-  MessageSquare,
-  Package,
-  Puzzle,
-  RotateCw,
-  Settings,
-  Shield,
-  Sparkles,
-  Star,
-  Terminal,
-  Wrench,
-  X,
-  Zap,
-} from "lucide-react";
+import { Icon } from "@/components/ui";
+import type { IconName } from "@/components/ui";
 import {
   Button,
   ListItem,
@@ -80,7 +55,7 @@ const CHAT_NAV_ITEM: NavItem = {
   path: "/chat",
   labelKey: "chat",
   label: "Chat",
-  icon: Terminal,
+  icon: "terminal",
 };
 
 /**
@@ -117,52 +92,52 @@ const BUILTIN_NAV_REST: NavItem[] = [
     path: "/sessions",
     labelKey: "sessions",
     label: "Sessions",
-    icon: MessageSquare,
+    icon: "message-square",
   },
   {
     path: "/analytics",
     labelKey: "analytics",
     label: "Analytics",
-    icon: BarChart3,
+    icon: "bar-chart-3",
   },
-  { path: "/logs", labelKey: "logs", label: "Logs", icon: FileText },
-  { path: "/cron", labelKey: "cron", label: "Cron", icon: Clock },
-  { path: "/skills", labelKey: "skills", label: "Skills", icon: Package },
-  { path: "/config", labelKey: "config", label: "Config", icon: Settings },
-  { path: "/env", labelKey: "keys", label: "Keys", icon: KeyRound },
+  { path: "/logs", labelKey: "logs", label: "Logs", icon: "file-text" },
+  { path: "/cron", labelKey: "cron", label: "Cron", icon: "clock" },
+  { path: "/skills", labelKey: "skills", label: "Skills", icon: "package" },
+  { path: "/config", labelKey: "config", label: "Config", icon: "settings" },
+  { path: "/env", labelKey: "keys", label: "Keys", icon: "key-round" },
   {
     path: "/docs",
     labelKey: "documentation",
     label: "Documentation",
-    icon: BookOpen,
+    icon: "book-open",
   },
 ];
 
-const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
-  Activity,
-  BarChart3,
-  Clock,
-  FileText,
-  KeyRound,
-  MessageSquare,
-  Package,
-  Settings,
-  Puzzle,
-  Sparkles,
-  Terminal,
-  Globe,
-  Database,
-  Shield,
-  Wrench,
-  Zap,
-  Heart,
-  Star,
-  Code,
-  Eye,
+const ICON_MAP: Record<string, IconName> = {
+  Activity: "activity",
+  BarChart3: "bar-chart-3",
+  Clock: "clock",
+  FileText: "file-text",
+  KeyRound: "key-round",
+  MessageSquare: "message-square",
+  Package: "package",
+  Settings: "settings",
+  Puzzle: "puzzle",
+  Sparkles: "sparkles",
+  Terminal: "terminal",
+  Globe: "globe",
+  Database: "database",
+  Shield: "shield",
+  Wrench: "wrench",
+  Zap: "zap",
+  Heart: "heart",
+  Star: "star",
+  Code: "code",
+  Eye: "eye",
 };
 
-function resolveIcon(name: string): ComponentType<{ className?: string }> {
-  return ICON_MAP[name] ?? Puzzle;
+function resolveIcon(name: string): IconName {
+  return ICON_MAP[name] ?? "puzzle";
 }
 
 function buildNavItems(
@@ -384,7 +359,7 @@ export default function App() {
           aria-controls="app-sidebar"
           className="text-midground/70 hover:text-midground"
         >
-          <Menu />
+          <Icon name="menu" size="sm" ariaHidden />
         </Button>
 
         <Typography
@@ -454,7 +429,7 @@ export default function App() {
                 aria-label={t.app.closeNavigation}
                 className="lg:hidden text-midground/70 hover:text-midground"
               >
-                <X />
+                <Icon name="x" size="sm" ariaHidden />
               </Button>
             </div>
 
@@ -463,7 +438,7 @@ export default function App() {
               aria-label={t.app.navigation}
             >
               <ul className="flex flex-col">
-                {navItems.map(({ path, label, labelKey, icon: Icon }) => {
+                {navItems.map(({ path, label, labelKey, icon }) => {
                   const navLabel = labelKey
                     ? ((t.app.nav as Record<string, string>)[labelKey] ?? label)
                     : label;
@@ -491,7 +466,7 @@ export default function App() {
                       >
                         {({ isActive }) => (
                           <>
-                            <Icon className="h-3.5 w-3.5 shrink-0" />
+                            <Icon name={icon} size="sm" className="shrink-0" ariaHidden />
                             <span className="truncate">{navLabel}</span>
 
                             <span
@@ -611,14 +586,14 @@ function SidebarSystemActions({ onNavigate }: { onNavigate: () => void }) {
   const items: SystemActionItem[] = [
     {
       action: "restart",
-      icon: RotateCw,
+      icon: "rotate-cw",
       label: t.status.restartGateway,
       runningLabel: t.status.restartingGateway,
       spin: true,
     },
     {
       action: "update",
-      icon: Download,
+      icon: "download",
       label: t.status.updateHermes,
       runningLabel: t.status.updatingHermes,
       spin: false,
@@ -652,7 +627,7 @@ function SidebarSystemActions({ onNavigate }: { onNavigate: () => void }) {
       <SidebarStatusStrip />
 
       <ul className="flex flex-col">
-        {items.map(({ action, icon: Icon, label, runningLabel, spin }) => {
+        {items.map(({ action, icon, label, runningLabel, spin }) => {
           const isPending = pendingAction === action;
           const isActionRunning =
             activeAction === action && isRunning && !isPending;
@@ -683,10 +658,13 @@ function SidebarSystemActions({ onNavigate }: { onNavigate: () => void }) {
                   <Spinner className="shrink-0 text-[0.875rem]" />
                 ) : (
                   <Icon
+                    name={icon}
+                    size="sm"
                     className={cn(
-                      "h-3.5 w-3.5 shrink-0",
+                      "shrink-0",
                       isActionRunning && !spin && "animate-pulse",
                     )}
+                    ariaHidden
                   />
                 )}
 
@@ -714,7 +692,7 @@ function SidebarSystemActions({ onNavigate }: { onNavigate: () => void }) {
 }
 
 interface NavItem {
-  icon: ComponentType<{ className?: string }>;
+  icon: IconName;
   label: string;
   labelKey?: string;
   path: string;
@@ -722,7 +700,7 @@ interface NavItem {
 
 interface SystemActionItem {
   action: SystemAction;
-  icon: ComponentType<{ className?: string }>;
+  icon: IconName;
   label: string;
   runningLabel: string;
   spin: boolean;

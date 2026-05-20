@@ -1,10 +1,10 @@
 <template>
   <Teleport to="body">
     <Transition name="toast">
-      <div v-if="visible" class="toast" :class="type" role="alert">
-        <span class="toast-icon">{{ iconMap[type] }}</span>
-        <span class="toast-message">{{ message }}</span>
-        <button v-if="closable" class="toast-close" @click="close" aria-label="关闭">
+      <div v-if="visible" class="toast" :class="`toast--${type}`" role="alert">
+        <span class="toast__icon">{{ iconMap[type] }}</span>
+        <span class="toast__message">{{ message }}</span>
+        <button v-if="closable" class="toast__close" @click="close" aria-label="关闭">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M10.5 3.5L3.5 10.5M3.5 3.5L10.5 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
@@ -15,8 +15,6 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-
 const props = defineProps({
   visible: { type: Boolean, default: false },
   type: { type: String, default: 'info' }, // info/success/error/warning
@@ -41,81 +39,117 @@ function close() {
 </script>
 
 <style scoped>
+/* ============================================
+   Toast - Apple Design System
+   ============================================ */
+
 .toast {
+  /* Layout */
   position: fixed;
-  bottom: var(--spacing-lg);
+  bottom: var(--spacing-xl);
   left: 50%;
   transform: translateX(-50%);
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-ink);
-  color: var(--color-body-on-dark);
-  border-radius: var(--radius-pill);
-  font-family: var(--font-family-text);
-  font-size: 15px;
-  line-height: 1.4;
-  z-index: var(--z-toast);
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  max-width: calc(100vw - 48px);
-}
 
-.toast.info {
+  /* Box Model */
+  padding: var(--spacing-md) var(--spacing-lg);
+
+  /* Visual */
   background: var(--color-ink);
+  color: var(--color-body-on-dark);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+
+  /* Z-Index */
+  z-index: var(--z-toast);
+
+  /* Animation */
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
-.toast.success {
+/* Type Variants */
+.toast--success {
   background: var(--color-success);
+  color: var(--color-on-primary);
 }
 
-.toast.error {
+.toast--error {
   background: var(--color-danger);
+  color: var(--color-on-primary);
 }
 
-.toast.warning {
+.toast--warning {
   background: var(--color-warning);
+  color: var(--color-ink);
 }
 
-.toast-icon {
-  font-size: 16px;
-  flex-shrink: 0;
+.toast--info {
+  background: var(--color-ink);
+  color: var(--color-body-on-dark);
 }
 
-.toast-message {
-  flex: 1;
+/* ============================================
+   Element: toast__icon
+   ============================================ */
+.toast__icon {
+  font-size: 18px;
 }
 
-.toast-close {
-  background: none;
-  border: none;
-  color: inherit;
-  cursor: pointer;
-  padding: var(--spacing-xs);
-  margin-left: var(--spacing-xs);
-  opacity: 0.7;
-  transition: opacity 0.15s ease;
+/* ============================================
+   Element: toast__message
+   ============================================ */
+.toast__message {
+  /* Typography */
+  font: var(--text-body);
+
+  /* Layout */
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================
+   Element: toast__close
+   ============================================ */
+.toast__close {
+  /* Layout */
   display: flex;
   align-items: center;
   justify-content: center;
+
+  /* Visual */
+  background: transparent;
+  border: none;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+
+  /* Animation */
+  transition: opacity 0.15s ease, transform 0.1s ease;
 }
 
-.toast-close:hover {
+.toast__close:hover {
   opacity: 1;
 }
 
-.toast-close:active {
+.toast__close:active {
   transform: scale(0.95);
 }
 
-/* Transitions */
+/* ============================================
+   Transition Animations
+   ============================================ */
 .toast-enter-active,
 .toast-leave-active {
-  transition: all 0.3s ease;
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 .toast-enter-from,
 .toast-leave-to {
-  opacity: 0;
   transform: translateX(-50%) translateY(20px);
+  opacity: 0;
 }
 </style>

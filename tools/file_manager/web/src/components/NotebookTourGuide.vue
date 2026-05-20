@@ -100,8 +100,3 @@ onUnmounted(() => {
 defineExpose({ startTour })
 </script>
 
-<style scoped>
-.notebook-tour-wrapper {
-  /* Wrapper for scoped styles if needed */
-}
-</style>

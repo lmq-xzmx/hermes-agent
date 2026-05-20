@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Palette, Check } from "lucide-react";
 import { Button, ListItem, Typography } from "@nous-research/ui";
 import { BUILTIN_THEMES, useTheme } from "@/themes";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
+import { Icon } from "@/components/ui";
+import type { IconName } from "@/components/ui/icon";
 
 /**
  * Compact theme picker mounted next to the language switcher in the header.
@@ -60,7 +61,7 @@ export function ThemeSwitcher({ dropUp = false }: ThemeSwitcherProps) {
         aria-haspopup="listbox"
       >
         <span className="inline-flex items-center gap-1.5">
-          <Palette className="h-3.5 w-3.5" />
+          <Icon name="palette" size="sm" ariaHidden />
 
           <Typography
             mondwest
@@ -127,11 +128,15 @@ export function ThemeSwitcher({ dropUp = false }: ThemeSwitcherProps) {
                   )}
                 </div>
 
-                <Check
+                <Icon
+                  name="check"
+                  size="xs"
                   className={cn(
-                    "h-3 w-3 shrink-0 text-midground",
+                    "shrink-0 text-midground",
                     isActive ? "opacity-100" : "opacity-0",
                   )}
+                  ariaHidden={!isActive}
+                  label={isActive ? "Selected" : undefined}
                 />
               </ListItem>
             );

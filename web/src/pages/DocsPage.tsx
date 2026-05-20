@@ -1,5 +1,5 @@
 import { useLayoutEffect } from "react";
-import { ExternalLink } from "lucide-react";
+import { Icon } from "@/components/ui";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,7 @@ export default function DocsPage() {
         rel="noopener noreferrer"
         className={DS_BUTTON_OUTLINED_LINK_CN}
       >
-        <ExternalLink className="size-3.5" />
+        <Icon name="external-link" size="sm" ariaHidden />
         {t.app.openDocumentation}
       </a>,
     );

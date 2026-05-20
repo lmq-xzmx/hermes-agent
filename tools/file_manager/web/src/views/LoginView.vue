@@ -5,13 +5,13 @@
       <TileLight class="login-tile">
         <div class="login-box">
           <div class="login-header">
-            <div class="brand-icon">🚀</div>
+            <Icon name="rocket" :size="48" class="brand-icon" />
             <h1 class="login-title">Hermes 文件管理器</h1>
             <p class="login-subtitle">登录以访问您的文件</p>
           </div>
 
           <div v-if="error" class="error-msg">
-            <span class="error-icon">⚠️</span>
+            <Icon name="warning" :size="16" class="error-icon" />
             {{ error }}
           </div>
 
@@ -46,7 +46,7 @@
                   @click="showPassword = !showPassword"
                   :aria-label="showPassword ? '隐藏密码' : '显示密码'"
                 >
-                  <span class="toggle-icon">{{ showPassword ? '🙈' : '👁' }}</span>
+                  <Icon :name="showPassword ? 'eye-off' : 'eye'" :size="16" class="toggle-icon" />
                 </button>
               </div>
             </div>
@@ -79,13 +79,13 @@
       <TileLight class="login-tile">
         <div class="login-box">
           <div class="login-header">
-            <div class="brand-icon">🚀</div>
+            <Icon name="rocket" :size="48" class="brand-icon" />
             <h1 class="login-title">创建账户</h1>
             <p class="login-subtitle">注册以开始管理文件</p>
           </div>
 
           <div v-if="error" class="error-msg">
-            <span class="error-icon">⚠️</span>
+            <Icon name="warning" :size="16" class="error-icon" />
             {{ error }}
           </div>
 
@@ -123,7 +123,7 @@
                   @click="showPassword = !showPassword"
                   :aria-label="showPassword ? '隐藏密码' : '显示密码'"
                 >
-                  <span class="toggle-icon">{{ showPassword ? '🙈' : '👁' }}</span>
+                  <Icon :name="showPassword ? 'eye-off' : 'eye'" :size="16" class="toggle-icon" />
                 </button>
               </div>
             </div>
@@ -159,7 +159,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
-import { TileLight } from '../components/common'
+import { TileLight, Icon } from '../components/common'
 
 const emit = defineEmits(['login-success'])
 const router = useRouter()
@@ -263,171 +263,238 @@ async function handleRegister() {
 </script>
 
 <style scoped>
+/* ============================================
+   Block: login-view
+   Login View - Apple DESIGN.md Compliant
+   ============================================ */
+
+/* === Layout === */
 .login-view {
-  width: 100%;
-  min-height: 100vh;
+  /* Layout */
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-canvas-parchment);
+
+  /* Visual */
+  background: transparent;
+  padding: var(--spacing-lg);
 }
 
+/* === Container === */
 .login-container {
+  /* Layout */
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  padding: var(--space-lg);
+
+  /* Box Model */
   width: 100%;
+  max-width: 420px;
 }
 
+/* === Tile === */
 .login-tile {
+  /* Box Model */
+  padding: var(--spacing-xl);
   width: 100%;
-  max-width: 400px;
+
+  /* Visual - 确保白色背景和边框 */
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
 }
 
+/* === Box === */
 .login-box {
-  width: 100%;
-  padding: var(--space-lg);
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
 
+/* === Header === */
 .login-header {
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  margin-bottom: var(--space-xl);
+
+  /* Box Model */
+  margin-bottom: var(--spacing-md);
 }
 
 .brand-icon {
-  font-size: 56px;
-  margin-bottom: var(--space-md);
-  display: block;
+  /* Layout */
+  margin-bottom: var(--spacing-md);
 }
 
 .login-title {
-  font: var(--text-display-md);
+  /* Typography */
+  font: var(--text-tagline);
   color: var(--color-ink);
-  margin: 0 0 var(--space-xs);
+
+  /* Reset */
+  margin: 0 0 var(--spacing-xs);
 }
 
 .login-subtitle {
+  /* Typography */
   font: var(--text-body);
-  color: var(--color-ink-muted-48);
+  color: var(--color-secondary);
+
+  /* Reset */
   margin: 0;
 }
 
+/* === Error Message === */
 .error-msg {
+  /* Layout */
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--spacing-sm);
+
+  /* Visual */
   background: var(--color-danger-subtle);
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius-md);
-  padding: var(--space-sm) var(--space-md);
-  margin-bottom: var(--space-lg);
   color: var(--color-danger);
-  font: var(--text-body);
+
+  /* Box Model */
+  padding: var(--spacing-sm) var(--spacing-md);
+
+  /* Shape */
+  border-radius: var(--radius-md);
 }
 
 .error-icon {
+  /* Typography */
   font-size: 16px;
-  flex-shrink: 0;
 }
 
+/* === Form === */
 .login-form {
-  margin-bottom: var(--space-lg);
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
 
 .form-field {
-  margin-bottom: var(--space-md);
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
 }
 
 .form-label {
-  display: block;
-  font: var(--text-body-strong);
+  /* Typography */
+  font: var(--text-caption-strong);
   color: var(--color-ink);
-  margin-bottom: var(--space-xxs);
 }
 
-/* Apple Input - pill shape */
+/* === Apple Input === */
 .apple-input {
-  padding: var(--spacing-sm) var(--spacing-md);
+  /* Box Model */
+  padding: var(--spacing-sm);
+
+  /* Visual */
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-pill);
-  color: var(--color-ink);
+  border-radius: var(--radius-md);
+
+  /* Typography */
   font: var(--text-body);
-  transition: border-color 0.2s;
-  height: 44px;
+  color: var(--color-ink);
   box-sizing: border-box;
-  width: 100%;
+
+  /* Interaction */
+  transition: border-color 0.2s ease;
 }
 
 .apple-input:focus {
+  /* Outline */
   outline: 2px solid var(--color-primary-focus);
   outline-offset: 2px;
+  border-color: transparent;
 }
 
-.apple-input.full-width {
+.apple-input::placeholder {
+  /* Typography */
+  color: var(--color-secondary);
+}
+
+.full-width {
+  /* Box Model */
   width: 100%;
+  box-sizing: border-box;
 }
 
+/* === Password Wrapper === */
 .password-wrapper {
+  /* Positioning */
   position: relative;
 }
 
 .password-wrapper .apple-input {
-  padding-right: 48px;
+  /* Box Model */
+  padding-right: 44px;
 }
 
-/* Password Toggle - Apple Icon Button */
 .password-toggle {
+  /* Positioning */
   position: absolute;
-  right: 6px;
+  right: var(--spacing-sm);
   top: 50%;
   transform: translateY(-50%);
+
+  /* Visual */
   background: transparent;
   border: none;
-  cursor: pointer;
-  width: 36px;
-  height: 36px;
+
+  /* Layout */
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-full);
-  transition: background-color 0.15s ease;
+
+  /* Box Model */
+  width: 28px;
+  height: 28px;
+
+  /* Interaction */
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
 }
 
-.password-toggle:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.password-toggle:active {
-  transform: translateY(-50%) scale(0.95);
-}
-
+.password-toggle:hover,
 .password-toggle.active {
-  background: rgba(0, 0, 0, 0.05);
+  opacity: 1;
 }
 
 .toggle-icon {
-  font-size: 18px;
-  line-height: 1;
+  /* Typography */
+  font-size: 16px;
 }
 
+/* === Checkbox === */
 .checkbox-field {
-  margin-bottom: var(--space-lg);
+  /* Layout */
+  flex-direction: row;
+  align-items: center;
 }
 
 .checkbox-label {
+  /* Layout */
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--spacing-sm);
+
+  /* Interaction */
   cursor: pointer;
-  font: var(--font-family-text);
-  color: var(--color-ink-muted-80);
-  user-select: none;
 }
 
 .checkbox-input {
+  /* Positioning */
   position: absolute;
   opacity: 0;
   width: 0;
@@ -435,62 +502,129 @@ async function handleRegister() {
 }
 
 .checkbox-custom {
+  /* Visual */
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+
+  /* Shape */
+  border-radius: var(--radius-xs);
+
+  /* Box Model */
   width: 20px;
   height: 20px;
-  border: 2px solid var(--color-hairline);
-  border-radius: var(--radius-xs);
-  background: var(--color-canvas);
-  flex-shrink: 0;
+
+  /* Layout */
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+
+  /* Interaction */
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .checkbox-input:checked + .checkbox-custom {
+  /* Visual */
   background: var(--color-primary);
   border-color: var(--color-primary);
 }
 
 .checkbox-input:checked + .checkbox-custom::after {
+  /* Content */
   content: '✓';
-  color: white;
+
+  /* Typography */
   font-size: 12px;
   font-weight: 600;
+  color: var(--color-body-on-dark);
 }
 
-.checkbox-input:focus-visible + .checkbox-custom {
+.checkbox-input:focus + .checkbox-custom {
+  /* Outline */
   outline: 2px solid var(--color-primary-focus);
   outline-offset: 2px;
 }
 
-.checkbox-input:hover + .checkbox-custom {
-  border-color: var(--color-primary);
-}
-
 .checkbox-text {
-  flex: 1;
+  /* Typography */
+  font: var(--text-body);
+  color: var(--color-ink);
 }
 
-/* Button Full Width - utility */
+/* === Buttons === */
+.btn-apple-primary {
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Box Model */
+  padding: 11px 22px;
+  min-height: 44px;
+
+  /* Typography */
+  font: var(--text-body);
+  font-weight: 500;
+  color: var(--color-body-on-dark);
+
+  /* Shape */
+  border-radius: var(--radius-pill);
+  border: none;
+
+  /* Visual */
+  background: var(--color-primary);
+
+  /* Interaction */
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-apple-primary:hover {
+  /* Visual */
+  background: var(--color-primary-hover);
+}
+
+.btn-apple-primary:active {
+  /* Interaction */
+  transform: scale(0.97);
+}
+
+.btn-apple-primary:focus {
+  /* Outline */
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+}
+
 .btn-full {
+  /* Box Model */
   width: 100%;
 }
 
+/* === Footer === */
 .login-footer {
-  text-align: center;
+  /* Typography */
   font: var(--text-body);
-  color: var(--color-ink-muted-48);
-  margin: 0;
+  color: var(--color-secondary);
+
+  /* Layout */
+  text-align: center;
+
+  /* Reset */
+  margin: var(--spacing-md) 0 0;
 }
 
 .text-link {
-  color: var(--color-primary);
-  text-decoration: none;
+  /* Typography */
   font: var(--text-body);
+  color: var(--color-primary);
+
+  /* Interaction */
+  text-decoration: none;
+  transition: color 0.15s ease;
 }
 
 .text-link:hover {
+  /* Visual */
+  color: var(--color-primary-hover);
   text-decoration: underline;
 }
 </style>

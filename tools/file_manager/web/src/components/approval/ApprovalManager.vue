@@ -54,26 +54,19 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useApprovalStore } from '@/stores/approvalStore'
+import { useAuthStore } from '@/stores/authStore'
 import MyApprovals from './MyApprovals.vue'
 import PendingApprovals from './PendingApprovals.vue'
 import ApprovalRequestForm from './ApprovalRequestForm.vue'
 
 const store = useApprovalStore()
+const authStore = useAuthStore()
 
 const activeTab = ref('my')
 const toast = ref(null)
 
-// 检查是否是管理员（从 localStorage 获取角色信息）
-const isAdmin = computed(() => {
-  const userStr = localStorage.getItem('user')
-  if (!userStr) return false
-  try {
-    const user = JSON.parse(userStr)
-    return user.role_name === 'admin'
-  } catch {
-    return false
-  }
-})
+// 检查是否是管理员（统一使用 authStore）
+const isAdmin = computed(() => authStore.userRole === 'admin')
 
 const myPendingCount = computed(() => store.myPendingCount)
 const pendingCount = computed(() => store.pendingCount)
@@ -111,95 +104,3 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.approval-manager {
-  min-height: 100%;
-  background: var(--color-surface-tile-1);
-  color: var(--color-body-on-dark);
-}
-
-.tabs {
-  display: flex;
-  border-bottom: 1px solid var(--color-border-on-dark);
-  background: var(--color-surface-tile-3);
-}
-
-.tabs button {
-  flex: 1;
-  padding: var(--space-sm) var(--spacing-md);
-  background: transparent;
-  border: none;
-  color: var(--color-body-muted);
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
-  font-family: var(--font-family-text);
-}
-
-.tabs button:hover {
-  color: var(--color-body-on-dark);
-  background: var(--color-surface-tile-2);
-}
-
-.tabs button.active {
-  color: var(--color-primary);
-  border-bottom: 2px solid var(--color-primary);
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  margin-left: var(--space-xxs);
-  background: var(--color-danger);
-  color: var(--color-body-on-dark);
-  border-radius: var(--radius-md);
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.tab-content {
-  min-height: 400px;
-}
-
-.toast {
-  position: fixed;
-  bottom: var(--spacing-lg);
-  right: var(--spacing-lg);
-  padding: var(--space-sm) var(--spacing-md);
-  border-radius: var(--radius-md);
-  font-size: 14px;
-  z-index: 1000;
-  animation: slideIn 0.3s ease;
-}
-
-.toast.success {
-  background: var(--color-success);
-  color: var(--color-body-on-dark);
-}
-
-.toast.error {
-  background: var(--color-danger);
-  color: var(--color-body-on-dark);
-}
-
-.toast.info {
-  background: var(--color-primary);
-  color: var(--color-body-on-dark);
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-</style>
