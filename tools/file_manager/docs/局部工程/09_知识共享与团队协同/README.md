@@ -11,3 +11,5 @@
 - `04_产品功能规格.md` — 功能详细规格
 - `05_部署架构方案.md` — 部署架构设计
 - `06_claudian_hermes_plugin.md` — Claudian Hermes MCP 插件技术设计
+- `07_模块整合方案总结.md` — 模块角色、SSO/RBAC 打通、hermes-mcp 验证结果
+- `08_claudian_integration.md` — Claudian 客户端集成方案（hermes-mcp 安装配置与使用）
