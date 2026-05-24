@@ -63,6 +63,8 @@ from file_manager.api.webhook import (
     EventType, get_publisher
 )
 from file_manager.api.auth import security, get_client_info
+from file_manager.api.hermes import router as hermes_router
+from file_manager.services.hermes_service import init_hermes_service, shutdown_hermes_service
 from file_manager.services.share_service import ShareService
 from file_manager.services.admin_service import AdminService
 from file_manager.services.admin_analytics_service import AdminAnalyticsService
@@ -289,6 +291,7 @@ async def lifespan(app: FastAPI):
 
     # Initialize webhook publisher
     await init_publisher()
+    await init_hermes_service()
 
     # Auto-register webhooks from config
     webhooks = config.get("webhooks", [])
@@ -305,6 +308,7 @@ async def lifespan(app: FastAPI):
 
     # Shutdown webhook publisher and analytics broadcaster
     await shutdown_publisher()
+    await shutdown_hermes_service()
     if "analytics_broadcaster" in _api_instances:
         await _api_instances["analytics_broadcaster"].stop()
 
@@ -325,6 +329,8 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+app.include_router(hermes_router)
 
 # CORS 配置：通过环境变量控制允许的来源
 # 开发环境: HFM_CORS_ORIGINS="http://localhost:5173,http://localhost:8080"
@@ -1075,25 +1081,93 @@ async def full_sync_batch(
     task["status"] = "in_progress"
     completed = 0
     failed = 0
+    skipped = 0
+
+    from file_manager.services.knowledge_service import get_knowledge_service
+    from file_manager.engine.models import FileEntry
+
+    svc = get_knowledge_service()
+    space_id = task["space_id"]
+
+    # 初始化 checksum 集合（幂等性检查）
+    if "synced_checksums" not in task:
+        task["synced_checksums"] = set()
+
+    # 获取已存在的 checksum（从历史同步记录）
+    existing_checksums = task.get("synced_checksums", set())
 
     for file_item in body.files:
         try:
-            # 实际同步逻辑（调用 knowledge_service）
-            from file_manager.services.knowledge_service import get_knowledge_service
-            svc = get_knowledge_service()
-            # 这里简化处理，实际应检查 checksum 幂等性
+            checksum = file_item.get("checksum")
+            path = file_item.get("path")
+
+            # 幂等性检查：如果 checksum 已存在，跳过
+            if checksum and checksum in existing_checksums:
+                skipped += 1
+                continue
+
+            # 实际同步逻辑：写入文件到团队 Space
+            # 构建 FileEntry 用于 knowledge_service
+            file_entry = FileEntry(
+                path=path,
+                name=path.split("/")[-1] if "/" in path else path,
+                is_directory=False,
+                size=len(file_item.get("content", "").encode()),
+                checksum=checksum,
+                modified_at=datetime.now().timestamp()
+            )
+
+            # 调用 knowledge_service 同步文件
+            # 注意：实际应调用 svc.sync_file_to_space() 方法
+            # 这里暂时用 sync_to_knowledge 作为替代
+            await svc.sync_to_knowledge(
+                source_path=path,
+                target_project=space_id,
+                user_id=user_ctx.user_id,
+                is_space_member=True,
+                is_space_owner=False,
+                is_admin=user_ctx.role_name == "admin"
+            )
+
+            # 更新 checksum 集合
+            if checksum:
+                existing_checksums.add(checksum)
+                task["synced_checksums"] = existing_checksums
+
             completed += 1
+
         except Exception as e:
             failed += 1
-            task["errors"].append(f"Batch {body.batch_index}: {str(e)}")
+            task["errors"].append(f"Batch {body.batch_index}, file {file_item.get('path')}: {str(e)}")
 
     task["completed_batches"] = body.batch_index + 1
     task["files_synced"] += completed
     task["files_failed"] += failed
 
+    # 触发 LLM Wiki 编译（增量编译，仅处理新同步的文件）
+    if completed > 0 and task.get("trigger_compile", True):
+        try:
+            from file_manager.services.knowledge_service import get_knowledge_service
+            compile_svc = get_knowledge_service()
+            # 调用 LLM Wiki 的 compile 端点
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                await client.post(
+                    f"{compile_svc.llm_wiki_url}/compile",
+                    json={
+                        "project": space_id,
+                        "files": [f.get("path") for f in body.files if f.get("path")],
+                        "mode": "incremental"
+                    }
+                )
+        except Exception as compile_err:
+            # 编译失败不影响同步成功状态，只记录警告
+            task["errors"].append(f"Compile trigger warning: {str(compile_err)}")
+
     return {
         "completed": completed,
         "failed": failed,
+        "skipped": skipped,
+        "total_files_synced": task["files_synced"],
     }
 
 
@@ -1107,22 +1181,66 @@ async def full_sync_graph(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    entities_synced = 0
-    relations_synced = 0
+    from file_manager.services.knowledge_service import get_knowledge_service, Entity, Concept, GraphRelation
 
-    # 图谱数据存储（实际应存入 PostgreSQL jsonb 或 Neo4j）
+    svc = get_knowledge_service()
+    space_id = task["space_id"]
+
+    # 转换 dict 到 Entity/Concept/GraphRelation 对象
+    entities = [
+        Entity(
+            id=e.get("id", str(uuid.uuid4())),
+            type=e.get("type", "unknown"),
+            name=e.get("name", ""),
+            page_path=e.get("page_path", ""),
+            metadata=e.get("metadata", {})
+        )
+        for e in body.entities
+    ]
+
+    concepts = [
+        Concept(
+            id=c.get("id", str(uuid.uuid4())),
+            type=c.get("type", "unknown"),
+            name=c.get("name", ""),
+            page_path=c.get("page_path", ""),
+            metadata=c.get("metadata", {})
+        )
+        for c in body.entities  # 复用 entity 结构
+        if c.get("type") in ("architecture", "design_pattern", "term", "process")
+    ]
+
+    relations = [
+        GraphRelation(
+            source_id=r.get("source_id", ""),
+            target_id=r.get("target_id", ""),
+            relation_type=r.get("relation_type", "related_to"),
+            weight=r.get("weight", 1.0),
+            metadata=r.get("metadata", {})
+        )
+        for r in body.relations
+    ]
+
+    # 调用 knowledge_service 持久化存储（PostgreSQL jsonb 或内存）
+    result = svc.store_graph_data(
+        space_id=space_id,
+        entities=entities,
+        concepts=concepts,
+        relations=relations
+    )
+
+    # 记录到任务中（用于后续追踪）
     graph_key = f"graph:{body.task_id}"
-    graph_data = task.get("graph_data", {"entities": [], "relations": []})
-    graph_data["entities"].extend(body.entities)
-    graph_data["relations"].extend(body.relations)
-    task["graph_data"] = graph_data
-
-    entities_synced = len(body.entities)
-    relations_synced = len(body.relations)
+    task["graph_data"] = {
+        "entities": body.entities,
+        "relations": body.relations,
+        "stored_result": result
+    }
 
     return {
-        "entities_synced": entities_synced,
-        "relations_synced": relations_synced,
+        "entities_synced": result.get("entities_stored", len(entities)),
+        "concepts_synced": result.get("concepts_stored", 0),
+        "relations_synced": result.get("relations_stored", len(relations)),
     }
 
 

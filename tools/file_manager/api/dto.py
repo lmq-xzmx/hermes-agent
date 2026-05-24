@@ -654,3 +654,59 @@ class AnalyticsOverviewResponseDTO(BaseModel):
     storage: dict
     alerts: List[AlertDTO] = []
     recent_activities: List[RecentActivityDTO] = []
+
+
+# =============================================================================
+# Hermes DTOs
+# =============================================================================
+
+class HermesExecuteRequestDTO(BaseModel):
+    """Hermes 任务执行请求"""
+    command: str = Field(..., description="Hermes 命令（如 execute, query, cron.list）")
+    params: Optional[Dict[str, Any]] = Field(default_factory=dict, description="命令参数")
+    priority: str = Field(default="normal", description="优先级: low, normal, high")
+    callback_url: Optional[str] = Field(None, description="完成后回调的 Webhook URL")
+    team_id: Optional[str] = Field(None, description="团队 ID（可选，不填则使用默认团队）")
+
+
+class HermesTaskResponseDTO(BaseModel):
+    """Hermes 任务响应"""
+    id: str
+    user_id: str
+    team_id: str
+    command: str
+    params: Dict[str, Any]
+    status: str
+    priority: str
+    result: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+    created_at: Optional[datetime] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    callback_url: Optional[str] = None
+
+
+class HermesTaskListResponseDTO(BaseModel):
+    """Hermes 任务列表响应"""
+    tasks: List[HermesTaskResponseDTO] = []
+    total: int
+
+
+class HermesStatusResponseDTO(BaseModel):
+    """Hermes 服务状态响应"""
+    queue_size: int
+    pending: int
+    running: int
+    completed: int
+    failed: int
+    total: int
+    running_state: bool
+
+
+class HermesCallbackDTO(BaseModel):
+    """Hermes 任务完成回调"""
+    task_id: str
+    status: str
+    result: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+    completed_at: Optional[str] = None
