@@ -209,3 +209,73 @@ def get_auth_limiter() -> LoginRateLimiter:
 
 def get_api_limiter() -> RateLimiter:
     return _api_limiter
+
+
+# =============================================================================
+# Security Headers Middleware
+# =============================================================================
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """
+    Adds security-related HTTP headers to all responses.
+    Implements OWASP recommendations for HTTP security headers.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+
+        # Content Security Policy (CSP)
+        # Restrict script sources and prevent XSS
+        csp = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' https:; "
+            "font-src 'self'; "
+            "frame-ancestors 'none'; "
+            "form-action 'self'; "
+            "base-uri 'self';"
+        )
+        response.headers["Content-Security-Policy"] = csp
+
+        # X-Content-Type-Options: prevents MIME type sniffing
+        response.headers["X-Content-Type-Options"] = "nosniff"
+
+        # X-Frame-Options: prevent clickjacking attacks
+        response.headers["X-Frame-Options"] = "DENY"
+
+        # X-XSS-Protection: legacy XSS filter (modern browsers use CSP)
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+
+        # Strict-Transport-Security (HSTS): force HTTPS
+        # Max-age is 1 year (31536000 seconds)
+        # Include subdomains and preload for browser preloading
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains; preload"
+        )
+
+        # Referrer-Policy: control referrer information
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
+        # Permissions-Policy: restrict browser features
+        # Disable camera, microphone, geolocation unless explicitly needed
+        response.headers["Permissions-Policy"] = (
+            "accelerometer=(), "
+            "camera=(), "
+            "geolocation=(), "
+            "gyroscope=(), "
+            "magnetometer=(), "
+            "microphone=(), "
+            "payment=(), "
+            "usb=()"
+        )
+
+        # Cache-Control: prevent sensitive data caching
+        # For API responses, no-store is appropriate
+        if request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+
+        return response

@@ -1,0 +1,318 @@
+#
+# docker-compose.yml - Production Deployment
+#
+# Security features:
+#   - Non-root user (hermes:hermes, UID/GID 10000)
+#   - Read-only root filesystem where possible
+#   - Resource limits (CPU/memory)
+#   - Security context (no new privileges, drop all capabilities)
+#   - Network isolation via internal network
+#
+# Usage:
+#   docker compose -f docker-compose.yml up -d
+
+services:
+  # -------------------------------------------------------------------------
+  # Nginx Reverse Proxy
+  # -------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: hermes-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+      - web
+    networks:
+      - hermes-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_context:
+      read_only_root_filesystem: true
+      run_as_non_root: true
+      run_as_user: 10000
+
+  # -------------------------------------------------------------------------
+  # API Service (FastAPI)
+  # -------------------------------------------------------------------------
+  api:
+    image: hermes/file-manager:latest
+    container_name: hermes-api
+    restart: unless-stopped
+    expose:
+      - "8080"
+    volumes:
+      - hermes-data:/opt/data
+      - ./config.yaml:/etc/hermes/config.yaml:ro
+    environment:
+      - DATABASE_URL=postgresql://hermes:$${HERMES_DB_PASSWORD}@postgres:5432/hermes
+      - REDIS_URL=redis://redis:6379/0
+      - S3_ENDPOINT=http://minio:9000
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - HERMES_DB_PASSWORD=${HERMES_DB_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - hermes-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    security_context:
+      read_only_root_filesystem: true
+      run_as_non_root: true
+      run_as_user: "10000:10000"
+      allow_privilege_escalation: false
+      capabilities:
+        drop:
+          - ALL
+    readonly_rootfs: true
+    tmpfs:
+      - /tmp:size=64M,mode=1777
+
+  # -------------------------------------------------------------------------
+  # Web Frontend
+  # -------------------------------------------------------------------------
+  web:
+    image: hermes/file-manager-web:latest
+    container_name: hermes-web
+    restart: unless-stopped
+    expose:
+      - "80"
+    volumes:
+      - hermes-data:/opt/data:ro
+    depends_on:
+      - api
+    networks:
+      - hermes-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    security_context:
+      read_only_root_filesystem: true
+      run_as_non_root: true
+      run_as_user: "10000:10000"
+      allow_privilege_escalation: false
+      capabilities:
+        drop:
+          - ALL
+
+  # -------------------------------------------------------------------------
+  # Worker Services (Sync + LLM)
+  # -------------------------------------------------------------------------
+  worker-sync:
+    image: hermes/file-manager:latest
+    container_name: hermes-worker-sync
+    restart: unless-stopped
+    command: python -m worker sync
+    volumes:
+      - hermes-data:/opt/data
+      - ./config.yaml:/etc/hermes/config.yaml:ro
+    environment:
+      - DATABASE_URL=postgresql://hermes:$${HERMES_DB_PASSWORD}@postgres:5432/hermes
+      - REDIS_URL=redis://redis:6379/0
+      - S3_ENDPOINT=http://minio:9000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - hermes-network
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    security_context:
+      read_only_root_filesystem: true
+      run_as_non_root: true
+      run_as_user: "10000:10000"
+      allow_privilege_escalation: false
+      capabilities:
+        drop:
+          - ALL
+
+  worker-llm:
+    image: hermes/file-manager:latest
+    container_name: hermes-worker-llm
+    restart: unless-stopped
+    command: python -m worker llm
+    volumes:
+      - hermes-data:/opt/data
+      - ./config.yaml:/etc/hermes/config.yaml:ro
+    environment:
+      - DATABASE_URL=postgresql://hermes:$${HERMES_DB_PASSWORD}@postgres:5432/hermes
+      - REDIS_URL=redis://redis:6379/0
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - hermes-network
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+    security_context:
+      read_only_root_filesystem: true
+      run_as_non_root: true
+      run_as_user: "10000:10000"
+      allow_privilege_escalation: false
+      capabilities:
+        drop:
+          - ALL
+
+  # -------------------------------------------------------------------------
+  # Database (PostgreSQL)
+  # -------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: hermes-postgres
+    restart: unless-stopped
+    expose:
+      - "5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=hermes
+      - POSTGRES_USER=hermes
+      - POSTGRES_PASSWORD=${HERMES_DB_PASSWORD}
+    networks:
+      - hermes-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hermes"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+    security_context:
+      read_only_root_filesystem: false
+      run_as_non_root: true
+      run_as_user: "999:999"
+      allow_privilege_escalation: false
+      capabilities:
+        drop:
+          - ALL
+
+  # -------------------------------------------------------------------------
+  # Redis
+  # -------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: hermes-redis
+    restart: unless-stopped
+    expose:
+      - "6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - hermes-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    security_context:
+      read_only_root_filesystem: false
+      run_as_non_root: true
+      run_as_user: "999:999"
+      allow_privilege_escalation: false
+      capabilities:
+        drop:
+          - ALL
+
+  # -------------------------------------------------------------------------
+  # MinIO (S3-compatible storage)
+  # -------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: hermes-minio
+    restart: unless-stopped
+    expose:
+      - "9000"
+      - "9001"
+    volumes:
+      - minio-data:/data
+    environment:
+      - MINIO_ROOT_USER=${S3_ACCESS_KEY}
+      - MINIO_ROOT_PASSWORD=${S3_SECRET_KEY}
+    command: server /data --console-address ":9001"
+    networks:
+      - hermes-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+    security_context:
+      read_only_root_filesystem: false
+      run_as_non_root: true
+      run_as_user: "10000:10000"
+      allow_privilege_escalation: false
+      capabilities:
+        drop:
+          - ALL
+
+# -------------------------------------------------------------------------
+# Networks
+# -------------------------------------------------------------------------
+networks:
+  hermes-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# -------------------------------------------------------------------------
+# Volumes (Persistent data)
+# -------------------------------------------------------------------------
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  minio-data:
+    driver: local
+  hermes-data:
+    driver: local

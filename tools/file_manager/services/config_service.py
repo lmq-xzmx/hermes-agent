@@ -354,3 +354,14 @@ __all__ = [
     "AppConfig",
     "ConfigChange",
 ]
+
+# Singleton instance
+_config_service: Optional[ConfigService] = None
+
+
+def get_config_service(db_factory=None) -> ConfigService:
+    """Get or create ConfigService singleton"""
+    global _config_service
+    if _config_service is None:
+        _config_service = ConfigService(db_factory=db_factory)
+    return _config_service

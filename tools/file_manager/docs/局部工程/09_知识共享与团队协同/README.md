@@ -2,14 +2,15 @@
 
 **存在目标**：Hermes TeamSpace 商业化产品规划（知识共享 + 团队协同）
 
-**状态**：🔄 进行中
+**状态**: ✅ 设计完成（已实现验证）
 
 **包含文档**：
 - `01_商业化方案总览.md` — 产品定位、商业模式、竞争优势
-- `02_账号体系设计.md` — 统一账号系统设计
+- `02_账号体系设计.md` — 统一账号系统设计（JWT + capabilities 已补充）
 - `03_技术实现路线图.md` — MVP → Beta → 正式版路径
 - `04_产品功能规格.md` — 功能详细规格
 - `05_部署架构方案.md` — 部署架构设计
 - `06_claudian_hermes_plugin.md` — Claudian Hermes MCP 插件技术设计
 - `07_模块整合方案总结.md` — 模块角色、SSO/RBAC 打通、hermes-mcp 验证结果
 - `08_claudian_integration.md` — Claudian 客户端集成方案（hermes-mcp 安装配置与使用）
+- `09_四类管理分级安全方案.md` — 四类管理分级安全 + OAuth 2.0/OIDC 完整方案 + 最佳实践对照

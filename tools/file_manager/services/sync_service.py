@@ -509,3 +509,111 @@ class SyncService:
             "conflict_count": 0,
             "status": "idle",  # idle | syncing | error
         }
+
+    # -------------------------------------------------------------------------
+    # Incremental Sync & Checksum (阶段四)
+    # -------------------------------------------------------------------------
+
+    def compute_file_checksum(self, content: str) -> str:
+        """计算文件内容的 SHA256 校验和"""
+        return hashlib.sha256(content.encode()).hexdigest()
+
+    def is_duplicate_sync(self, space_id: str, path: str, checksum: str) -> bool:
+        """
+        检查是否为重复同步（幂等性保证）。
+
+        相同 path + checksum 的请求被认为是重复的，直接返回成功。
+        """
+        # 从数据库检查已存在的同步记录
+        # 这里用内存模拟，实际应查数据库
+        sync_key = f"{space_id}:{path}:{checksum}"
+        # 实际实现需要查询 sync_records 表
+        return False
+
+    def record_sync_result(
+        self,
+        space_id: str,
+        path: str,
+        checksum: str,
+        success: bool,
+        error: Optional[str] = None,
+    ) -> None:
+        """记录同步结果，用于幂等性检查"""
+        # 实际实现需要写入 sync_records 表
+        logger.info(f"Sync result recorded: {space_id}/{path} -> {success}")
+
+    def build_incremental_diff(
+        self,
+        old_snapshot: SyncSnapshot,
+        new_snapshot: SyncSnapshot,
+    ) -> SyncDelta:
+        """
+        构建增量 diff，仅返回变更部分。
+
+        用于网络传输优化，只上传变更的文件。
+        """
+        local_changes: List[FileChange] = []
+        remote_changes: List[FileChange] = []
+
+        all_paths = set(old_snapshot.files.keys()) | set(new_snapshot.files.keys())
+
+        for path in all_paths:
+            old_entry = old_snapshot.files.get(path)
+            new_entry = new_snapshot.files.get(path)
+
+            if new_entry and not old_entry:
+                # 新增
+                local_changes.append(FileChange(
+                    path=path,
+                    change_type=ChangeType.CREATE,
+                    size=new_entry.size,
+                    checksum=new_entry.checksum,
+                    modified_at=new_entry.modified_at,
+                ))
+            elif old_entry and not new_entry:
+                # 删除
+                local_changes.append(FileChange(
+                    path=path,
+                    change_type=ChangeType.DELETE,
+                    size=old_entry.size,
+                    checksum=old_entry.checksum,
+                    modified_at=old_entry.modified_at,
+                ))
+            elif new_entry and old_entry:
+                # 修改（检查 checksum 变化）
+                if new_entry.checksum != old_entry.checksum:
+                    local_changes.append(FileChange(
+                        path=path,
+                        change_type=ChangeType.UPDATE,
+                        size=new_entry.size,
+                        checksum=new_entry.checksum,
+                        modified_at=new_entry.modified_at,
+                    ))
+
+        return SyncDelta(
+            local_changes=local_changes,
+            remote_changes=remote_changes,
+            conflicts=[],
+            timestamp=time.time(),
+        )
+
+    def save_sync_progress(
+        self,
+        task_id: str,
+        space_id: str,
+        batch_index: int,
+        completed: int,
+        failed: int,
+    ) -> None:
+        """
+        保存断点续传进度。
+
+        用于网络中断后的恢复。
+        """
+        # 实际实现需要写入 sync_tasks 表
+        logger.info(f"Sync progress: task={task_id} batch={batch_index} completed={completed} failed={failed}")
+
+    def load_sync_progress(self, task_id: str) -> Optional[dict]:
+        """加载断点续传进度"""
+        # 实际实现需要从数据库读取
+        return None

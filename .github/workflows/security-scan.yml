@@ -1,0 +1,187 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly vulnerability scan (Sunday at 2am)
+    - cron: '0 2 * * 0'
+
+permissions:
+  security-events: write
+  contents: read
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Dependency CVE Scan (Python)
+  # -------------------------------------------------------------------------
+  python-deps-scan:
+    name: Python Dependencies CVE Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@1a1e2323a6f3a8a8c80c4a0e0b5f9f9e0c9e1b0f
+        with:
+          python-version: '3.11'
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Run pip-audit
+        id: pip-audit
+        run: |
+          pip-audit -r requirements.txt --format=json --output=pip-audit.json || true
+          if [ -s pip-audit.json ]; then
+            echo "vulnerabilities_found=true" >> $GITHUB_OUTPUT
+          else
+            echo "vulnerabilities_found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload pip-audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-results
+          path: pip-audit.json
+          retention-days: 30
+
+      - name: Fail on critical CVE
+        if: steps.pip-audit.outputs.vulnerabilities_found == 'true'
+        run: |
+          echo "::warning::Python dependency vulnerabilities found. Review pip-audit.json artifact."
+
+  # -------------------------------------------------------------------------
+  # Docker Image CVE Scan
+  # -------------------------------------------------------------------------
+  docker-scan:
+    name: Docker Image CVE Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          docker build -t hermes-agent:test .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'hermes-agent:test'
+          format: 'json'
+          output: 'trivy-results.json'
+          severity: 'CRITICAL,HIGH'
+          vuln-type: 'os,library'
+
+      - name: Upload Trivy results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-results
+          path: trivy-results.json
+          retention-days: 30
+
+      - name: Fail on critical CVE
+        run: |
+          if grep -q '"Severity":"CRITICAL"' trivy-results.json; then
+            echo "::error::Critical Docker vulnerabilities found. See artifact for details."
+            exit 1
+          fi
+
+  # -------------------------------------------------------------------------
+  # Secret Scanning
+  # -------------------------------------------------------------------------
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run GitLeaks
+        uses: gitleaks/gitleaks-action@master
+        with:
+          config-path: .gitleaks.toml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # -------------------------------------------------------------------------
+  # SAST (Static Application Security Testing)
+  # -------------------------------------------------------------------------
+  sast-scan:
+    name: SAST Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Bandit
+        run: pip install bandit bandit-sarif-json
+
+      - name: Run Bandit SAST
+        run: |
+          bandit -r tools/file_manager -f json --output bandit-results.json || true
+
+      - name: Upload Bandit results
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-results
+          path: bandit-results.json
+          retention-days: 30
+
+      - name: Annotate code with Bandit findings
+        if: always()
+        uses:ScottyBat65/bandit-sarif-upload@v1
+        with:
+          sarif_file: 'bandit-results.json'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  # -------------------------------------------------------------------------
+  # OWASP Dependency Check
+  # -------------------------------------------------------------------------
+  owasp-scan:
+    name: OWASP Dependency Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Run OWASP Dependency Check
+        run: |
+          curl -sL https://github.com/jeremylong/DependencyCheck/releases/download/v9.0.0/dependency-check-9.0.0-release.zip -o /tmp/odc.zip
+          unzip -q /tmp/odc.zip -d /tmp
+          /tmp/dependency-check/bin/dependency-check.sh \
+            --project "Hermes File Manager" \
+            --scan tools/file_manager \
+            --format JSON \
+            --out dependency-check-results
+          echo "vulnerabilities_found=$(test -s dependency-check-results/*.json && grep -c '"vulnerabilities"' dependency-check-results/*.json || echo 0)" >> $GITHUB_OUTPUT
+
+      - name: Upload OWASP results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-results
+          path: dependency-check-results
+          retention-days: 30

@@ -1,0 +1,1 @@
+{"version":3,"file":"full_sync_status.d.ts","sourceRoot":"","sources":["../../src/tools/full_sync_status.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,YAAY,EAAE,MAAM,yBAAyB,CAAC;AAC5D,OAAO,KAAK,EAAE,cAAc,EAAE,UAAU,EAAE,MAAM,aAAa,CAAC;AAE9D,eAAO,MAAM,kBAAkB,EAAE,cAahC,CAAC;AAMF,wBAAsB,qBAAqB,CACzC,IAAI,EAAE,OAAO,EACb,MAAM,EAAE,YAAY,GACnB,OAAO,CAAC,UAAU,CAAC,CAwCrB"}

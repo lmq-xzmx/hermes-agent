@@ -6,12 +6,24 @@ import { listSpacesTool, listSpacesHandler } from './tools/list_spaces.js';
 import { syncToWikiTool, syncToWikiHandler } from './tools/sync_to_wiki.js';
 import { searchWikiTool, searchWikiHandler } from './tools/search_wiki.js';
 import { getSyncStatusTool, getSyncStatusHandler } from './tools/get_sync_status.js';
+import { fullSyncStartTool, fullSyncStartHandler } from './tools/full_sync_start.js';
+import { fullSyncBatchTool, fullSyncBatchHandler } from './tools/full_sync_batch.js';
+import { fullSyncGraphTool, fullSyncGraphHandler } from './tools/full_sync_graph.js';
+import { fullSyncStatusTool, fullSyncStatusHandler } from './tools/full_sync_status.js';
+import { fullSyncAbortTool, fullSyncAbortHandler } from './tools/full_sync_abort.js';
+import { checkInTool, checkInHandler } from './tools/check_in.js';
 // Tool definitions with their handlers
 const tools = [
     { definition: listSpacesTool, handler: listSpacesHandler },
     { definition: syncToWikiTool, handler: syncToWikiHandler },
     { definition: searchWikiTool, handler: searchWikiHandler },
     { definition: getSyncStatusTool, handler: getSyncStatusHandler },
+    { definition: fullSyncStartTool, handler: fullSyncStartHandler },
+    { definition: fullSyncBatchTool, handler: fullSyncBatchHandler },
+    { definition: fullSyncGraphTool, handler: fullSyncGraphHandler },
+    { definition: fullSyncStatusTool, handler: fullSyncStatusHandler },
+    { definition: fullSyncAbortTool, handler: fullSyncAbortHandler },
+    { definition: checkInTool, handler: checkInHandler },
 ];
 export function createHermesMCPServer(config) {
     const hermes = new HermesClient(config.hermes.base_url, config.hermes.token);

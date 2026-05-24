@@ -85,5 +85,37 @@ export class HermesClient {
             return { message: 'Sync triggered via knowledge API' };
         }
     }
+    // ========== Full Sync APIs ==========
+    async fullSyncStart(spaceId, options) {
+        const body = { space_id: spaceId };
+        if (options) {
+            if (options.include_raw !== undefined)
+                body.include_raw = options.include_raw;
+            if (options.transition_days !== undefined)
+                body.transition_days = options.transition_days;
+        }
+        const result = await this.request('/api/v1/knowledge/sync/full/start', { method: 'POST', body: JSON.stringify(body) });
+        return result;
+    }
+    async fullSyncBatch(taskId, batchIndex, files) {
+        const result = await this.request('/api/v1/knowledge/sync/full/batch', {
+            method: 'POST',
+            body: JSON.stringify({ task_id: taskId, batch_index: batchIndex, files }),
+        });
+        return result;
+    }
+    async fullSyncGraph(taskId, entities, relations) {
+        const result = await this.request('/api/v1/knowledge/sync/full/graph', {
+            method: 'POST',
+            body: JSON.stringify({ task_id: taskId, entities, relations }),
+        });
+        return result;
+    }
+    async fullSyncStatus(taskId) {
+        return this.request(`/api/v1/knowledge/sync/full/${taskId}`, { method: 'GET' });
+    }
+    async fullSyncAbort(taskId) {
+        return this.request(`/api/v1/knowledge/sync/full/${taskId}/abort`, { method: 'POST' });
+    }
 }
 //# sourceMappingURL=hermes_client.js.map

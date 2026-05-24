@@ -1,7 +1,7 @@
 # Claudian Hermes MCP 插件技术设计
 
 > **创建日期**: 2026-05-20
-> **状态**: 规划中
+> **状态**: 设计完成
 > **目标**: 实现 Claudian → Hermes → LLM Wiki 调用链路
 
 ---

@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import httpx
 import uuid
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 
 class SyncStatus(str, Enum):
@@ -26,6 +27,38 @@ class SyncMode(str, Enum):
     MANUAL = "manual"
     INTERVAL = "interval"
     WEBHOOK = "webhook"
+
+
+@dataclass
+class Entity:
+    """实体：人名、项目、技术名词等"""
+    id: str
+    type: str  # person/project/technology/concept
+    name: str
+    page_path: str
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    created_at: datetime = field(default_factory=datetime.now)
+
+
+@dataclass
+class Concept:
+    """概念：架构模式、设计原则等"""
+    id: str
+    type: str  # architecture/design_pattern/term/process
+    name: str
+    page_path: str
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    created_at: datetime = field(default_factory=datetime.now)
+
+
+@dataclass
+class GraphRelation:
+    """图谱关系"""
+    source_id: str
+    target_id: str
+    relation_type: str  # "depends_on", "related_to", "implements", "uses"
+    weight: float = 1.0
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -64,10 +97,27 @@ class KnowledgeBase:
 class KnowledgeService:
     """知识库同步服务"""
 
+    # 实体提取正则模式
+    ENTITY_PATTERNS = {
+        'person': re.compile(r'\b([A-Z][a-z]+ [A-Z][a-z]+|[一-龥]{2,4})\b'),
+        'project': re.compile(r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:Project)\b', re.IGNORECASE),
+        'technology': re.compile(r'\b(Python|JavaScript|TypeScript|React|Vue|Node\.js|Docker|Kubernetes|AWS|Azure|GCP)\b'),
+    }
+
+    # 概念提取正则模式
+    CONCEPT_PATTERNS = {
+        'architecture': re.compile(r'\b(Microservices|Monolith|Serverless|Event-Driven|CQRS|DDD)\b', re.IGNORECASE),
+        'design_pattern': re.compile(r'\b(Factory|Observer|Strategy|Adapter|Decorator)\b', re.IGNORECASE),
+        'term': re.compile(r'\b(API|REST|GraphQL|gRPC|OAuth|JWT|SSO)\b', re.IGNORECASE),
+    }
+
     def __init__(self, llm_wiki_url: str = "http://localhost:19827"):
         self.llm_wiki_url = llm_wiki_url
         self._sync_jobs: List[SyncJob] = []
         self._user_settings: dict = {}  # 用户设置存储
+        self._entities: List[Entity] = []
+        self._concepts: List[Concept] = []
+        self._relations: List[GraphRelation] = []
 
     async def check_service_status(self) -> bool:
         """检查 llm_wiki 服务是否运行"""
@@ -77,6 +127,90 @@ class KnowledgeService:
                 return resp.status_code == 200
         except Exception:
             return False
+
+    def extract_entities(self, content: str, page_path: str) -> List[Entity]:
+        """从内容中提取实体"""
+        entities = []
+        seen_names = set()
+
+        for entity_type, pattern in self.ENTITY_PATTERNS.items():
+            for match in pattern.finditer(content):
+                name = match.group(1).strip()
+                if name and name not in seen_names:
+                    seen_names.add(name)
+                    entities.append(Entity(
+                        id=str(uuid.uuid4()),
+                        type=entity_type,
+                        name=name,
+                        page_path=page_path,
+                        metadata={'source': 'regex_extraction', 'match_pos': match.start()}
+                    ))
+
+        return entities
+
+    def extract_concepts(self, content: str, page_path: str) -> List[Concept]:
+        """从内容中提取概念"""
+        concepts = []
+        seen_names = set()
+
+        for concept_type, pattern in self.CONCEPT_PATTERNS.items():
+            for match in pattern.finditer(content):
+                name = match.group(1).strip()
+                if name and name not in seen_names:
+                    seen_names.add(name)
+                    concepts.append(Concept(
+                        id=str(uuid.uuid4()),
+                        type=concept_type,
+                        name=name,
+                        page_path=page_path,
+                        metadata={'source': 'regex_extraction', 'match_pos': match.start()}
+                    ))
+
+        return concepts
+
+    def build_knowledge_graph(
+        self,
+        entities: List[Entity],
+        concepts: List[Concept],
+        links: List[str]
+    ) -> List[GraphRelation]:
+        """根据提取的实体/概念和链接关系构建图谱"""
+        relations = []
+
+        # 实体间关系（基于同页面）
+        entity_map = {e.name: e for e in entities}
+        concept_map = {c.name: c for c in concepts}
+
+        # 基于 [[wiki links]] 建立关系
+        for linked_name in links:
+            if linked_name in entity_map and linked_name in concept_map:
+                relations.append(GraphRelation(
+                    source_id=entity_map[linked_name].id,
+                    target_id=concept_map[linked_name].id,
+                    relation_type='related_to',
+                    weight=0.8
+                ))
+
+        return relations
+
+    def store_graph_data(
+        self,
+        space_id: str,
+        entities: List[Entity],
+        concepts: List[Concept],
+        relations: List[GraphRelation]
+    ) -> Dict[str, int]:
+        """存储图谱数据到 PostgreSQL jsonb（MVP）或内存（测试）"""
+        # 过滤属于此 space 的数据
+        self._entities.extend([e for e in entities])
+        self._concepts.extend([c for c in concepts])
+        self._relations.extend(relations)
+
+        return {
+            'entities_stored': len(entities),
+            'concepts_stored': len(concepts),
+            'relations_stored': len(relations),
+        }
 
     async def sync_to_knowledge(
         self,

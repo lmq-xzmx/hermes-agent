@@ -100,4 +100,70 @@ export class HermesClient {
       return { message: 'Sync triggered via knowledge API' };
     }
   }
+
+  // ========== Full Sync APIs ==========
+
+  async fullSyncStart(spaceId: string, options?: {
+    include_raw?: boolean;
+    transition_days?: number;
+  }): Promise<{ task_id: string; total_files: number }> {
+    const body: Record<string, unknown> = { space_id: spaceId };
+    if (options) {
+      if (options.include_raw !== undefined) body.include_raw = options.include_raw;
+      if (options.transition_days !== undefined) body.transition_days = options.transition_days;
+    }
+    const result = await this.request<{ task_id: string; total_files: number }>(
+      '/api/v1/knowledge/sync/full/start',
+      { method: 'POST', body: JSON.stringify(body) }
+    );
+    return result;
+  }
+
+  async fullSyncBatch(taskId: string, batchIndex: number, files: Array<{
+    path: string;
+    checksum: string;
+    content?: string;
+  }>): Promise<{ completed: number; failed: number }> {
+    const result = await this.request<{ completed: number; failed: number }>(
+      '/api/v1/knowledge/sync/full/batch',
+      {
+        method: 'POST',
+        body: JSON.stringify({ task_id: taskId, batch_index: batchIndex, files }),
+      }
+    );
+    return result;
+  }
+
+  async fullSyncGraph(taskId: string, entities: unknown[], relations: unknown[]): Promise<{ entities_synced: number; relations_synced: number }> {
+    const result = await this.request<{ entities_synced: number; relations_synced: number }>(
+      '/api/v1/knowledge/sync/full/graph',
+      {
+        method: 'POST',
+        body: JSON.stringify({ task_id: taskId, entities, relations }),
+      }
+    );
+    return result;
+  }
+
+  async fullSyncStatus(taskId: string): Promise<{
+    task_id: string;
+    status: 'pending' | 'in_progress' | 'completed' | 'aborted';
+    total_batches: number;
+    completed_batches: number;
+    files_synced: number;
+    files_failed: number;
+    errors: string[];
+  }> {
+    return this.request(
+      `/api/v1/knowledge/sync/full/${taskId}`,
+      { method: 'GET' }
+    );
+  }
+
+  async fullSyncAbort(taskId: string): Promise<{ aborted: boolean; message: string }> {
+    return this.request(
+      `/api/v1/knowledge/sync/full/${taskId}/abort`,
+      { method: 'POST' }
+    );
+  }
 }

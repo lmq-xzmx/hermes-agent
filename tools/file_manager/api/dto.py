@@ -17,20 +17,20 @@ from pydantic import BaseModel, Field
 # =============================================================================
 
 class LoginRequestDTO(BaseModel):
-    username: str
-    password: str
+    username: str = Field(..., min_length=1, max_length=64)
+    password: str = Field(..., min_length=8, max_length=128)
 
 
 class RegisterRequestDTO(BaseModel):
-    username: str
-    password: str
-    email: Optional[str] = None
-    role_id: Optional[str] = None
+    username: str = Field(..., min_length=3, max_length=32, pattern=r"^[a-zA-Z0-9_-]+$")
+    password: str = Field(..., min_length=8, max_length=128)
+    email: Optional[str] = Field(None, max_length=256)
+    role_id: Optional[str] = Field(None, max_length=64)
 
 
 class RefreshRequestDTO(BaseModel):
-    access_token: str
-    refresh_token: str
+    access_token: str = Field(..., min_length=1)
+    refresh_token: str = Field(..., min_length=1)
 
 
 class TokenResponseDTO(BaseModel):
@@ -64,60 +64,60 @@ class LoginResponseDTO(BaseModel):
 # =============================================================================
 
 class FileItemDTO(BaseModel):
-    name: str
-    path: str
+    name: str = Field(..., min_length=1, max_length=256)
+    path: str = Field(..., min_length=1, max_length=4096)
     is_directory: bool
-    size: int
+    size: int = Field(..., ge=0)
     modified: Optional[datetime] = None
     created: Optional[datetime] = None
     permissions: str = ""
 
 
 class FileListResponseDTO(BaseModel):
-    path: str
+    path: str = Field(..., min_length=1, max_length=4096)
     items: List[FileItemDTO] = []
-    total: int
+    total: int = Field(..., ge=0)
     readable: bool
 
 
 class FileContentResponseDTO(BaseModel):
     path: str
     content: str
-    size: int
+    size: int = Field(..., ge=0)
     encoding: str
 
 
 class FileWriteRequestDTO(BaseModel):
-    path: str
+    path: str = Field(..., min_length=1, max_length=4096)
     content: str
     overwrite: bool = True
 
 
 class FileReadRequestDTO(BaseModel):
-    path: str
-    offset: int = 0
-    size: Optional[int] = None
+    path: str = Field(..., min_length=1, max_length=4096)
+    offset: int = Field(default=0, ge=0)
+    size: Optional[int] = Field(None, ge=1, le=10*1024*1024)  # Max 10MB
     encoding: str = "utf-8"
 
 
 class FileDeleteRequestDTO(BaseModel):
-    path: str
+    path: str = Field(..., min_length=1, max_length=4096)
     recursive: bool = False
 
 
 class MkDirRequestDTO(BaseModel):
-    path: str
+    path: str = Field(..., min_length=1, max_length=4096)
 
 
 class FileCopyRequestDTO(BaseModel):
-    from_path: str
-    to_path: str
+    from_path: str = Field(..., min_length=1, max_length=4096)
+    to_path: str = Field(..., min_length=1, max_length=4096)
     overwrite: bool = False
 
 
 class FileMoveRequestDTO(BaseModel):
-    from_path: str
-    to_path: str
+    from_path: str = Field(..., min_length=1, max_length=4096)
+    to_path: str = Field(..., min_length=1, max_length=4096)
     overwrite: bool = False
 
 
